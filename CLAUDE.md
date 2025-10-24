@@ -17,6 +17,7 @@ pip install ace-framework
 pip install ace-framework[all]           # All optional features
 pip install ace-framework[litellm]       # LiteLLM support
 pip install ace-framework[langchain]     # LangChain integration
+pip install ace-framework[demos]         # Demo applications (browser automation)
 pip install ace-framework[dev]           # Development tools
 
 # Development installation (contributors)
@@ -79,6 +80,18 @@ python examples/playbook_persistence.py
 # Compare prompt versions
 python examples/compare_v1_v2_prompts.py
 python examples/advanced_prompts_v2.py
+
+# Demo applications (requires: pip install ace-framework[demos])
+# Smart Form Filler - ACE learns form validation rules
+cd examples/browser-use/form_filler_demo
+python session1_baseline.py        # Baseline with validation errors
+python session2_with_ace.py        # ACE-enhanced with learned normalization
+python compare_sessions.py         # Generate comparison report
+
+# Domain Availability Checker - ACE learns optimal site selection
+cd examples/browser-use/domain_checker_demo
+python session1_baseline.py        # Baseline with fixed strategy
+python session2_with_ace.py        # ACE-enhanced with learned strategies
 ```
 
 ### Development Scripts (Research Only)

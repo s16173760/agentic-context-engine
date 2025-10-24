@@ -84,3 +84,7 @@ appworld_data/
 *.arrow
 *.parquet
 huggingface_cache/
+
+# Demo artifacts and generated files
+**/artifacts/
+*.xlsx

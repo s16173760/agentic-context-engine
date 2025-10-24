@@ -1,0 +1,13 @@
+{
+  "first_name": "Ayesha",
+  "last_name": "Khan",
+  "email": "ayesha.khan+test@example.com",
+  "phone_raw": "+34 600-12-34-56",
+  "address1": "Calle de la Universidad 12",
+  "address2": "Piso 3, Puerta B",
+  "city": "Bilbao",
+  "state_region": "Biscay",
+  "country": "Spain",
+  "zip_postal_raw": "48001",
+  "ship_date_raw": "12-08-1998"
+}

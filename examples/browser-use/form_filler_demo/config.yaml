@@ -1,0 +1,39 @@
+# Smart Form Filler Configuration
+# Either provide target_form_url or target_form_path (relative to this file)
+target_form_url: null
+target_form_path: "assets/demo_checkout_form.html"
+
+# CSS/XPath selectors (auto-discovery if null)
+selectors:
+  first_name: "#first_name"
+  last_name: "#last_name"
+  email: "#email"
+  phone: "#phone"
+  address1: "#address1"
+  address2: "#address2"
+  city: "#city"
+  state_region: "#state_region"
+  country: "#country"
+  zip_postal: "#zip_postal"
+  ship_date: "#ship_date"
+  submit: "#submit"
+
+# Validation error selectors
+validation_selectors:
+  inline_error: ".error-message[data-error-active='true']"
+  toast_error: ".status-area.error"
+  field_aria_invalid: "[aria-invalid='true']"
+  required_indicator: "[required], [aria-required='true']"
+
+# Browser configuration
+browser:
+  headless: false
+  timeout: 300
+  max_steps: 100
+  wait_after_fill: 1.0
+
+# ACE configuration
+ace:
+  model: "gpt-4o-mini"
+  enable_learning: true
+  max_reflection_rounds: 2

@@ -43,10 +43,21 @@ setup(
     python_requires=">=3.9",
     install_requires=requirements,
     extras_require={
-        "all": optional_requirements,
+        "all": optional_requirements + [
+            "browser-use>=1.0.0",
+            "pandas>=2.0.0",
+            "openpyxl>=3.0.0",
+            "playwright>=1.40.0",
+        ],
         "litellm": ["litellm>=1.0.0"],
         "langchain": ["langchain-litellm>=0.2.0", "litellm>=1.0.0"],
         "transformers": ["transformers>=4.0.0", "torch>=2.0.0"],
+        "demos": [
+            "browser-use>=1.0.0",
+            "pandas>=2.0.0",
+            "openpyxl>=3.0.0",
+            "playwright>=1.40.0",
+        ],
         "dev": [
             "pytest>=7.0.0",
             "pytest-asyncio>=0.21.0",

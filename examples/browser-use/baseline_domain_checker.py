@@ -15,6 +15,69 @@ from browser_use import Agent, Browser, ChatOpenAI
 
 load_dotenv()
 
+# Set up Opik tracking for OpenAI if available
+try:
+    from opik.integrations.openai import track_openai
+    from openai import OpenAI
+
+    # Enable Opik tracking for OpenAI calls
+    openai_client = OpenAI()
+    openai_client = track_openai(openai_client)
+    OPIK_AVAILABLE = True
+except ImportError:
+    OPIK_AVAILABLE = False
+
+
+def _get_token_usage_from_opik() -> tuple[int, float]:
+    """Query Opik for token usage and costs from recent traces.
+
+    Since baseline doesn't use ACE framework, we need to track tokens differently.
+
+    Returns:
+        tuple: (total_tokens, total_cost)
+    """
+    try:
+        import opik
+
+        # Create client and flush to ensure data is sent
+        client = opik.Opik()
+        client.flush()
+
+        # Get recent traces (last few minutes)
+        import datetime
+        now = datetime.datetime.now(datetime.timezone.utc)
+        recent_time = (now - datetime.timedelta(minutes=5)).isoformat()
+
+        traces = client.search_traces(
+            project_name="Default project",  # Baseline uses default project
+            filter_string=f'start_time >= "{recent_time}"',
+            max_results=10
+        )
+
+        total_tokens = 0
+        total_cost = 0.0
+
+        for trace in traces:
+            # Get spans for this trace
+            spans = client.search_spans(
+                project_name="Default project",
+                trace_id=trace.id
+            )
+
+            for span in spans:
+                if hasattr(span, 'usage') and span.usage:
+                    total_tokens += span.usage.get('total_tokens', 0)
+
+                    # Get Opik's calculated cost for this span
+                    estimated_cost = getattr(span, 'total_estimated_cost', None) or 0.0
+                    total_cost += estimated_cost
+
+        return total_tokens, total_cost
+
+    except Exception as e:
+        print(f"   Warning: Could not retrieve token usage from Opik: {e}")
+        return 0, 0.0
+
 
 def get_test_domains() -> List[str]:
     """Get list of test domains to check."""
@@ -39,6 +102,9 @@ async def check_domain(domain: str, model: str = "gpt-4o-mini", headless: bool =
     total_steps = 0
     attempt_details = []
 
+    # Set up Opik tracking for token usage
+    tokens_before, cost_before = _get_token_usage_from_opik()
+
 
     for attempt in range(max_retries):
         browser = None
@@ -50,7 +116,7 @@ async def check_domain(domain: str, model: str = "gpt-4o-mini", headless: bool =
             await browser.start()
 
             # Create agent with basic task (no learning, no strategy optimization)
-            llm = ChatOpenAI(model=model, temperature=0.0)
+            llm = ChatOpenAI(model=model, temperature=0.0, stream_usage=True)
 
 
             task = f"""
@@ -106,6 +172,11 @@ ERROR: <reason>"""
                 # Add successful attempt to details
                 attempt_details.append(f"attempt {attempt + 1}: {steps} steps")
 
+                # Calculate token usage and cost using Opik's data
+                tokens_after, cost_after = _get_token_usage_from_opik()
+                tokens_used = max(0, tokens_after - tokens_before)  # Ensure non-negative
+                cost = max(0.0, cost_after - cost_before)  # Ensure non-negative
+
                 return {
                     "domain": domain,
                     "status": status,
@@ -117,8 +188,8 @@ ERROR: <reason>"""
                     "expected": expected_status,
                     "attempt": attempt + 1,
                     "attempt_details": attempt_details,
-                    "tokens": 0,
-                    "cost": 0.0
+                    "tokens": tokens_used,
+                    "cost": cost
                 }
 
             # Store error for potential retry
@@ -166,7 +237,11 @@ ERROR: <reason>"""
                 except:
                     pass
 
-    # All retries failed
+    # All retries failed - calculate token usage even for failures
+    tokens_after, cost_after = _get_token_usage_from_opik()
+    tokens_used = max(0, tokens_after - tokens_before)  # Ensure non-negative
+    cost = max(0.0, cost_after - cost_before)  # Ensure non-negative
+
     return {
         "domain": domain,
         "status": "ERROR",
@@ -178,8 +253,8 @@ ERROR: <reason>"""
         "expected": "AVAILABLE",
         "attempt": max_retries,
         "attempt_details": attempt_details,
-        "tokens": 0,
-        "cost": 0.0
+        "tokens": tokens_used,
+        "cost": cost
     }
 
 

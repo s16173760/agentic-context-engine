@@ -10,6 +10,10 @@ import asyncio
 from pathlib import Path
 from typing import List
 from dotenv import load_dotenv
+
+load_dotenv()
+
+# Import browser-use
 from ace.prompts_v2 import PromptManager
 from browser_use import Agent, Browser, ChatOpenAI
 
@@ -26,8 +30,8 @@ from ace import (
 )
 from ace.observability import configure_opik
 
-load_dotenv()
-
+import opik
+client = opik.Opik()
 
 class DomainCheckEnvironment(TaskEnvironment):
     """Environment that evaluates domain checking performance."""
@@ -47,8 +51,37 @@ class DomainCheckEnvironment(TaskEnvironment):
 
         print(f"🔍 Checking domain: {domain}")
 
+        # Capture current trace ID for token tracking
+        trace_id = None
+        try:
+            from opik import opik_context
+            trace_data = opik_context.get_current_trace_data()
+            trace_id = trace_data.id if trace_data else None
+            print(f"   🆔 Captured trace ID: {trace_id[:8] if trace_id else 'None'}...")
+
+            # If no current trace, we'll use time-based query in _get_token_usage
+            if not trace_id:
+                print(f"   📝 No current trace context, will use time-based query")
+        except Exception as e:
+            print(f"   ⚠️ Failed to get trace ID: {e}")
+            pass  # Graceful fallback if Opik not available
+
         # Run browser automation
         result = asyncio.run(self._check_domain(domain, strategy))
+
+        # Wait for traces to be indexed in Opik before querying
+        print(f"   ⏳ Waiting 5 seconds for traces to be indexed...")
+        import time
+        time.sleep(5)
+
+        # Query Opik for actual token usage and costs
+        print(f"   💰 Querying token usage for trace: {trace_id[:8] if trace_id else 'None'}...")
+        (ace_tokens, generator_tokens, reflector_tokens, curator_tokens) = self._get_token_usage(trace_id)
+
+        # Get browser-use tokens from result (if available)
+        browseruse_tokens = result.get('browseruse_tokens', 0)
+        print(f"   📊 Token results: Agent={browseruse_tokens}, ACE={ace_tokens}")
+        print(f"   🎯 Role tokens: Gen={generator_tokens}, Ref={reflector_tokens}, Cur={curator_tokens}")
 
         # Evaluate correctness and efficiency
         status_success = result['status'] != "ERROR"
@@ -74,7 +107,6 @@ class DomainCheckEnvironment(TaskEnvironment):
         else:
             feedback += f"Error: {result.get('error', 'Unknown error')}. "
 
-
         return EnvironmentResult(
             feedback=feedback,
             ground_truth=None,  # No ground truth available for domain checking
@@ -88,12 +120,121 @@ class DomainCheckEnvironment(TaskEnvironment):
                 "expected": expected_status,
                 "attempt": result.get('attempt', 1),
                 "attempt_details": result.get('attempt_details', []),
-                "browseruse_tokens": 0,
-                "browseruse_cost": 0.0,
-                "ace_tokens": 0,
-                "ace_cost": 0.0
+                "browseruse_tokens": browseruse_tokens,
+                "ace_tokens": ace_tokens,
+                "generator_tokens": generator_tokens,
+                "reflector_tokens": reflector_tokens,
+                "curator_tokens": curator_tokens
             }
         )
+
+    def _get_token_usage(self, trace_id: str = None) -> tuple[int, int, int, int]:
+        """Query Opik for ACE token usage only.
+
+        Returns:
+            tuple: (ace_tokens, generator_tokens, reflector_tokens, curator_tokens)
+        """
+        try:
+            import opik
+            import datetime
+
+            # Create client and flush to ensure data is sent
+            client = opik.Opik()
+            client.flush()
+
+            # Based on Claude research: Use search_traces() instead of search_spans()
+            print(f"   📋 Using search_traces() method as recommended by Claude research...")
+
+            # Get recent traces (last 2 minutes to be more precise) from both potential projects
+            now = datetime.datetime.now(datetime.timezone.utc)
+            recent_time = (now - datetime.timedelta(minutes=2)).isoformat().replace('+00:00', 'Z')
+            print(f"   🕐 Searching for traces since: {recent_time}")
+
+            all_traces = []
+
+            # Only search ACE project for role breakdown
+            for project in ["ace-roles"]:
+                try:
+                    traces = client.search_traces(
+                        project_name=project,
+                        filter_string=f'start_time >= "{recent_time}"',
+                        max_results=50
+                    )
+                    print(f"   📊 Found {len(traces)} recent traces in '{project}' project")
+                    all_traces.extend(traces)
+                except Exception as e:
+                    print(f"   ⚠️ Failed to search '{project}' project: {e}")
+
+            # Track individual ACE role tokens
+            generator_tokens = 0
+            reflector_tokens = 0
+            curator_tokens = 0
+
+            # Track processed traces to avoid double-counting
+            ace_trace_ids = set()
+
+            print(f"   🔍 Processing {len(all_traces)} total traces...")
+
+            # First pass: identify and process ACE role traces
+            for trace in all_traces:
+                trace_name = getattr(trace, 'name', 'unknown')
+                trace_name_lower = trace_name.lower()
+
+                if any(role in trace_name_lower for role in ['generator', 'reflector', 'curator']):
+                    print(f"      📋 ACE Trace: '{trace_name}'")
+
+                    # Get usage from trace or spans
+                    total_tokens = 0
+
+                    if trace.usage:
+                        total_tokens = trace.usage.get('total_tokens', 0)
+                        print(f"         💰 Tokens: {total_tokens}")
+                    else:
+                        # Check spans for this trace
+                        try:
+                            spans = client.search_spans(trace_id=trace.id)
+                            for span in spans:
+                                if hasattr(span, 'usage') and span.usage:
+                                    span_tokens = span.usage.get('total_tokens', 0)
+                                    total_tokens += span_tokens
+                                    # Track span trace IDs that belong to ACE roles
+                                    if hasattr(span, 'trace_id'):
+                                        ace_trace_ids.add(span.trace_id)
+
+                            if total_tokens > 0:
+                                print(f"         💰 Tokens (from spans): {total_tokens}")
+                        except Exception as e:
+                            print(f"         ⚠️ Failed to get spans: {e}")
+
+                    # Classify by role
+                    if 'generator' in trace_name_lower:
+                        generator_tokens += total_tokens
+                        print(f"         🎯 Added to Generator")
+                    elif 'reflector' in trace_name_lower:
+                        reflector_tokens += total_tokens
+                        print(f"         🔍 Added to Reflector")
+                    elif 'curator' in trace_name_lower:
+                        curator_tokens += total_tokens
+                        print(f"         📝 Added to Curator")
+
+                    # Mark this trace as processed
+                    ace_trace_ids.add(trace.id)
+
+            # Browser-use tokens are now tracked directly, no need to search Opik
+
+            # Calculate total ACE tokens
+            ace_tokens = generator_tokens + reflector_tokens + curator_tokens
+
+            print(f"   📊 Role breakdown:")
+            print(f"      🎯 Generator: {generator_tokens} tokens")
+            print(f"      🔍 Reflector: {reflector_tokens} tokens")
+            print(f"      📝 Curator: {curator_tokens} tokens")
+
+            return (ace_tokens, generator_tokens, reflector_tokens, curator_tokens)
+
+        except Exception as e:
+            print(f"   Warning: Could not retrieve token usage from Opik: {e}")
+            return 0, 0, 0, 0
 
     async def _check_domain(self, domain: str, strategy: str):
         """Execute browser automation to check domain with retry logic."""
@@ -101,18 +242,22 @@ class DomainCheckEnvironment(TaskEnvironment):
         last_error = None
         total_steps = 0
         attempt_details = []
+        total_browseruse_tokens = 0  # Track tokens across all attempts
 
 
         for attempt in range(max_retries):
             print(f"   ⏳ Attempt {attempt + 1}/{max_retries}...")
             browser = None
             try:
-                # Start browser
+                # Start browser with debugging
+                print(f"   🌐 Starting browser (headless={self.headless})...")
                 browser = Browser(headless=self.headless)
                 await browser.start()
+                print(f"   ✅ Browser started successfully")
 
-                # Create agent with the strategy
+                # Create agent with ChatOpenAI (will log to browser-use project via env var)
                 llm = ChatOpenAI(model=self.model, temperature=0.0)
+                print(f"   🤖 Created ChatOpenAI for browser-use project: {self.model}")
 
                 task = f"""
 You are a domain availability checking agent. Check if the domain "{domain}" is available.
@@ -129,16 +274,20 @@ ERROR: <reason>
 
 {strategy}"""
 
+                print(f"   🎯 Creating agent with task...")
                 agent = Agent(
                     task=task,
                     llm=llm,
                     browser=browser,
                     max_actions_per_step=5,
                     max_steps=20,
+                    calculate_cost=True  # Enable cost tracking
                 )
 
-                # Run with timeout
-                history = await asyncio.wait_for(agent.run(), timeout=180.0)
+                print(f"   🚀 Running agent (timeout: 20s)...")
+                # Run with reasonable timeout to allow LLM calls to complete
+                history = await asyncio.wait_for(agent.run(), timeout=20.0)
+                print(f"   📋 Agent completed, processing results...")
 
                 # Parse result
                 output = history.final_result() if hasattr(history, "final_result") else ""
@@ -168,8 +317,7 @@ ERROR: <reason>
                         "output": output,
                         "attempt": attempt + 1,
                         "attempt_details": attempt_details,
-                        "browseruse_tokens": 0,
-                        "browseruse_cost": 0.0
+                        "browseruse_tokens": total_browseruse_tokens
                     }
 
                 # Store error for potential retry
@@ -197,17 +345,59 @@ ERROR: <reason>
 
                 total_steps += steps
                 attempt_details.append(f"attempt {attempt + 1}: {steps} steps (error)")
-                print(f"   💥 Error ({steps} steps) - retrying...")
+                print(f"   💥 Error ({steps} steps): {str(e)}")
+                print(f"   📝 Error type: {type(e).__name__}")
+                if hasattr(e, '__traceback__'):
+                    import traceback
+                    tb_lines = traceback.format_exc().split('\n')
+                    if len(tb_lines) >= 3:
+                        print(f"   🔍 Traceback preview: {tb_lines[-3]}")
                 last_error = f"Error on attempt {attempt + 1}: {str(e)}"
 
             finally:
+                # Capture tokens from this attempt using browser-use's cost tracking
+                attempt_tokens = 0
+
+                # Method 1: Try to get tokens from history (works after successful completion)
+                if 'history' in locals() and history and hasattr(history, "usage"):
+                    try:
+                        usage = history.usage
+                        if usage:
+                            # Try different ways to extract total tokens
+                            if hasattr(usage, 'total_tokens'):
+                                attempt_tokens = usage.total_tokens
+                            elif isinstance(usage, dict) and 'total_tokens' in usage:
+                                attempt_tokens = usage['total_tokens']
+                            elif hasattr(usage, 'input_tokens') and hasattr(usage, 'output_tokens'):
+                                attempt_tokens = usage.input_tokens + usage.output_tokens
+                            elif isinstance(usage, dict) and 'input_tokens' in usage and 'output_tokens' in usage:
+                                attempt_tokens = usage['input_tokens'] + usage['output_tokens']
+                    except Exception as e:
+                        print(f"   ⚠️ Could not get tokens from history: {e}")
+
+                # Method 2: Try agent.token_cost_service (works even during partial execution)
+                if attempt_tokens == 0 and 'agent' in locals() and agent:
+                    try:
+                        if hasattr(agent, 'token_cost_service'):
+                            usage_summary = await agent.token_cost_service.get_usage_summary()
+                            if usage_summary:
+                                if isinstance(usage_summary, dict) and 'total_tokens' in usage_summary:
+                                    attempt_tokens = usage_summary['total_tokens']
+                                elif hasattr(usage_summary, 'total_tokens'):
+                                    attempt_tokens = usage_summary.total_tokens
+                    except Exception as e:
+                        print(f"   ⚠️ Could not get tokens from agent service: {e}")
+
+                total_browseruse_tokens += attempt_tokens
+                print(f"   🤖 Attempt {attempt + 1} tokens: {attempt_tokens} (total: {total_browseruse_tokens})")
+
                 if browser:
                     try:
                         await browser.stop()
                     except:
                         pass
 
-        # All retries failed
+        # All retries failed - use accumulated tokens from all attempts
         return {
             "status": "ERROR",
             "steps": steps if 'steps' in locals() else 0,
@@ -215,8 +405,7 @@ ERROR: <reason>
             "error": f"Failed after {max_retries} attempts. Last error: {last_error}",
             "attempt": max_retries,
             "attempt_details": attempt_details,
-            "browseruse_tokens": 0,
-            "browseruse_cost": 0.0
+            "browseruse_tokens": total_browseruse_tokens
         }
 
 
@@ -256,7 +445,7 @@ def main():
     for i, domain in enumerate(domains, 1):
         print(f"  {i}. {domain}")
 
-    # Create ACE components with OnlineAdapter
+    # Create ACE components with OnlineAdapter (using LiteLLM for ACE roles)
     llm = LiteLLMClient(model="gpt-4o", temperature=0.7)
 
     # Create prompt manager
@@ -272,7 +461,7 @@ def main():
 
     # Create environment
     environment = DomainCheckEnvironment(
-        headless=False,  # Change to True for headless mode
+        headless=True,  # Using headless mode for better stability
         model="gpt-4o"
     )
 
@@ -295,7 +484,7 @@ def main():
     print("\n" + "=" * 80)
     print("📊 RESULTS")
     print("=" * 80)
-    print(f"{'#':<3} {'Domain':<25} {'Status':<10} {'Acc':<4} {'Steps':<8} {'Agent-Tokens':<12} {'ACE-Tokens':<11} {'Details'}")
+    print(f"{'#':<3} {'Domain':<25} {'Status':<10} {'Acc':<4} {'Steps':<8} {'Browser-Tokens':<13} {'ACE-Tokens':<11} {'Details'}")
     print("-" * 103)
 
     for i, (domain, result) in enumerate(zip(domains, results), 1):
@@ -328,15 +517,18 @@ def main():
 
     avg_steps_per_domain = total_steps / len(results) if results else 0
 
-    # Token/cost placeholders (always 0)
-    total_browseruse_tokens = 0
-    total_browseruse_cost = 0.0
-    total_ace_tokens = 0
-    total_ace_cost = 0.0
-    avg_browseruse_tokens_per_domain = 0.0
-    avg_browseruse_cost_per_domain = 0.0
-    avg_ace_tokens_per_domain = 0.0
-    avg_ace_cost_per_domain = 0.0
+    # Calculate actual token usage from results
+    total_browseruse_tokens = sum(r.environment_result.metrics.get('browseruse_tokens', 0) for r in results)
+    total_ace_tokens = sum(r.environment_result.metrics.get('ace_tokens', 0) for r in results)
+
+    # Individual role totals
+    total_generator_tokens = sum(r.environment_result.metrics.get('generator_tokens', 0) for r in results)
+    total_reflector_tokens = sum(r.environment_result.metrics.get('reflector_tokens', 0) for r in results)
+    total_curator_tokens = sum(r.environment_result.metrics.get('curator_tokens', 0) for r in results)
+
+    # Calculate averages
+    avg_browseruse_tokens_per_domain = total_browseruse_tokens / len(results) if results else 0.0
+    avg_ace_tokens_per_domain = total_ace_tokens / len(results) if results else 0.0
 
     print("\n" + "=" * 80)
     print("📈 SUMMARY")
@@ -346,11 +538,16 @@ def main():
     print(f"🔄 Domains w/ retries:    {domains_with_retries:>2}/{len(results)}")
     print(f"🔢 Total attempts:        {total_attempts:>6}")
     print()
-    print(f"{'📊 Steps:':<20} {total_steps:>6} total     {avg_steps_per_domain:>6.1f} per domain")
-    print(f"{'🤖 Agent-Tokens:':<20} {total_browseruse_tokens:>6} total     {avg_browseruse_tokens_per_domain:>6.1f} per domain")
-    print(f"{'🧠 ACE-Tokens:':<20} {total_ace_tokens:>6} total     {avg_ace_tokens_per_domain:>6.1f} per domain")
-    print(f"{'💰 Agent-Cost:':<20} ${total_browseruse_cost:>5.4f} total      ${avg_browseruse_cost_per_domain:>5.4f} per domain")
-    print(f"{'🎯 ACE-Cost:':<20} ${total_ace_cost:>5.4f} total      ${avg_ace_cost_per_domain:>5.4f} per domain")
+    print(f"{'📊 Steps:':<25} {total_steps:>6} total     {avg_steps_per_domain:>6.1f} per domain")
+    print(f"{'🤖 Browser-Use Tokens:':<25} {total_browseruse_tokens:>6} total     {avg_browseruse_tokens_per_domain:>6.1f} per domain")
+    print(f"{'🧠 ACE Tokens:':<25} {total_ace_tokens:>6} total     {avg_ace_tokens_per_domain:>6.1f} per domain")
+    print()
+    print("🧠 ACE Role Breakdown (Think → Learn):")
+    print(f"   🎯 Generator:      {total_generator_tokens:>6} tokens  (strategy planning)")
+    print(f"   🔍 Reflector:      {total_reflector_tokens:>6} tokens  (performance analysis)")
+    print(f"   📝 Curator:        {total_curator_tokens:>6} tokens  (playbook updates)")
+    print(f"   {'─' * 40}")
+    print(f"   🧠 Total ACE:      {total_ace_tokens:>6} tokens")
     print("=" * 80)
 
     # Show learned strategies
@@ -363,6 +560,10 @@ def main():
     playbook_path = Path("ace_domain_playbook.json")
     adapter.playbook.save_to_file(str(playbook_path))
     print(f"\n💾 Playbook saved to {playbook_path}")
+    
+    traces = client.search_traces()
+    print("Collected trace IDs:", [trace.id for trace in traces])
+
 
 
 if __name__ == "__main__":

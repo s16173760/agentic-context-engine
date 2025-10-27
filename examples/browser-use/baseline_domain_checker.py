@@ -11,9 +11,9 @@ from pathlib import Path
 from typing import List
 from dotenv import load_dotenv
 
-from browser_use import Agent, Browser, ChatOpenAI
-
 load_dotenv()
+
+from browser_use import Agent, Browser, ChatOpenAI
 
 
 
@@ -81,7 +81,7 @@ ERROR: <reason>"""
             )
 
             # Run with timeout
-            history = await asyncio.wait_for(agent.run(), timeout=20.0)
+            history = await asyncio.wait_for(agent.run(), timeout=180.0)
 
             # Parse result (back to original working logic)
             output = history.final_result() if hasattr(history, "final_result") else ""
@@ -246,7 +246,7 @@ def main():
         print(f"🔍 [{i}/{len(domains)}] Checking domain: {domain}")
 
         # Run check
-        result = asyncio.run(check_domain(domain, headless=True))
+        result = asyncio.run(check_domain(domain, headless=False))
         results.append(result)
 
         # Show what happened

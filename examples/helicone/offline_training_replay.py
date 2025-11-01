@@ -265,9 +265,9 @@ def main():
     if adapter.playbook.bullets():
         print(f"\n🎯 Top Learned Strategies:")
         for i, bullet in enumerate(adapter.playbook.bullets()[:5], 1):
-            score = bullet.helpful_count - bullet.harmful_count
+            score = bullet.helpful - bullet.harmful
             print(f"\n{i}. {bullet.content[:100]}...")
-            print(f"   Score: +{bullet.helpful_count}/-{bullet.harmful_count} (net: {score})")
+            print(f"   Score: +{bullet.helpful}/-{bullet.harmful} (net: {score})")
 
     # 8. Save playbook
     playbook_path = Path(PLAYBOOK_OUTPUT)

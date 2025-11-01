@@ -17,7 +17,7 @@ from ace.llm_providers import LiteLLMClient
 
 # Import demo modules
 sys.path.insert(0, str(Path(__file__).parent))
-from buggy_code_samples import get_train_test_split
+from buggy_code_samples import get_all_samples
 from bug_hunter_environment import BugHunterEnvironment
 
 
@@ -27,9 +27,9 @@ def pretrain_and_save():
     print("=" * 60)
     
     # Get training samples
-    train_samples_raw, test_samples_raw = get_train_test_split(train_size=6)
-    print(f"📚 Training samples: {len(train_samples_raw)}")
-    print(f"🏁 Test samples: {len(test_samples_raw)}")
+    all_samples_raw = get_all_samples()
+    print(f"📚 Total samples: {len(all_samples_raw)}")
+    print(f"🎯 Creating playbook with strategies for ALL samples")
     print()
     
     # Initialize ACE components
@@ -55,26 +55,26 @@ def pretrain_and_save():
     )
     
     # Convert to Sample objects
-    train_samples = [
+    all_samples = [
         Sample(
             question=sample["code"],
             ground_truth=sample["ground_truth"],
             context=f"Language: {sample['language']}, Bug Type: {sample['bug_type']}",
             metadata={"id": sample["id"], "severity": sample["severity"]}
         )
-        for sample in train_samples_raw
+        for sample in all_samples_raw
     ]
-    
-    print(f"✅ Ready to train on {len(train_samples)} samples")
+
+    print(f"✅ Ready to train on {len(all_samples)} samples")
     print()
     
     # Train on each sample
     print("📚 Training ACE...")
     print("-" * 60)
     
-    for i, sample in enumerate(train_samples, 1):
-        print(f"\n[{i}/{len(train_samples)}] Training on sample {sample.metadata['id']}...")
-        print(f"    Bug Type: {train_samples_raw[i-1]['bug_type']}")
+    for i, sample in enumerate(all_samples, 1):
+        print(f"\n[{i}/{len(all_samples)}] Training on sample {sample.metadata['id']}...")
+        print(f"    Bug Type: {all_samples_raw[i-1]['bug_type']}")
         
         # Run adapter on single sample
         adapter.run([sample], environment, epochs=1)

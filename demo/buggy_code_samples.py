@@ -209,26 +209,15 @@ print(result)  # Expected: [1, 3, 5, 7], Actual: [1, 3, 5, 7] but misses some
 ]
 
 
-def get_train_test_split(train_size=6):
+def get_all_samples():
     """
-    Split samples into training and test sets.
+    Get all bug samples for the race.
     
-    Training samples (first 6):
-        - Used to build ACE's playbook with learned strategies
-        - ACE learns from mistakes on these samples
-        
-    Test samples (last 4):
-        - Used for the actual race comparison
-        - Baseline sees these fresh (no learning)
-        - ACE applies its learned strategies
-    
-    Args:
-        train_size: Number of samples for training (default 6, leaves 4 for testing)
+    The playbook is pre-trained with strategies for ALL samples,
+    so both baseline and ACE see the same samples during the race.
     
     Returns:
-        tuple: (train_samples, test_samples)
+        list: All 10 buggy code samples
     """
-    train = BUGGY_SAMPLES[:train_size]
-    test = BUGGY_SAMPLES[train_size:]
-    return train, test
+    return BUGGY_SAMPLES
 

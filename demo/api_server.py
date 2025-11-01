@@ -26,7 +26,7 @@ from ace.llm_providers import LiteLLMClient
 
 # Import demo modules
 sys.path.insert(0, str(Path(__file__).parent))
-from buggy_code_samples import BUGGY_SAMPLES, get_train_test_split
+from buggy_code_samples import BUGGY_SAMPLES, get_all_samples
 from bug_hunter_environment import BugHunterEnvironment
 
 app = FastAPI(title="Bug Hunter Demo API")
@@ -166,8 +166,8 @@ async def stream_baseline_demo() -> AsyncGenerator[str, None]:
         # Log baseline info for debugging
         print(f"🔵 BASELINE using empty playbook (0 strategies)")
         
-        # Get TEST samples only (last 4)
-        _, test_samples_raw = get_train_test_split(train_size=6)
+        # Get ALL 10 samples
+        test_samples_raw = get_all_samples()
         
         # Convert samples
         samples = [
@@ -267,8 +267,8 @@ async def stream_ace_demo() -> AsyncGenerator[str, None]:
         for i, bullet in enumerate(list(playbook.bullets())[:3], 1):
             print(f"   Strategy {i}: {bullet.content[:80]}...")
         
-        # Get TEST samples only (last 4)
-        _, test_samples_raw = get_train_test_split(train_size=6)
+        # Get ALL 10 samples
+        test_samples_raw = get_all_samples()
         
         # Convert samples
         samples = [
@@ -442,7 +442,7 @@ app.mount("/static", StaticFiles(directory="demo/frontend"), name="static")
 if __name__ == "__main__":
     import uvicorn
     print("🚀 Starting Bug Hunter Demo Server...")
-    print("📊 Training: 6 samples | Testing: 4 samples")
+    print("📊 Race: 10 bug samples (all pre-trained in playbook)")
     
     # Show playbook status
     if demo_state["training_complete"] and demo_state["ace_playbook"]:

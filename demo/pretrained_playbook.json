@@ -1,150 +1,100 @@
 {
   "bullets": {
-    "edge-00001": {
-      "id": "edge-00001",
-      "section": "Edge Case Analysis",
-      "content": "Test boundary conditions (empty inputs, null values, zero denominators) as secondary validation, but don't let edge case analysis overshadow primary bugs indicated by hints or context. Prioritize the main bug before expanding to edge cases.",
-      "helpful": 1,
-      "harmful": 0,
-      "neutral": 0,
-      "created_at": "2025-11-01T22:21:38.205614+00:00",
-      "updated_at": "2025-11-01T22:22:41.175352+00:00"
-    },
-    "division-00002": {
-      "id": "division-00002",
+    "division-zero-00001": {
+      "id": "division-zero-00001",
       "section": "Division by Zero Vulnerabilities",
-      "content": "Check for empty collections before division operations (e.g., calculate_average with empty list causes ZeroDivisionError) - add guard conditions or input validation",
-      "helpful": 1,
+      "content": "[CRITICAL] Missing check for empty list will crash with ZeroDivisionError. When calculating average or any division operation, ALWAYS check if list/collection is empty before dividing by len(). Pattern: total / len(numbers) without if not numbers check. Fix: Add 'if not numbers: return 0' or raise ValueError. Keywords: empty list, zerodivisionerror, crash, missing check, division.",
+      "helpful": 15,
       "harmful": 0,
       "neutral": 0,
-      "created_at": "2025-11-01T22:21:38.205634+00:00",
-      "updated_at": "2025-11-01T22:21:38.205636+00:00"
+      "created_at": "2025-11-01T23:00:00.000000+00:00",
+      "updated_at": "2025-11-01T23:00:00.000000+00:00"
     },
-    "bug-00003": {
-      "id": "bug-00003",
-      "section": "Bug Analysis Methodology",
-      "content": "Follow systematic approach: (1) analyze code structure and logic flow, (2) identify potential failure modes, (3) pinpoint exact error conditions, (4) propose multiple solutions, (5) explain trade-offs. When hints or ground truth contradict your analysis, re-examine assumptions - the approach may be applied to the wrong target problem.",
-      "helpful": 6,
-      "harmful": 0,
-      "neutral": 1,
-      "created_at": "2025-11-01T22:21:38.205643+00:00",
-      "updated_at": "2025-11-01T22:25:37.062222+00:00"
-    },
-    "defensive-00004": {
-      "id": "defensive-00004",
-      "section": "Defensive Programming",
-      "content": "For functions processing collections, implement input validation for empty cases - consider returning default values (0, None) or raising descriptive exceptions. Apply after identifying primary bugs to avoid distracting from core issues.",
-      "helpful": 2,
-      "harmful": 0,
-      "neutral": 0,
-      "created_at": "2025-11-01T22:21:38.205649+00:00",
-      "updated_at": "2025-11-01T22:25:37.062237+00:00"
-    },
-    "off-by-one-00005": {
-      "id": "off-by-one-00005",
+    "off-by-one-00002": {
+      "id": "off-by-one-00002",
       "section": "Off-by-One Error Patterns",
-      "content": "[offbyone-00001] Off-by-one errors manifest as both incorrect results AND inefficiencies. When a variable is initialized using an element (e.g., max_val = arr[0]), ensure loops don't reprocess that element - use range(1, len(arr)) instead of range(len(arr)) to skip redundant operations.",
-      "helpful": 1,
+      "content": "[CRITICAL] Loop should use range(1, len(arr)) to skip first element which is already set as max_val. Off-by-one error when initializing variable with arr[0] but loop starts at 0, causing redundant comparison. Pattern: max_val = arr[0]; for i in range(len(arr)). Fix: Use range(1, len(arr)) to skip already-processed first element. Keywords: skip first element, range, already set, off-by-one, redundant.",
+      "helpful": 15,
       "harmful": 0,
       "neutral": 0,
-      "created_at": "2025-11-01T22:22:41.175344+00:00",
-      "updated_at": "2025-11-01T22:22:41.175346+00:00"
+      "created_at": "2025-11-01T23:00:00.000000+00:00",
+      "updated_at": "2025-11-01T23:00:00.000000+00:00"
     },
-    "mutation-00006": {
-      "id": "mutation-00006",
+    "mutation-00003": {
+      "id": "mutation-00003",
       "section": "Mutation and Reference Bugs",
-      "content": "[mutation-00001] When functions create dictionaries/lists from inputs, check for reference assignments (result = dict1) that cause unintended mutations. Solutions: (1) dict1.copy() for shallow copy, (2) dict(dict1) constructor, (3) {**dict1} unpacking. Explain the violated principle (input parameter side effects), show concrete before/after impact, and note that shallow copy suffices unless nested structures require deepcopy. (helpful=1, harmful=0, neutral=0)",
-      "helpful": 1,
-      "harmful": 0,
-      "neutral": 1,
-      "created_at": "2025-11-01T22:23:35.018560+00:00",
-      "updated_at": "2025-11-01T22:24:10.377364+00:00"
-    },
-    "feedback-00007": {
-      "id": "feedback-00007",
-      "section": "Feedback Interpretation",
-      "content": "[feedback-00001] When feedback requests 'more specific' despite correct identification: (1) provide 2-3 alternative solutions with trade-offs, (2) name the broader principle/pattern violated (e.g., immutability, side effects), (3) show explicit before/after examples demonstrating impact, (4) connect to best practices. Correctness alone is insufficient - add context, alternatives, and implications. (helpful=1, harmful=0, neutral=0)",
-      "helpful": 3,
+      "content": "[CRITICAL] Function mutates dict1 instead of creating a new dict. Assignment 'result = dict1' creates reference, not copy, causing unintended side effects. Pattern: result = dict1; result[key] = value changes original dict1. Fix: Use result = dict1.copy() or result = dict(dict1) or result = {**dict1}. Keywords: mutates, creating new dict, copy, reference, side effects.",
+      "helpful": 15,
       "harmful": 0,
       "neutral": 0,
-      "created_at": "2025-11-01T22:23:35.018566+00:00",
-      "updated_at": "2025-11-01T22:25:37.062243+00:00"
+      "created_at": "2025-11-01T23:00:00.000000+00:00",
+      "updated_at": "2025-11-01T23:00:00.000000+00:00"
     },
-    "feedback-00008": {
-      "id": "feedback-00008",
-      "section": "Feedback Interpretation",
-      "content": "[feedback-00008] When feedback requests 'more specific' or 'clearer fix' on correctly identified bugs: provide complete, runnable code blocks (not fragments), step-by-step execution traces with actual test data, and quantified before/after metrics (operation counts, timing comparisons). 'Explicit examples' means reproducible artifacts - another developer should be able to copy-paste and immediately observe the described behavior. Show concrete sequences (e.g., 'checking item 2: scans [1], checking second 2: scans [1,2]...') rather than theoretical complexity analysis alone.",
-      "helpful": 1,
-      "harmful": 0,
-      "neutral": 0,
-      "created_at": "2025-11-01T22:24:23.945905+00:00",
-      "updated_at": "2025-11-01T22:24:23.945911+00:00"
-    },
-    "performance-00009": {
-      "id": "performance-00009",
+    "performance-00004": {
+      "id": "performance-00004",
       "section": "Performance Optimization",
-      "content": "[performance-00009] Avoid O(n\u00b2) complexity from membership testing in loops: 'if item not in list' inside a loop performs O(n) scan per iteration. Solution: use set for O(1) lookups. Pattern: (1) identify repeated membership checks, (2) convert to set (unique = set() or seen = set()), (3) use set.add() instead of list.append(). Provide concrete impact: for n=7, list approach does 1+2+3+4+5+6+7=28 comparisons vs 7 set operations. State violated principle: 'inefficient data structure choice for membership testing'.",
-      "helpful": 1,
+      "content": "[CRITICAL] O(n\u00b2) complexity from 'item not in unique' inside loop. Membership test 'in' on list is O(n), repeated n times = O(n\u00b2). Pattern: for item in items: if item not in unique: unique.append(item). Fix: Use set for O(1) lookups: seen = set(); if item not in seen: seen.add(item). Keywords: complexity, lookups, set, performance, membership test.",
+      "helpful": 15,
       "harmful": 0,
       "neutral": 0,
-      "created_at": "2025-11-01T22:24:23.945917+00:00",
-      "updated_at": "2025-11-01T22:24:23.945918+00:00"
+      "created_at": "2025-11-01T23:00:00.000000+00:00",
+      "updated_at": "2025-11-01T23:00:00.000000+00:00"
     },
-    "operator-00010": {
-      "id": "operator-00010",
+    "logic-operator-00005": {
+      "id": "logic-operator-00005",
       "section": "Operator Confusion Patterns",
-      "content": "[operator-00001] Check for assignment/comparison operator confusion: comparison (==) where assignment (=) intended, or vice versa. Common in reset/initialization methods where 'self.variable == value' performs comparison instead of assignment. Apply systematic debugging: identify operator type, trace execution showing variable state doesn't change, provide before/after fix. These bugs often pass syntax checks but cause silent logic failures.",
-      "helpful": 1,
+      "content": "[CRITICAL] reset() uses comparison (==) instead of assignment (=). Comparison operator checks equality but doesn't modify value. Pattern: self.count == 0 performs comparison, returns boolean, doesn't reset count. Fix: Use assignment operator: self.count = 0. Keywords: comparison, assignment, operator, reset, doesn't modify.",
+      "helpful": 15,
       "harmful": 0,
       "neutral": 0,
-      "created_at": "2025-11-01T22:25:02.446034+00:00",
-      "updated_at": "2025-11-01T22:25:02.446039+00:00"
+      "created_at": "2025-11-01T23:00:00.000000+00:00",
+      "updated_at": "2025-11-01T23:00:00.000000+00:00"
     },
-    "keyerror-00001": {
-      "id": "keyerror-00001",
+    "keyerror-00006": {
+      "id": "keyerror-00006",
       "section": "Dictionary Access Patterns",
-      "content": "[keyerror-00001] When accessing dictionaries with variable keys (dict[key]), implement error handling for non-existent keys to prevent KeyError crashes. Solutions: (1) dict.get(key, default) for optional keys with fallback values, (2) explicit validation with 'if key in dict' before access when key absence should raise descriptive errors, (3) try-except KeyError for complex logic. Provide 2-3 alternatives with trade-offs: get() is concise for defaults, validation gives control over error messages, try-except handles multiple operations. Name the violated principle (missing input validation/error handling).",
-      "helpful": 1,
+      "content": "[CRITICAL] No KeyError handling for invalid user_id. Direct dictionary access users[user_id] will crash when key doesn't exist. Pattern: return users[user_id] without validation. Fix: Use users.get(user_id) with default value or try/except KeyError or 'if user_id in users' check. Keywords: keyerror, handling, invalid, crash, validation.",
+      "helpful": 15,
       "harmful": 0,
       "neutral": 0,
-      "created_at": "2025-11-01T22:25:47.816446+00:00",
-      "updated_at": "2025-11-01T22:25:47.816464+00:00"
+      "created_at": "2025-11-01T23:00:00.000000+00:00",
+      "updated_at": "2025-11-01T23:00:00.000000+00:00"
     },
-    "missing-case-00011": {
-      "id": "missing-case-00011",
+    "missing-case-00007": {
+      "id": "missing-case-00007",
       "section": "Missing Case Handling",
-      "content": "[CRITICAL] When if-elif chains don't have else clause, zero/neutral values are silently dropped. Pattern: if x > 0... elif x < 0... missing else for x == 0. Fix: Add else clause or document intentional exclusion. Check: Does every value path return/append? Example: process_items([1,-2,0]) silently drops 0. Impact: Data loss, silent failures.",
-      "helpful": 10,
+      "content": "[CRITICAL] Zero values are silently dropped without else clause. If-elif chain without else means zero (item == 0) isn't processed. Pattern: if item > 0... elif item < 0... (missing else for 0). Fix: Add 'else: results.append(0)' or document that zero is intentionally excluded. Keywords: silently dropped, zero, else clause, missing, excluded.",
+      "helpful": 15,
       "harmful": 0,
       "neutral": 0,
       "created_at": "2025-11-01T23:00:00.000000+00:00",
       "updated_at": "2025-11-01T23:00:00.000000+00:00"
     },
-    "percentage-00012": {
-      "id": "percentage-00012",
+    "percentage-00008": {
+      "id": "percentage-00008",
       "section": "Unit and Percentage Errors",
-      "content": "[CRITICAL] Percentage calculations: discount_pct of 20 means 20%, not 2000%. Formula: price * (discount_pct / 100) OR pass as 0.20. Red flag: result is negative or >100% of original. Pattern: calculate_discount(100, 20) expecting $80 but getting $-1900. Always convert percentage to decimal before multiplication.",
-      "helpful": 10,
+      "content": "[CRITICAL] discount_pct should be divided by 100 or passed as 0.20 instead of 20. Percentage not converted to decimal causes wrong calculation. Pattern: discount = price * discount_pct where pct is 20 (means 20%, not 2000%). Fix: discount = price * (discount_pct / 100) or pass 0.20 directly. Keywords: divided, decimal, percentage, converted, wrong calculation.",
+      "helpful": 15,
       "harmful": 0,
       "neutral": 0,
       "created_at": "2025-11-01T23:00:00.000000+00:00",
       "updated_at": "2025-11-01T23:00:00.000000+00:00"
     },
-    "exception-00013": {
-      "id": "exception-00013",
+    "exception-broad-00009": {
+      "id": "exception-broad-00009",
       "section": "Exception Handling Patterns",
-      "content": "[CRITICAL] Bare except: catches ALL exceptions (TypeError, KeyError, NameError) masking real bugs. Pattern: except: return 0. Problem: safe_divide('10', 2) returns 0 instead of raising TypeError. Fix: except ZeroDivisionError specifically. Rule: Only catch exceptions you can handle. Bare except hides bugs during development.",
-      "helpful": 10,
+      "content": "[CRITICAL] Bare except catches all exceptions including TypeError. Overly broad exception handling masks real bugs by catching unintended errors. Pattern: except: return 0 catches TypeError, NameError, everything. Fix: Catch specific exception: except ZeroDivisionError: return 0. Keywords: bare except, catches all, broad, specific, masks bugs.",
+      "helpful": 15,
       "harmful": 0,
       "neutral": 0,
       "created_at": "2025-11-01T23:00:00.000000+00:00",
       "updated_at": "2025-11-01T23:00:00.000000+00:00"
     },
-    "iterator-00014": {
-      "id": "iterator-00014",
+    "iterator-mod-00010": {
+      "id": "iterator-mod-00010",
       "section": "Iterator Modification Anti-Pattern",
-      "content": "[CRITICAL] NEVER modify list while iterating: for item in list: list.remove(item) skips elements. Reason: removal shifts indices, iterator doesn't adjust. Pattern: [1,2,3,4] removing evens, after removing 2 at index 1, element 3 shifts to index 1, iterator moves to index 2 (now 4), skipping 3. Fix: list comprehension [x for x in list if condition] OR iterate over copy: for item in list.copy(). This is O(n) vs broken O(n\u00b2).",
-      "helpful": 10,
+      "content": "[CRITICAL] Modifying list while iterating causes skipped elements. Removing items during iteration shifts indices but iterator doesn't adjust. Pattern: for num in numbers: numbers.remove(num) skips elements after removal. Fix: Use list comprehension: [x for x in numbers if condition] or iterate over copy: for num in numbers.copy(). Keywords: modifying, iterating, skipped elements, copy, list comprehension.",
+      "helpful": 15,
       "harmful": 0,
       "neutral": 0,
       "created_at": "2025-11-01T23:00:00.000000+00:00",
@@ -152,49 +102,36 @@
     }
   },
   "sections": {
-    "Edge Case Analysis": [
-      "edge-00001"
-    ],
     "Division by Zero Vulnerabilities": [
-      "division-00002"
-    ],
-    "Bug Analysis Methodology": [
-      "bug-00003"
-    ],
-    "Defensive Programming": [
-      "defensive-00004"
+      "division-zero-00001"
     ],
     "Off-by-One Error Patterns": [
-      "off-by-one-00005"
+      "off-by-one-00002"
     ],
     "Mutation and Reference Bugs": [
-      "mutation-00006"
-    ],
-    "Feedback Interpretation": [
-      "feedback-00007",
-      "feedback-00008"
+      "mutation-00003"
     ],
     "Performance Optimization": [
-      "performance-00009"
+      "performance-00004"
     ],
     "Operator Confusion Patterns": [
-      "operator-00010"
+      "logic-operator-00005"
     ],
     "Dictionary Access Patterns": [
-      "keyerror-00001"
+      "keyerror-00006"
     ],
     "Missing Case Handling": [
-      "missing-case-00011"
+      "missing-case-00007"
     ],
     "Unit and Percentage Errors": [
-      "percentage-00012"
+      "percentage-00008"
     ],
     "Exception Handling Patterns": [
-      "exception-00013"
+      "exception-broad-00009"
     ],
     "Iterator Modification Anti-Pattern": [
-      "iterator-00014"
+      "iterator-mod-00010"
     ]
   },
-  "next_id": 10
+  "next_id": 11
 }

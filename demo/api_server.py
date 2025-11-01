@@ -210,7 +210,7 @@ async def stream_baseline_demo() -> AsyncGenerator[str, None]:
                 'sample_id': i + 1,
                 'accuracy': env_result.metrics.get("accuracy", 0),
                 'tokens': tokens_used,
-                'time': elapsed,
+                'time': sample_elapsed,
                 'total_tokens': total_tokens,
                 'total_time': total_time,
                 'response': output.final_answer  # Full response
@@ -307,7 +307,7 @@ async def stream_ace_demo() -> AsyncGenerator[str, None]:
                 'sample_id': i + 1,
                 'accuracy': env_result.metrics.get("accuracy", 0),
                 'tokens': tokens_used,
-                'time': elapsed,
+                'time': sample_elapsed,
                 'total_tokens': total_tokens,
                 'total_time': total_time,
                 'response': output.final_answer,  # Full response

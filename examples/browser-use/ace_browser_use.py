@@ -7,8 +7,10 @@ Compare this with baseline_browser_use.py to see ACE's value.
 """
 
 import asyncio
+import json
 from typing import List, Dict
 from dotenv import load_dotenv
+import argparse
 
 from browser_use import Agent, Browser, ChatOpenAI
 
@@ -26,26 +28,84 @@ from ace import (
 load_dotenv()
 
 from utils import print_history_details
+import threading
+from http.server import HTTPServer, SimpleHTTPRequestHandler
+
+
+import os
+os.environ["BROWSER_USE_LOGGING_LEVEL"] = "critical"
+os.environ["ANONYMIZED_TELEMETRY"] = "false"
+
+def _start_http_server(port: int = 8765) -> threading.Thread:
+    """Start HTTP server in background thread."""
+    class QuietHandler(SimpleHTTPRequestHandler):
+        def log_message(self, format, *args):
+            pass
+
+    server = HTTPServer(("127.0.0.1", port), QuietHandler)
+    thread = threading.Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+    print(f"Started HTTP server on http://127.0.0.1:{port}")
+    return f"http://127.0.0.1:{port}/form.html"
+
+
+
 
 
 
 class BrowserUseEnvironment(TaskEnvironment):
     """Environment that evaluates browser automation performance."""
 
-    def __init__(self, headless: bool = True, model: str = "gpt-4o-mini"):
+    def __init__(self, headless: bool = True, model: str = "gpt-4o-mini", local_port: int = None):
         self.headless = headless
         self.model = model
+        if local_port:
+            self.form_uri = _start_http_server(local_port)
 
     def evaluate(self, sample: Sample, generator_output):
         """Run browser automation and evaluate the result."""
 
         task = sample.context
-        action_plan = generator_output.final_answer
 
-        assert isinstance(action_plan, list), "Action plan must be a list"
+        print("GENERATOR OUTPUT: ", generator_output)
 
-        num_steps = len(action_plan)
-        action_plan = "\n".join(action_plan)
+
+        # Extract action plan - handle both dict and string formats
+        action_plan = {}
+        action_plan_source = generator_output.final_answer
+        
+        # If final_answer is already a dict, use it directly
+        if isinstance(action_plan_source, dict):
+            action_plan = action_plan_source
+        # If it's a string, try to parse it as JSON
+        elif isinstance(action_plan_source, str):
+            try:
+                action_plan = json.loads(action_plan_source)
+            except json.JSONDecodeError:
+                # If parsing fails, try getting from raw
+                action_plan_raw = generator_output.raw.get('final_answer', '{}') if hasattr(generator_output, 'raw') else '{}'
+                if isinstance(action_plan_raw, dict):
+                    action_plan = action_plan_raw
+                elif isinstance(action_plan_raw, str):
+                    try:
+                        action_plan = json.loads(action_plan_raw)
+                    except json.JSONDecodeError as e:
+                        print("ERROR PARSING ACTION PLAN: ", e)
+                        action_plan = {}
+        # Fallback: try raw if available
+        elif hasattr(generator_output, 'raw'):
+            action_plan_raw = generator_output.raw.get('final_answer', '{}')
+            if isinstance(action_plan_raw, dict):
+                action_plan = action_plan_raw
+            elif isinstance(action_plan_raw, str):
+                try:
+                    action_plan = json.loads(action_plan_raw)
+                except json.JSONDecodeError as e:
+                    print("ERROR PARSING ACTION PLAN: ", e)
+                    action_plan = {}
+
+        num_steps = len(action_plan.keys())
+        action_plan = "\n".join([f"{step_number}: {step_description}" for step_number, step_description in action_plan.items()])
 
         browser_use_prompt = f"""
         {task}
@@ -55,40 +115,44 @@ class BrowserUseEnvironment(TaskEnvironment):
         """
 
         # Run browser automation
-        history = asyncio.run(self._run_browser_task(browser_use_prompt))
+        result = asyncio.run(self._run_browser_task(browser_use_prompt))
 
-        #Get a list of strings, each string is a step taken by the browser use agent
-        steps_taken = len(history.extracted_content()) if hasattr(history, "extracted_content") else 0
+        print_history_details(result)
 
-        #Output of the browser use agent
-        final_result = history.final_result() if hasattr(history, "final_result") else ""
 
-        #Things that can be used to evaluate the performance of the browser use agent
-        is_done = history.is_done() if hasattr(history, "is_done") else False
-        is_successful = history.is_successful() if hasattr(history, "is_successful") else False
-        has_errors = history.has_errors() if hasattr(history, "has_errors") else False
-        number_of_steps = history.number_of_steps() if hasattr(history, "number_of_steps") else 0
+        # Success case - result is a history object
+        model_outputs = result.model_outputs() if hasattr(result, "model_outputs") else None
+        final_result = result.final_result() if hasattr(result, "final_result") else ""
+        is_done = result.is_done() if hasattr(result, "is_done") else False
+        is_successful = result.is_successful() if hasattr(result, "is_successful") else False
+        has_errors = result.has_errors() if hasattr(result, "has_errors") else False
+        number_of_steps = result.number_of_steps() if hasattr(result, "number_of_steps") else 0
 
-        # Print all history information in a nice format just to see what information is available
-        # print_history_details(history)
+    
       
+        # Build steps text outside f-string to avoid backslash issue
+        model_outputs_text = "\n".join([str(output) for output in model_outputs]) if model_outputs else "No model outputs recorded"
+        done_text = "" if is_done else "not "
+        successful_text = "" if is_successful else "not "
+        errors_text = "" if has_errors else "no "
+
         feedback = f"""
-        The task was {"" if is_done else "not "} finished.
-        The task was {"" if is_successful else "not "}successful.
-        The browser use agent had {"" if has_errors else "no "}errors.
+        The task was {done_text}finished.
+        The task was {successful_text}successful.
+        The browser use agent had {errors_text}errors.
         Browser use agent took {number_of_steps} steps.
 
-        The steps taken were: 
-        {"\n".join(steps_taken)}
+        These are the outputs of the agent while executing the task:
+        {model_outputs_text}
 
         The final result was: {final_result}
         """
 
-        status = "ERROR"
-        if is_successful:
-            status = "SUCCESS"
-        else:
-            status = "ERROR"
+        status = "SUCCESS" if is_successful else "ERROR"
+        success = is_successful
+        efficient = number_of_steps <= 15  # Consider efficient if <= max_steps
+
+        print("FEEDBACK: ", feedback)
 
 
         return EnvironmentResult(
@@ -103,44 +167,47 @@ class BrowserUseEnvironment(TaskEnvironment):
         )
 
 
-    async def run_browser_task(browser_use_prompt: str, model: str = "gpt-4o-mini", headless: bool = True):
+    async def _run_browser_task(self, browser_use_prompt: str):
         """Run browser task without any learning."""
-        
         
         browser = None
         try:
             # Start browser
-            browser = Browser(headless=headless)
+            browser = Browser(headless=self.headless)
             await browser.start()
 
             # Create agent with basic task (no learning, no strategy optimization)
-            llm = ChatOpenAI(model=model, temperature=0.0)
+            llm = ChatOpenAI(model=self.model, temperature=0.0)
 
             agent = Agent(
-                task=task,
+                task=browser_use_prompt,
                 llm=llm,
                 browser=browser,
-                max_actions_per_step=5,
-                max_steps=15
+                max_actions_per_step=10,
+                max_steps=10
             )
 
             # Run with timeout
             history = await asyncio.wait_for(agent.run(), timeout=240.0)
-
-
             return history
         except asyncio.TimeoutError:
-            try: 
-                number_of_steps = history.number_of_steps() if hasattr(history, "number_of_steps") else 0
-            except:
-                number_of_steps = 25  # max_steps if we can't determine
-            return {"is_done": False, "is_successful": False, "has_errors": True, "number_of_steps": number_of_steps , "final_result": "Timeout"}
-        except Exception as e:
+            # Try to get steps from history if it exists
+            number_of_steps = 25  # default to max_steps
             try:
-                number_of_steps = history.number_of_steps() if hasattr(history, "number_of_steps") else 0
+                if 'history' in locals() and history is not None:
+                    number_of_steps = history.number_of_steps() if hasattr(history, "number_of_steps") else 25
             except:
-                number_of_steps = 0
-            return {"is_done": False, "is_successful": False, "has_errors": True, "number_of_steps": 0, "final_result": str(e)}
+                pass
+            return {"is_done": False, "is_successful": False, "has_errors": True, "number_of_steps": number_of_steps, "final_result": "Timeout"}
+        except Exception as e:
+            # Try to get steps from history if it exists
+            number_of_steps = 0
+            try:
+                if 'history' in locals() and history is not None:
+                    number_of_steps = history.number_of_steps() if hasattr(history, "number_of_steps") else 0
+            except:
+                pass
+            return {"is_done": False, "is_successful": False, "has_errors": True, "number_of_steps": number_of_steps, "final_result": str(e)}
 
         finally:
             if browser:
@@ -185,10 +252,11 @@ def main(task_file: str = "task1_flight_search.txt"):
     environment = BrowserUseEnvironment(
         headless=False,
         model="gpt-4o-mini",
+        local_port=8765
     )
 
     
-    question = f"""
+    question = """
     If you were a browser use agent, what would you do to fullfil the following task?
 
     How would your step by step action plan look like for this browser use task?
@@ -201,8 +269,13 @@ def main(task_file: str = "task1_flight_search.txt"):
     - Read a value from the screen
     - etc.
 
-    Provide the plan as an overall answer in the final_answer field as a list of steps.
-    Example: "final_answer": ["Step 1: Click on the \"next\" button", "Step 2: Fill out the Email field", "Step 3: Fill out the Password field", "Step 4: Click on the login button"]
+    Provide the plan as an overall answer in the final_answer field as a dictionary of steps, where the key is the step number and the value is the step description.
+    Example: "final_answer": {
+        "1": "Click on the \\"next\\" button",
+        "2": "Fill out the Email field",
+        "3": "Fill out the Password field",
+        "4": "Click on the login button"
+    }
     """
 
 
@@ -217,21 +290,25 @@ def main(task_file: str = "task1_flight_search.txt"):
 
     results = adapter.run(samples, environment)
 
-    result = asyncio.run(run_browser_task(task=task_content, headless=False))
-    results.append(result)
+    # Note: Results from adapter.run are AdapterStepResult objects, not dicts
+    # If you need to run an additional browser task outside the adapter,
+    # you would need to create a separate standalone function or use the environment
 
     # Show final results
     print("=" * 40)
     print("📊 Results:")
 
+    # Extract metrics from adapter results
+    if results:
+        successful = sum(1 for r in results if r.environment_result.metrics.get('success', False))
+        total_steps = sum(r.environment_result.metrics.get('steps', 0) for r in results)
+        avg_steps = total_steps / len(results) if results else 0
 
-    # Summary
-    successful = sum(1 for r in results if r['success'])
-    total_steps = sum(r['steps'] for r in results)
-    avg_steps = total_steps / len(results) if results else 0
-
-    print(f"\n✅ Success rate: {successful}/{len(results)} ({100*successful/len(results):.1f}%)")
-    print(f"⚡ Average steps: {avg_steps:.1f}")
+        print(f"\n✅ Success rate: {successful}/{len(results)} ({100*successful/len(results):.1f}%)")
+        print(f"⚡ Average steps: {avg_steps:.1f}")
+    else:
+        print("\n⚠️ No results to display")
+    
     print(f"✨ Learning enabled - improves after each task")
 
     print(f"\n💡 Compare with: python examples/browser-use/baseline_browser_use.py")
@@ -239,4 +316,7 @@ def main(task_file: str = "task1_flight_search.txt"):
 
 
 if __name__ == "__main__":
-    main()
+    parser = argparse.ArgumentParser(description="ACE Browser Use Agent")
+    parser.add_argument("--task-file", type=str, default="task1_flight_search.txt", help="Path to the task file")
+    args = parser.parse_args()  
+    main(args.task_file)

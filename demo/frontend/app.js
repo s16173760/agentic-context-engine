@@ -65,6 +65,11 @@ class RaceTracker {
                     <span class="processing-text">🔍 Analyzing code...</span>
                 </div>
             `;
+            
+            // Resume timer when this agent starts processing
+            if (!this.completed) {
+                this.resumeTimer();
+            }
         }
     }
     
@@ -73,6 +78,9 @@ class RaceTracker {
         this.totalTime = data.total_time;
         this.totalTokens = data.total_tokens;
         this.accuracies.push(data.accuracy);
+        
+        // Pause timer when this agent finishes a sample
+        this.pauseTimer();
         
         // Update progress dot
         const dot = document.getElementById(`${this.mode}-dot-${data.sample_id}`);
@@ -128,16 +136,49 @@ class RaceTracker {
     }
     
     startTimer() {
-        this.startTime = Date.now();
-        this.timerInterval = setInterval(() => {
-            if (!this.completed) {
-                const elapsed = (Date.now() - this.startTime) / 1000;
-                this.timeDisplay.textContent = `${elapsed.toFixed(1)}s`;
+        this.pausedTime = 0;
+        this.lastPauseStart = null;
+        this.timerRunning = false;
+        this.resumeTimer();
+    }
+    
+    pauseTimer() {
+        if (this.timerRunning) {
+            this.lastPauseStart = Date.now();
+            this.timerRunning = false;
+        }
+    }
+    
+    resumeTimer() {
+        if (!this.timerRunning && !this.completed) {
+            // Add any paused time to the total
+            if (this.lastPauseStart !== null) {
+                this.pausedTime += (Date.now() - this.lastPauseStart);
+                this.lastPauseStart = null;
             }
-        }, 100); // Update every 100ms for smooth animation
+            
+            // Start tracking if this is the first time
+            if (!this.startTime) {
+                this.startTime = Date.now();
+            }
+            
+            this.timerRunning = true;
+            
+            // Start the interval if not already running
+            if (!this.timerInterval) {
+                this.timerInterval = setInterval(() => {
+                    if (this.timerRunning && !this.completed) {
+                        const totalElapsed = Date.now() - this.startTime;
+                        const activeTime = (totalElapsed - this.pausedTime) / 1000;
+                        this.timeDisplay.textContent = `${activeTime.toFixed(1)}s`;
+                    }
+                }, 100); // Update every 100ms for smooth animation
+            }
+        }
     }
     
     stopTimer() {
+        this.timerRunning = false;
         if (this.timerInterval) {
             clearInterval(this.timerInterval);
             this.timerInterval = null;

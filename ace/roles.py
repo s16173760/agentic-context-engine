@@ -26,6 +26,13 @@ except ImportError:
 
 
 def _safe_json_loads(text: str) -> Dict[str, Any]:
+    # Strip markdown code blocks if present
+    text = text.strip()
+    if text.startswith("```json") and text.endswith("```"):
+        text = text[7:-3].strip()
+    elif text.startswith("```") and text.endswith("```"):
+        text = text[3:-3].strip()
+
     try:
         data = json.loads(text)
     except json.JSONDecodeError as exc:
@@ -103,7 +110,8 @@ class Generator:
 
     @maybe_track(
         name="generator_generate",
-        tags=["ace-framework", "role", "generator"]
+        tags=["ace-framework", "role", "generator"],
+        project_name="ace-roles"
     )
     def generate(
         self,
@@ -239,7 +247,8 @@ class Reflector:
 
     @maybe_track(
         name="reflector_reflect",
-        tags=["ace-framework", "role", "reflector"]
+        tags=["ace-framework", "role", "reflector"],
+        project_name="ace-roles"
     )
     def reflect(
         self,
@@ -397,7 +406,8 @@ class Curator:
 
     @maybe_track(
         name="curator_curate",
-        tags=["ace-framework", "role", "curator"]
+        tags=["ace-framework", "role", "curator"],
+        project_name="ace-roles"
     )
     def curate(
         self,

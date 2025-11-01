@@ -40,6 +40,7 @@ classifiers = [
 ]
 
 dependencies = [
+    "langchain-openai>=0.3.35",
     "litellm>=1.78.0",
     "pydantic>=2.0.0",
     "python-dotenv>=1.0.0",

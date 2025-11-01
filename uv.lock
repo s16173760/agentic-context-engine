@@ -30,6 +30,7 @@ name = "ace-framework"
 version = "0.4.0"
 source = { editable = "." }
 dependencies = [
+    { name = "langchain-openai" },
     { name = "litellm" },
     { name = "pydantic" },
     { name = "python-dotenv" },
@@ -91,6 +92,7 @@ requires-dist = [
     { name = "git-changelog", marker = "extra == 'dev'", specifier = ">=2.5.0" },
     { name = "langchain-litellm", marker = "extra == 'all'", specifier = ">=0.2.0" },
     { name = "langchain-litellm", marker = "extra == 'langchain'", specifier = ">=0.2.0" },
+    { name = "langchain-openai", specifier = ">=0.3.35" },
     { name = "litellm", specifier = ">=1.78.0" },
     { name = "mypy", marker = "extra == 'dev'", specifier = ">=1.0.0" },
     { name = "openpyxl", marker = "extra == 'all'", specifier = ">=3.0.0" },
@@ -1423,6 +1425,20 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/f9/0e/f5583b4b63da7ecd1c3b45bd9c9f97b727761e492a0c07869a8779ea28dd/langchain_litellm-0.3.0.tar.gz", hash = "sha256:94d7c106c5c9c81eba0e54ce9a4f720c61461d2f5592ad612e974f096866b351", size = 11184, upload-time = "2025-10-20T11:55:27.014Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/b7/14/3409f8cbb9e05019b6aa4f951ea937f933029552cfb59b8d10bbe84e5386/langchain_litellm-0.3.0-py3-none-any.whl", hash = "sha256:029afdce461fc51ff45fd06e0c2467b79304e5cc127e3596e208182ce0f637ba", size = 11861, upload-time = "2025-10-20T11:55:25.961Z" },
+]
+
+[[package]]
+name = "langchain-openai"
+version = "0.3.35"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "langchain-core" },
+    { name = "openai" },
+    { name = "tiktoken" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/fb/96/06d0d25a37e05a0ff2d918f0a4b0bf0732aed6a43b472b0b68426ce04ef8/langchain_openai-0.3.35.tar.gz", hash = "sha256:fa985fd041c3809da256a040c98e8a43e91c6d165b96dcfeb770d8bd457bf76f", size = 786635, upload-time = "2025-10-06T15:09:28.463Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/d8/d5/c90c5478215c20ee71d8feaf676f7ffd78d0568f8c98bd83f81ce7562ed7/langchain_openai-0.3.35-py3-none-any.whl", hash = "sha256:76d5707e6e81fd461d33964ad618bd326cb661a1975cef7c1cb0703576bdada5", size = 75952, upload-time = "2025-10-06T15:09:27.137Z" },
 ]
 
 [[package]]

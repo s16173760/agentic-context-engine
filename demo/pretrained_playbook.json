@@ -1,0 +1,148 @@
+{
+  "bullets": {
+    "edge-00001": {
+      "id": "edge-00001",
+      "section": "Edge Case Analysis",
+      "content": "Test boundary conditions (empty inputs, null values, zero denominators) as secondary validation, but don't let edge case analysis overshadow primary bugs indicated by hints or context. Prioritize the main bug before expanding to edge cases.",
+      "helpful": 1,
+      "harmful": 0,
+      "neutral": 0,
+      "created_at": "2025-11-01T22:21:38.205614+00:00",
+      "updated_at": "2025-11-01T22:22:41.175352+00:00"
+    },
+    "division-00002": {
+      "id": "division-00002",
+      "section": "Division by Zero Vulnerabilities",
+      "content": "Check for empty collections before division operations (e.g., calculate_average with empty list causes ZeroDivisionError) - add guard conditions or input validation",
+      "helpful": 1,
+      "harmful": 0,
+      "neutral": 0,
+      "created_at": "2025-11-01T22:21:38.205634+00:00",
+      "updated_at": "2025-11-01T22:21:38.205636+00:00"
+    },
+    "bug-00003": {
+      "id": "bug-00003",
+      "section": "Bug Analysis Methodology",
+      "content": "Follow systematic approach: (1) analyze code structure and logic flow, (2) identify potential failure modes, (3) pinpoint exact error conditions, (4) propose multiple solutions, (5) explain trade-offs. When hints or ground truth contradict your analysis, re-examine assumptions - the approach may be applied to the wrong target problem.",
+      "helpful": 6,
+      "harmful": 0,
+      "neutral": 1,
+      "created_at": "2025-11-01T22:21:38.205643+00:00",
+      "updated_at": "2025-11-01T22:25:37.062222+00:00"
+    },
+    "defensive-00004": {
+      "id": "defensive-00004",
+      "section": "Defensive Programming",
+      "content": "For functions processing collections, implement input validation for empty cases - consider returning default values (0, None) or raising descriptive exceptions. Apply after identifying primary bugs to avoid distracting from core issues.",
+      "helpful": 2,
+      "harmful": 0,
+      "neutral": 0,
+      "created_at": "2025-11-01T22:21:38.205649+00:00",
+      "updated_at": "2025-11-01T22:25:37.062237+00:00"
+    },
+    "off-by-one-00005": {
+      "id": "off-by-one-00005",
+      "section": "Off-by-One Error Patterns",
+      "content": "[offbyone-00001] Off-by-one errors manifest as both incorrect results AND inefficiencies. When a variable is initialized using an element (e.g., max_val = arr[0]), ensure loops don't reprocess that element - use range(1, len(arr)) instead of range(len(arr)) to skip redundant operations.",
+      "helpful": 1,
+      "harmful": 0,
+      "neutral": 0,
+      "created_at": "2025-11-01T22:22:41.175344+00:00",
+      "updated_at": "2025-11-01T22:22:41.175346+00:00"
+    },
+    "mutation-00006": {
+      "id": "mutation-00006",
+      "section": "Mutation and Reference Bugs",
+      "content": "[mutation-00001] When functions create dictionaries/lists from inputs, check for reference assignments (result = dict1) that cause unintended mutations. Solutions: (1) dict1.copy() for shallow copy, (2) dict(dict1) constructor, (3) {**dict1} unpacking. Explain the violated principle (input parameter side effects), show concrete before/after impact, and note that shallow copy suffices unless nested structures require deepcopy. (helpful=1, harmful=0, neutral=0)",
+      "helpful": 1,
+      "harmful": 0,
+      "neutral": 1,
+      "created_at": "2025-11-01T22:23:35.018560+00:00",
+      "updated_at": "2025-11-01T22:24:10.377364+00:00"
+    },
+    "feedback-00007": {
+      "id": "feedback-00007",
+      "section": "Feedback Interpretation",
+      "content": "[feedback-00001] When feedback requests 'more specific' despite correct identification: (1) provide 2-3 alternative solutions with trade-offs, (2) name the broader principle/pattern violated (e.g., immutability, side effects), (3) show explicit before/after examples demonstrating impact, (4) connect to best practices. Correctness alone is insufficient - add context, alternatives, and implications. (helpful=1, harmful=0, neutral=0)",
+      "helpful": 3,
+      "harmful": 0,
+      "neutral": 0,
+      "created_at": "2025-11-01T22:23:35.018566+00:00",
+      "updated_at": "2025-11-01T22:25:37.062243+00:00"
+    },
+    "feedback-00008": {
+      "id": "feedback-00008",
+      "section": "Feedback Interpretation",
+      "content": "[feedback-00008] When feedback requests 'more specific' or 'clearer fix' on correctly identified bugs: provide complete, runnable code blocks (not fragments), step-by-step execution traces with actual test data, and quantified before/after metrics (operation counts, timing comparisons). 'Explicit examples' means reproducible artifacts - another developer should be able to copy-paste and immediately observe the described behavior. Show concrete sequences (e.g., 'checking item 2: scans [1], checking second 2: scans [1,2]...') rather than theoretical complexity analysis alone.",
+      "helpful": 1,
+      "harmful": 0,
+      "neutral": 0,
+      "created_at": "2025-11-01T22:24:23.945905+00:00",
+      "updated_at": "2025-11-01T22:24:23.945911+00:00"
+    },
+    "performance-00009": {
+      "id": "performance-00009",
+      "section": "Performance Optimization",
+      "content": "[performance-00009] Avoid O(n²) complexity from membership testing in loops: 'if item not in list' inside a loop performs O(n) scan per iteration. Solution: use set for O(1) lookups. Pattern: (1) identify repeated membership checks, (2) convert to set (unique = set() or seen = set()), (3) use set.add() instead of list.append(). Provide concrete impact: for n=7, list approach does 1+2+3+4+5+6+7=28 comparisons vs 7 set operations. State violated principle: 'inefficient data structure choice for membership testing'.",
+      "helpful": 1,
+      "harmful": 0,
+      "neutral": 0,
+      "created_at": "2025-11-01T22:24:23.945917+00:00",
+      "updated_at": "2025-11-01T22:24:23.945918+00:00"
+    },
+    "operator-00010": {
+      "id": "operator-00010",
+      "section": "Operator Confusion Patterns",
+      "content": "[operator-00001] Check for assignment/comparison operator confusion: comparison (==) where assignment (=) intended, or vice versa. Common in reset/initialization methods where 'self.variable == value' performs comparison instead of assignment. Apply systematic debugging: identify operator type, trace execution showing variable state doesn't change, provide before/after fix. These bugs often pass syntax checks but cause silent logic failures.",
+      "helpful": 1,
+      "harmful": 0,
+      "neutral": 0,
+      "created_at": "2025-11-01T22:25:02.446034+00:00",
+      "updated_at": "2025-11-01T22:25:02.446039+00:00"
+    },
+    "keyerror-00001": {
+      "id": "keyerror-00001",
+      "section": "Dictionary Access Patterns",
+      "content": "[keyerror-00001] When accessing dictionaries with variable keys (dict[key]), implement error handling for non-existent keys to prevent KeyError crashes. Solutions: (1) dict.get(key, default) for optional keys with fallback values, (2) explicit validation with 'if key in dict' before access when key absence should raise descriptive errors, (3) try-except KeyError for complex logic. Provide 2-3 alternatives with trade-offs: get() is concise for defaults, validation gives control over error messages, try-except handles multiple operations. Name the violated principle (missing input validation/error handling).",
+      "helpful": 1,
+      "harmful": 0,
+      "neutral": 0,
+      "created_at": "2025-11-01T22:25:47.816446+00:00",
+      "updated_at": "2025-11-01T22:25:47.816464+00:00"
+    }
+  },
+  "sections": {
+    "Edge Case Analysis": [
+      "edge-00001"
+    ],
+    "Division by Zero Vulnerabilities": [
+      "division-00002"
+    ],
+    "Bug Analysis Methodology": [
+      "bug-00003"
+    ],
+    "Defensive Programming": [
+      "defensive-00004"
+    ],
+    "Off-by-One Error Patterns": [
+      "off-by-one-00005"
+    ],
+    "Mutation and Reference Bugs": [
+      "mutation-00006"
+    ],
+    "Feedback Interpretation": [
+      "feedback-00007",
+      "feedback-00008"
+    ],
+    "Performance Optimization": [
+      "performance-00009"
+    ],
+    "Operator Confusion Patterns": [
+      "operator-00010"
+    ],
+    "Dictionary Access Patterns": [
+      "keyerror-00001"
+    ]
+  },
+  "next_id": 10
+}

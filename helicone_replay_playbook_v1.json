@@ -1,0 +1,283 @@
+{
+  "bullets": {
+    "complex-00001": {
+      "id": "complex-00001",
+      "section": "Complex Technical Deliverables",
+      "content": "Break down large implementation requests into logical phases rather than attempting comprehensive coverage in one response to avoid system truncation",
+      "helpful": 1,
+      "harmful": 0,
+      "neutral": 0,
+      "created_at": "2025-11-01T17:01:24.005398+00:00",
+      "updated_at": "2025-11-01T17:01:24.005410+00:00"
+    },
+    "complex-00002": {
+      "id": "complex-00002",
+      "section": "Complex Technical Deliverables",
+      "content": "For multi-component projects, prioritize completeness over comprehensiveness by delivering each phase fully and asking for confirmation before proceeding",
+      "helpful": 1,
+      "harmful": 0,
+      "neutral": 0,
+      "created_at": "2025-11-01T17:01:24.005431+00:00",
+      "updated_at": "2025-11-01T17:01:24.005435+00:00"
+    },
+    "response-00003": {
+      "id": "response-00003",
+      "section": "Response Length Management",
+      "content": "When system truncation occurs mid-delivery, the technical approach may be sound but critical information gets lost - structure responses to avoid this",
+      "helpful": 1,
+      "harmful": 0,
+      "neutral": 0,
+      "created_at": "2025-11-01T17:01:24.005446+00:00",
+      "updated_at": "2025-11-01T17:01:24.005450+00:00"
+    },
+    "context-00004": {
+      "id": "context-00004",
+      "section": "Context and Continuation Handling",
+      "content": "When receiving ambiguous continuation instructions (like 'finish what you were doing'), first verify that genuine historical context exists in the conversation before proceeding - if no clear previous work is established, ask for clarification rather than fabricating or assuming context",
+      "helpful": 1,
+      "harmful": 0,
+      "neutral": 0,
+      "created_at": "2025-11-01T17:01:38.364704+00:00",
+      "updated_at": "2025-11-01T17:01:52.437117+00:00"
+    },
+    "debugging-00005": {
+      "id": "debugging-00005",
+      "section": "Debugging and Error Analysis",
+      "content": "Infinite recursion errors manifest as repetitive stack traces showing the same function call at the same line - diagnose by examining the recursive call site, adding proper termination conditions, and considering iterative alternatives for deep recursive operations",
+      "helpful": 1,
+      "harmful": 0,
+      "neutral": 0,
+      "created_at": "2025-11-01T17:02:19.973118+00:00",
+      "updated_at": "2025-11-01T17:02:19.973126+00:00"
+    },
+    "complex-00006": {
+      "id": "complex-00006",
+      "section": "Complex Technical Deliverables",
+      "content": "Multi-part technical requests require systematic implementation of each specified component with concrete code rather than generic acknowledgments - address each requirement individually with actual technical solutions",
+      "helpful": 1,
+      "harmful": 0,
+      "neutral": 0,
+      "created_at": "2025-11-01T17:02:34.274928+00:00",
+      "updated_at": "2025-11-01T17:02:34.274936+00:00"
+    },
+    "complex-00007": {
+      "id": "complex-00007",
+      "section": "Complex Technical Deliverables",
+      "content": "Technical requests require substantive implementation guidance regardless of language context - acknowledgment phrases in any language are insufficient when users need concrete code solutions and actionable technical steps",
+      "helpful": 1,
+      "harmful": 0,
+      "neutral": 0,
+      "created_at": "2025-11-01T17:02:50.027875+00:00",
+      "updated_at": "2025-11-01T17:02:50.027884+00:00"
+    },
+    "complex-00008": {
+      "id": "complex-00008",
+      "section": "Complex Technical Deliverables",
+      "content": "When handling multi-part technical requests in mixed languages, systematically break down each requirement clearly and provide comprehensive solutions that address both immediate fixes and proper system architecture - ensure each technical domain (UI/performance, game logic, etc.) receives appropriate attention",
+      "helpful": 1,
+      "harmful": 0,
+      "neutral": 0,
+      "created_at": "2025-11-01T17:03:06.124354+00:00",
+      "updated_at": "2025-11-01T17:03:06.124374+00:00"
+    },
+    "complex-00009": {
+      "id": "complex-00009",
+      "section": "Complex Technical Deliverables",
+      "content": "Imperative technical requests using command language (like 'fai si che', 'rimuovi', 'aggiungi') require immediate concrete implementation rather than acknowledgment responses - recognize directive language patterns across languages and respond with actual code changes and technical solutions",
+      "helpful": 1,
+      "harmful": 0,
+      "neutral": 0,
+      "created_at": "2025-11-01T17:03:23.673537+00:00",
+      "updated_at": "2025-11-01T17:03:23.673541+00:00"
+    },
+    "debugging-00006": {
+      "id": "debugging-00006",
+      "section": "Debugging and Error Analysis",
+      "content": "Technical debugging requests require immediate code investigation and systematic troubleshooting steps rather than conversational acknowledgments - when users report broken functionality (like countdown stuck at specific values), respond with concrete debugging methodology including code examination, state analysis, and specific diagnostic steps",
+      "helpful": 1,
+      "harmful": 0,
+      "neutral": 0,
+      "created_at": "2025-11-01T17:03:38.899265+00:00",
+      "updated_at": "2025-11-01T17:03:38.899284+00:00"
+    },
+    "debugging-00007": {
+      "id": "debugging-00007",
+      "section": "Debugging and Error Analysis",
+      "content": "Code revert scenarios require fresh analysis of the changes between commits rather than relying on replayed historical responses - conduct systematic analysis of what changed, why the revert was necessary, and the impact of returning to the previous state, while consulting relevant playbook guidance for the specific technical domain",
+      "helpful": 1,
+      "harmful": 0,
+      "neutral": 0,
+      "created_at": "2025-11-01T17:05:39.861834+00:00",
+      "updated_at": "2025-11-01T17:05:39.861841+00:00"
+    },
+    "debugging-00008": {
+      "id": "debugging-00008",
+      "section": "Debugging and Error Analysis",
+      "content": "Stack overflow errors with repetitive identical stack traces indicate infinite recursion - implement proper base cases, ensure recursive calls modify parameters to eventually reach termination conditions, and consider iterative alternatives for deep recursive operations that may exceed stack limits",
+      "helpful": 1,
+      "harmful": 0,
+      "neutral": 0,
+      "created_at": "2025-11-01T17:05:54.664504+00:00",
+      "updated_at": "2025-11-01T17:05:54.664508+00:00"
+    },
+    "debugging-00009": {
+      "id": "debugging-00009",
+      "section": "Debugging and Error Analysis",
+      "content": "React hooks rule violations ('Rendered more hooks than during the previous render') occur when hooks are called conditionally or in different orders between renders - ensure all hooks are declared at the component's top level before any conditional logic, early returns, or validation checks to maintain consistent hook execution order across all renders",
+      "helpful": 1,
+      "harmful": 0,
+      "neutral": 0,
+      "created_at": "2025-11-01T17:07:32.675621+00:00",
+      "updated_at": "2025-11-01T17:07:32.675625+00:00"
+    },
+    "complex-00010": {
+      "id": "complex-00010",
+      "section": "Complex Technical Deliverables",
+      "content": "When handling technical requests in foreign languages, maintain technical accuracy while demonstrating clear understanding of complex multiplayer game mechanics, UI synchronization, and performance optimization concepts - technical competency should not be compromised by language barriers",
+      "helpful": 1,
+      "harmful": 0,
+      "neutral": 0,
+      "created_at": "2025-11-01T17:04:41.068368+00:00",
+      "updated_at": "2025-11-01T17:04:41.068374+00:00"
+    },
+    "complex-00011": {
+      "id": "complex-00011",
+      "section": "Complex Technical Deliverables",
+      "content": "Multi-domain technical specifications with interconnected requirements (real-time networking, mobile UI, game physics, authentication flows) require systematic decomposition and comprehensive coverage across all domains - maintain technical accuracy while ensuring each component (architecture, data models, networking protocols, UI flows, production considerations) receives appropriate detailed attention",
+      "helpful": 1,
+      "harmful": 0,
+      "neutral": 0,
+      "created_at": "2025-11-01T17:04:56.190266+00:00",
+      "updated_at": "2025-11-01T17:04:56.190274+00:00"
+    },
+    "context-00012": {
+      "id": "context-00012",
+      "section": "Context and Continuation Handling",
+      "content": "When receiving vague continuation requests like 'finish what you were doing', leverage available conversation history and context to provide meaningful, actionable responses - successful contextual reasoning involves interpreting ambiguous instructions by referencing previously discussed tasks and providing specific action plans rather than seeking unnecessary clarification when context is clear",
+      "helpful": 1,
+      "harmful": 0,
+      "neutral": 0,
+      "created_at": "2025-11-01T17:05:11.351405+00:00",
+      "updated_at": "2025-11-01T17:05:11.351416+00:00"
+    },
+    "context-00013": {
+      "id": "context-00013",
+      "section": "Context and Continuation Handling",
+      "content": "When receiving ambiguous continuation commands with available historical context, verify current task state and specific completion requirements rather than making assumptions based solely on historical data - even when historical context seems relevant, ask for clarification about what specifically needs to be finished or provide a summary of understood next steps before proceeding",
+      "helpful": 1,
+      "harmful": 0,
+      "neutral": 0,
+      "created_at": "2025-11-01T17:05:25.636708+00:00",
+      "updated_at": "2025-11-01T17:05:25.636721+00:00"
+    },
+    "complex-00012": {
+      "id": "complex-00012",
+      "section": "Complex Technical Deliverables",
+      "content": "Multi-part technical task lists with specific implementation requirements demand immediate concrete solutions rather than acknowledgment responses - when users provide detailed technical specifications (ball rendering, speed adjustments, field orientation, UI flows), respond with actual code implementations for each task rather than confirmation that work will begin",
+      "helpful": 1,
+      "harmful": 0,
+      "neutral": 0,
+      "created_at": "2025-11-01T17:06:27.558875+00:00",
+      "updated_at": "2025-11-01T17:06:27.558885+00:00"
+    },
+    "complex-00013": {
+      "id": "complex-00013",
+      "section": "Complex Technical Deliverables",
+      "content": "Multi-language technical requests require careful parsing to extract all requirements across languages - success comes from addressing both performance optimization (rendering, frame rates, cross-device compatibility) and user experience flow (lobby systems, confirmation mechanisms) in unified responses that cover frontend and backend considerations comprehensively",
+      "helpful": 1,
+      "harmful": 0,
+      "neutral": 0,
+      "created_at": "2025-11-01T17:06:45.325480+00:00",
+      "updated_at": "2025-11-01T17:06:45.325485+00:00"
+    },
+    "complex-00014": {
+      "id": "complex-00014",
+      "section": "Complex Technical Deliverables",
+      "content": "Generic acknowledgment responses ('I will implement these changes', 'Perfetto! Implementerò...') are insufficient for specific technical modification requests - when users provide concrete UI/UX requirements (button changes, element removal, routing modifications, personalized content), respond with actual implementation code and technical solutions rather than promises to begin work",
+      "helpful": 1,
+      "harmful": 0,
+      "neutral": 0,
+      "created_at": "2025-11-01T17:07:02.734844+00:00",
+      "updated_at": "2025-11-01T17:07:02.734857+00:00"
+    },
+    "debugging-00010": {
+      "id": "debugging-00010",
+      "section": "Debugging and Error Analysis",
+      "content": "Technical debugging requests require immediate action-oriented responses with specific diagnostic steps rather than generic acknowledgments - when users report specific malfunctions (countdown stuck at values, broken functionality), immediately request code examination, provide structured debugging methodology, and offer concrete troubleshooting steps instead of simply acknowledging the problem exists",
+      "helpful": 1,
+      "harmful": 0,
+      "neutral": 0,
+      "created_at": "2025-11-01T17:07:17.731747+00:00",
+      "updated_at": "2025-11-01T17:07:17.731756+00:00"
+    },
+    "debugging-00011": {
+      "id": "debugging-00011",
+      "section": "Debugging and Error Analysis",
+      "content": "Platform-specific API errors in cross-platform frameworks (like Expo ScreenOrientation.lockAsync() failing on web) occur when native mobile APIs are called in unsupported environments - add platform detection checks (Platform.OS !== 'web') or wrap API calls in try-catch blocks to gracefully handle platform limitations and browser security restrictions",
+      "helpful": 1,
+      "harmful": 0,
+      "neutral": 0,
+      "created_at": "2025-11-01T17:07:46.278392+00:00",
+      "updated_at": "2025-11-01T17:07:46.278401+00:00"
+    },
+    "debugging-00012": {
+      "id": "debugging-00012",
+      "section": "Debugging and Error Analysis",
+      "content": "When real-time graphics appear choppy or jerky, identify the temporal mismatch between data update frequency and display refresh rate - implement client-side interpolation to smooth movement between server updates when server frequency (e.g., 20Hz) is lower than display refresh rate (e.g., 60fps)",
+      "helpful": 1,
+      "harmful": 0,
+      "neutral": 0,
+      "created_at": "2025-11-01T17:07:59.282254+00:00",
+      "updated_at": "2025-11-01T17:07:59.282263+00:00"
+    },
+    "complex-00015": {
+      "id": "complex-00015",
+      "section": "Complex Technical Deliverables",
+      "content": "When handling multi-part technical requests in foreign languages, break down complex requirements into numbered, categorized issues to ensure comprehensive coverage and clear communication - systematic categorization helps maintain clarity even when dealing with specialized terminology across language barriers",
+      "helpful": 1,
+      "harmful": 0,
+      "neutral": 0,
+      "created_at": "2025-11-01T17:08:13.824846+00:00",
+      "updated_at": "2025-11-01T17:08:13.824857+00:00"
+    }
+  },
+  "sections": {
+    "Complex Technical Deliverables": [
+      "complex-00001",
+      "complex-00002",
+      "complex-00006",
+      "complex-00007",
+      "complex-00008",
+      "complex-00009",
+      "complex-00010",
+      "complex-00011",
+      "complex-00012",
+      "complex-00012",
+      "complex-00013",
+      "complex-00014",
+      "complex-00015"
+    ],
+    "Response Length Management": [
+      "response-00003"
+    ],
+    "Context and Continuation Handling": [
+      "context-00004",
+      "context-00012",
+      "context-00013"
+    ],
+    "Debugging and Error Analysis": [
+      "debugging-00005",
+      "debugging-00006",
+      "debugging-00007",
+      "debugging-00008",
+      "debugging-00009",
+      "debugging-00007",
+      "debugging-00008",
+      "debugging-00010",
+      "debugging-00009",
+      "debugging-00011",
+      "debugging-00012"
+    ]
+  },
+  "next_id": 9
+}

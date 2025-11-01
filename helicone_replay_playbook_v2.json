@@ -1,0 +1,223 @@
+{
+  "bullets": {
+    "software_development-00001": {
+      "id": "software_development-00001",
+      "section": "software_development",
+      "content": "For complex software development requests requiring multiple technical domains: Provide structured response covering all specified requirements systematically - include networking protocols, UI/UX specifications, data models, and production considerations as separate sections",
+      "helpful": 1,
+      "harmful": 0,
+      "neutral": 0,
+      "created_at": "2025-11-01T17:29:06.307326+00:00",
+      "updated_at": "2025-11-01T17:29:06.307331+00:00"
+    },
+    "mobile_app_development-00002": {
+      "id": "mobile_app_development-00002",
+      "section": "mobile_app_development",
+      "content": "For real-time multiplayer mobile game requests: Address networking (WebSockets with server-authoritative architecture, 60Hz physics/20Hz broadcast, client prediction for smooth visuals), UI design system (color schemes, typography, component specs), data models (Match, PlayerRef, GameState with timestamps), production considerations (deep links, analytics events, edge cases), and structure response with clear deliverables section. Provide comprehensive technical implementation covering all specified domains systematically",
+      "helpful": 2,
+      "harmful": 0,
+      "neutral": 0,
+      "created_at": "2025-11-01T17:29:06.307346+00:00",
+      "updated_at": "2025-11-01T17:32:44.523291+00:00"
+    },
+    "technical_specification-00003": {
+      "id": "technical_specification-00003",
+      "section": "technical_specification",
+      "content": "When handling production-ready software requests: Include all specified technical requirements (auth flows, networking protocols, data models, UI screens, edge cases, analytics, accessibility) rather than providing partial or high-level responses",
+      "helpful": 1,
+      "harmful": 0,
+      "neutral": 0,
+      "created_at": "2025-11-01T17:29:06.307352+00:00",
+      "updated_at": "2025-11-01T17:29:06.307354+00:00"
+    },
+    "context_management-00004": {
+      "id": "context_management-00004",
+      "section": "context_management",
+      "content": "For continuation requests like 'finish what you were doing' or 'continue': Maintain previous task context and proceed with logical next steps rather than asking for clarification. Acknowledge the context briefly then provide substantive follow-through on the established work. Success indicators: Match ground truth expectations and provide substantial content as confirmed by feedback validation",
+      "helpful": 6,
+      "harmful": 0,
+      "neutral": 0,
+      "created_at": "2025-11-01T17:29:19.621764+00:00",
+      "updated_at": "2025-11-01T17:33:13.506323+00:00"
+    },
+    "debugging-00005": {
+      "id": "debugging-00005",
+      "section": "debugging",
+      "content": "For stack traces showing repeated identical function calls at the same line (e.g., 'at handler (file.ts:97:8)' repeated multiple times): This indicates infinite recursion. Debug by: 1) Examine the function at specified line for recursive calls, 2) Add proper base cases/exit conditions, 3) Implement error handling to prevent stack overflow, 4) Verify recursive logic has termination paths",
+      "helpful": 3,
+      "harmful": 0,
+      "neutral": 0,
+      "created_at": "2025-11-01T17:30:03.222201+00:00",
+      "updated_at": "2025-11-01T17:33:44.615917+00:00"
+    },
+    "multilingual_communication-00006": {
+      "id": "multilingual_communication-00006",
+      "section": "multilingual_communication",
+      "content": "For technical task requests in non-English languages (Italian, Spanish, etc.): Maintain the original language throughout response, acknowledge tasks with appropriate enthusiasm markers ('Perfetto!', '¡Excelente!'), commit to completion using proper terminology ('Implementerò tutte queste modifiche', 'Completerò queste task'), and indicate readiness to proceed ('Procediamo:'). Match ground truth expectations by providing exact acknowledgment format and systematically address each component of multi-part requests",
+      "helpful": 2,
+      "harmful": 0,
+      "neutral": 0,
+      "created_at": "2025-11-01T17:30:32.016992+00:00",
+      "updated_at": "2025-11-01T17:31:02.956041+00:00"
+    },
+    "multilingual_communication-00007": {
+      "id": "multilingual_communication-00007",
+      "section": "multilingual_communication",
+      "content": "For mixed-language technical requests (English technical specs + non-English workflow questions): Process both language components effectively - handle English technical requirements (60fps, rendering specs) alongside non-English logical flow questions. Provide comprehensive responses addressing all technical and workflow aspects without requiring strategy consultation",
+      "helpful": 1,
+      "harmful": 0,
+      "neutral": 0,
+      "created_at": "2025-11-01T17:30:47.653173+00:00",
+      "updated_at": "2025-11-01T17:30:47.653188+00:00"
+    },
+    "debugging-00008": {
+      "id": "debugging-00008",
+      "section": "debugging",
+      "content": "For technical debugging requests describing stuck/frozen behavior (countdown stuck at 3, process hanging, etc.): Immediately acknowledge the specific symptom, propose concrete investigation of the relevant code section, and indicate readiness to examine the underlying cause. Example: 'Let me investigate the countdown issue. I'll check the match lobby code to see what's causing the countdown to get stuck at 3.'",
+      "helpful": 3,
+      "harmful": 0,
+      "neutral": 0,
+      "created_at": "2025-11-01T17:31:17.009570+00:00",
+      "updated_at": "2025-11-01T17:35:11.202997+00:00"
+    },
+    "debugging-00009": {
+      "id": "debugging-00009",
+      "section": "debugging",
+      "content": "For React error 'Rendered more hooks than during the previous render': This indicates hooks violation - hooks called conditionally, in loops, or in different orders between renders. Debug by: 1) Check the specified line number for conditional hook usage, 2) Ensure all hooks are called in same order every render, 3) Move hooks outside conditional statements, 4) Verify hooks aren't called inside loops or nested functions. Look for early returns, conditional rendering, or dynamic hook calls in the component. Example: useLocalSearchParams() at line 54 suggests checking for conditional routing or component remounting issues",
+      "helpful": 2,
+      "harmful": 0,
+      "neutral": 0,
+      "created_at": "2025-11-01T17:31:33.152263+00:00",
+      "updated_at": "2025-11-01T17:35:27.631701+00:00"
+    },
+    "mobile_app_development-00010": {
+      "id": "mobile_app_development-00010",
+      "section": "mobile_app_development",
+      "content": "For React Native ScreenOrientation.lockAsync() errors in web browsers ('sandboxed and lacks allow-orientation-lock flag'): This API is restricted in web environments due to security policies. Solution: Use Platform.OS to conditionally execute orientation locking only on mobile platforms. Example: if (Platform.OS !== 'web') { await ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT_UP); }",
+      "helpful": 3,
+      "harmful": 0,
+      "neutral": 0,
+      "created_at": "2025-11-01T17:31:49.230010+00:00",
+      "updated_at": "2025-11-01T17:35:42.419602+00:00"
+    },
+    "real_time_rendering-00011": {
+      "id": "real_time_rendering-00011",
+      "section": "real_time_rendering",
+      "content": "For jerky/choppy visual movement in real-time applications: Identify frequency mismatch between data updates (e.g., 20Hz server) and rendering frequency (e.g., 60fps display). Solution: Implement interpolation between server updates to create smooth visual movement. Example: Ball appears jerky because it only updates at server frequency - use interpolation to smooth movement between updates while maintaining progressive velocity increases",
+      "helpful": 2,
+      "harmful": 0,
+      "neutral": 0,
+      "created_at": "2025-11-01T17:32:04.780426+00:00",
+      "updated_at": "2025-11-01T17:35:57.780528+00:00"
+    },
+    "multilingual_communication-00012": {
+      "id": "multilingual_communication-00012",
+      "section": "multilingual_communication",
+      "content": "For multi-part technical requests in foreign languages: Parse each distinct requirement carefully, then organize into numbered list with bold headers before proceeding. Structure: 1) Positive acknowledgment in target language, 2) Systematic analysis of each problem/requirement, 3) Clear formatting with numbered items and bold headers, 4) Indicate readiness to proceed with solutions. Example: Italian request with 4 UI issues → 'Perfetto! Risolverò tutti questi problemi... Analizziamo i problemi: 1. **Issue A**, 2. **Issue B**, etc.'",
+      "helpful": 3,
+      "harmful": 0,
+      "neutral": 0,
+      "created_at": "2025-11-01T17:32:23.011799+00:00",
+      "updated_at": "2025-11-01T17:34:00.274492+00:00"
+    },
+    "debugging-00013": {
+      "id": "debugging-00013",
+      "section": "debugging",
+      "content": "For codebase revert scenarios with '[Revert]' prefix: Analyze the current code state directly to identify technical issues. Provide detailed technical explanations of identified problems without requiring explicit strategy guidance. Focus on substantial content delivery that matches expected technical depth. Example: After revert to previous commit, examine code for structural issues, logic errors, or implementation problems and explain findings comprehensively",
+      "helpful": 1,
+      "harmful": 0,
+      "neutral": 0,
+      "created_at": "2025-11-01T17:33:29.687114+00:00",
+      "updated_at": "2025-11-01T17:33:29.687119+00:00"
+    },
+    "multilingual_communication-00014": {
+      "id": "multilingual_communication-00014",
+      "section": "multilingual_communication",
+      "content": "For Italian multi-part technical task completion requests: Use enthusiastic acknowledgment ('Perfetto!'), commit to completion ('Completerò queste task'), specify improvement context ('per migliorare ulteriormente [project name]'), and indicate immediate action ('Procediamo:'). This pattern works for straightforward task lists requiring implementation rather than analysis. Example response structure: 'Perfetto! Completerò queste task per migliorare ulteriormente Matrix Pong. Procediamo:'",
+      "helpful": 1,
+      "harmful": 0,
+      "neutral": 0,
+      "created_at": "2025-11-01T17:34:17.852638+00:00",
+      "updated_at": "2025-11-01T17:34:17.852646+00:00"
+    },
+    "game_development-00015": {
+      "id": "game_development-00015",
+      "section": "game_development",
+      "content": "For mixed-language game development requests combining English technical specs (60fps, rendering) with non-English UI/flow questions: Address both technical optimization (ball rendering, frame rates, device compatibility) and user experience flow (lobby systems, countdown mechanics, player interactions) comprehensively. Provide structured solutions covering rendering performance and game state management without requiring strategy consultation. Example: English '60fps ball motion' + Italian 'lobby countdown flow' → comprehensive technical response addressing both rendering optimization and multiplayer lobby mechanics",
+      "helpful": 1,
+      "harmful": 0,
+      "neutral": 0,
+      "created_at": "2025-11-01T17:34:36.158247+00:00",
+      "updated_at": "2025-11-01T17:34:36.158253+00:00"
+    },
+    "requirements_gathering-00016": {
+      "id": "requirements_gathering-00016",
+      "section": "requirements_gathering",
+      "content": "For multi-part UI modification requests in any language: Acknowledge all components clearly and confirm understanding before proceeding to implementation. Structure response with enthusiastic acknowledgment, commitment to implement changes, and systematic listing of each requirement. Example: Italian request for 4 UI changes → 'Perfetto! Implementerò tutte queste modifiche per migliorare l'esperienza utente. Procediamo:' followed by addressing each component systematically",
+      "helpful": 1,
+      "harmful": 0,
+      "neutral": 0,
+      "created_at": "2025-11-01T17:34:52.438791+00:00",
+      "updated_at": "2025-11-01T17:34:52.438805+00:00"
+    },
+    "multilingual_communication-00017": {
+      "id": "multilingual_communication-00017",
+      "section": "multilingual_communication",
+      "content": "For mixed-language debugging requests (English problem description + non-English investigation request): Focus on the core technical issue regardless of language mixing. Acknowledge the specific symptom mentioned and propose concrete investigation steps. Example: 'countdown is broken... non va -> parte ma rimane fermo al 3... scopri perchè' → 'Let me investigate the countdown issue. I'll check the match lobby code to see what's causing the countdown to get stuck at 3.' (helpful=1, harmful=0, neutral=0)",
+      "helpful": 1,
+      "harmful": 0,
+      "neutral": 0,
+      "created_at": "2025-11-01T17:35:11.203014+00:00",
+      "updated_at": "2025-11-01T17:35:11.203017+00:00"
+    },
+    "game_development-00018": {
+      "id": "game_development-00018",
+      "section": "game_development",
+      "content": "For Italian multi-part game development problem lists: Start with 'Perfetto! Risolverò tutti questi problemi per migliorare l'esperienza di gioco. Analizziamo i problemi:', then create numbered list with bold headers for each issue (1. **UI modifications**, 2. **Synchronization issues**, 3. **Performance problems**, 4. **Logic consistency**). This systematic structuring matches ground truth expectations and organizes complex technical requirements for clear implementation planning. Example: 4 distinct problems about UI buttons, multiplayer sync, ball movement, and game logic → structured numbered analysis with bold problem categories",
+      "helpful": 1,
+      "harmful": 0,
+      "neutral": 0,
+      "created_at": "2025-11-01T17:36:17.420236+00:00",
+      "updated_at": "2025-11-01T17:36:17.420240+00:00"
+    }
+  },
+  "sections": {
+    "software_development": [
+      "software_development-00001"
+    ],
+    "mobile_app_development": [
+      "mobile_app_development-00002",
+      "mobile_app_development-00010"
+    ],
+    "technical_specification": [
+      "technical_specification-00003"
+    ],
+    "context_management": [
+      "context_management-00004"
+    ],
+    "debugging": [
+      "debugging-00005",
+      "debugging-00008",
+      "debugging-00009",
+      "debugging-00013"
+    ],
+    "multilingual_communication": [
+      "multilingual_communication-00006",
+      "multilingual_communication-00007",
+      "multilingual_communication-00012",
+      "multilingual_communication-00014",
+      "multilingual_communication-00017"
+    ],
+    "real_time_rendering": [
+      "real_time_rendering-00011"
+    ],
+    "game_development": [
+      "game_development-00015",
+      "game_development-00018"
+    ],
+    "requirements_gathering": [
+      "requirements_gathering-00016"
+    ]
+  },
+  "next_id": 18
+}

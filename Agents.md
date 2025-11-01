@@ -308,7 +308,7 @@ Source: ace/llm_providers/
 from ace import LiteLLMClient
 
 client = LiteLLMClient(
-    model="gpt-4o",
+    model="claude-sonnet-4-5-20250929-4o",
     temperature=0.7,
     max_tokens=2000
 )

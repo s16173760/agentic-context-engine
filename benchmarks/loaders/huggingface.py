@@ -67,8 +67,50 @@ class HuggingFaceLoader(DataLoader):
         Yields:
             Dictionary containing sample data from the dataset (potentially processed)
         """
+        # Set up cache directory BEFORE importing datasets to avoid /path issue
+        cache_dir = kwargs.get("cache_dir")
+        if not cache_dir:
+            cache_dir = self.default_cache_dir
+        if not cache_dir:
+            cache_dir = self._get_cache_dir()
+        
+        # Ensure all HF directories exist and set environment variables
+        os.makedirs(cache_dir, exist_ok=True)
+        hf_home = os.path.dirname(cache_dir)
+        os.makedirs(hf_home, exist_ok=True)
+        
+        # Set comprehensive HuggingFace environment variables
+        os.environ["HF_HOME"] = hf_home
+        os.environ["HF_DATASETS_CACHE"] = cache_dir
+        os.environ["HF_MODULES_CACHE"] = os.path.join(cache_dir, "modules")
+        hub_cache = os.path.join(hf_home, "hub")
+        os.environ["HUGGINGFACE_HUB_CACHE"] = hub_cache
+        os.environ["HF_HUB_CACHE"] = hub_cache  # New style variable name
+        os.environ["TRANSFORMERS_CACHE"] = os.path.join(hf_home, "transformers")
+        
+        # Create all subdirectories
+        for env_var in ["HF_MODULES_CACHE", "HUGGINGFACE_HUB_CACHE", "HF_HUB_CACHE", "TRANSFORMERS_CACHE"]:
+            os.makedirs(os.environ[env_var], exist_ok=True)
+        
         try:
             from datasets import load_dataset
+            
+            # Monkey-patch to fix Python 3.14 compatibility issue with legacy cache
+            # This is a workaround for the dill pickling issue in Python 3.14
+            import sys
+            if sys.version_info >= (3, 14):
+                try:
+                    from datasets import builder
+                    original_use_legacy = builder.DatasetBuilder._use_legacy_cache_dir_if_possible
+                    
+                    def patched_use_legacy(self, dataset_module):
+                        """Skip legacy cache check for Python 3.14+ to avoid pickling errors."""
+                        return None
+                    
+                    builder.DatasetBuilder._use_legacy_cache_dir_if_possible = patched_use_legacy
+                except Exception:
+                    pass  # If patching fails, continue anyway
+                
         except ImportError:
             raise ImportError(
                 "datasets library is required for HuggingFace loader. "
@@ -84,13 +126,6 @@ class HuggingFaceLoader(DataLoader):
         streaming = kwargs.get("streaming", True)
         subset = kwargs.get("subset")
         columns = kwargs.get("columns")
-
-        # Determine cache directory
-        cache_dir = kwargs.get("cache_dir")
-        if not cache_dir:
-            cache_dir = self.default_cache_dir
-        if not cache_dir:
-            cache_dir = self._get_cache_dir()
 
         # Prepare load_dataset arguments
         load_args = {
@@ -145,18 +180,30 @@ class HuggingFaceLoader(DataLoader):
     @lru_cache(maxsize=1)
     def _get_cache_dir(self) -> str:
         """Get cache directory with fallback hierarchy."""
-        # 1. Check for benchmark-specific cache
-        cache_dir = os.getenv("BENCHMARK_CACHE_DIR")
-        if cache_dir:
-            return str(get_cache_dir("huggingface"))
-
-        # 2. Check for HuggingFace datasets cache
+        # 1. Check for HuggingFace datasets cache
         cache_dir = os.getenv("HF_DATASETS_CACHE")
         if cache_dir:
+            os.makedirs(cache_dir, exist_ok=True)
+            return cache_dir
+        
+        # 2. Check for HF_HOME
+        hf_home = os.getenv("HF_HOME")
+        if hf_home:
+            cache_dir = os.path.join(hf_home, "datasets")
+            os.makedirs(cache_dir, exist_ok=True)
             return cache_dir
 
-        # 3. Fall back to default HuggingFace location
-        return os.path.expanduser("~/.cache/huggingface/datasets")
+        # 3. Check for benchmark-specific cache
+        cache_dir = os.getenv("BENCHMARK_CACHE_DIR")
+        if cache_dir:
+            cache_path = str(get_cache_dir("huggingface"))
+            os.makedirs(cache_path, exist_ok=True)
+            return cache_path
+
+        # 4. Fall back to default HuggingFace location
+        default_cache = os.path.expanduser("~/.cache/huggingface/datasets")
+        os.makedirs(default_cache, exist_ok=True)
+        return default_cache
 
     def get_dataset_info(self, dataset_path: str, subset: Optional[str] = None) -> Dict[str, Any]:
         """

@@ -23,6 +23,36 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
+# Set HuggingFace cache directories BEFORE any imports that might use datasets
+# This fixes the "Read-only file system: '/path'" error
+cache_root = ROOT / ".cache"
+cache_root.mkdir(exist_ok=True)
+
+hf_home = str(cache_root)
+hf_datasets_cache = str(cache_root / "datasets")
+hf_modules_cache = str(cache_root / "modules")
+huggingface_hub_cache = str(cache_root / "hub")
+
+# Create all necessary directories
+for cache_dir in [hf_datasets_cache, hf_modules_cache, huggingface_hub_cache]:
+    Path(cache_dir).mkdir(parents=True, exist_ok=True)
+
+# Set environment variables before importing datasets-dependent modules
+os.environ["HF_HOME"] = hf_home
+os.environ["HF_DATASETS_CACHE"] = hf_datasets_cache
+os.environ["HF_MODULES_CACHE"] = hf_modules_cache
+os.environ["HUGGINGFACE_HUB_CACHE"] = huggingface_hub_cache
+os.environ["HF_HUB_CACHE"] = huggingface_hub_cache  # New style variable name
+os.environ["TRANSFORMERS_CACHE"] = str(cache_root / "transformers")
+
+# Also disable datasets lock files which can cause path issues
+os.environ["HF_DATASETS_OFFLINE"] = "0"  # Allow online access
+os.environ["HF_HUB_DISABLE_SYMLINKS_WARNING"] = "1"  # Disable symlink warnings
+os.environ["HF_HUB_ENABLE_HF_TRANSFER"] = "0"  # Disable fast transfer which can cause issues
+os.environ["HF_DATASETS_TRUST_REMOTE_CODE"] = "1"  # Trust remote code for datasets
+# Disable legacy cache to avoid Python 3.14 pickling issues
+os.environ["HF_DATASETS_DISABLE_LEGACY_CACHE_DIR"] = "1"
+
 try:
     from dotenv import load_dotenv
     load_dotenv()
@@ -190,7 +220,14 @@ def load_benchmark_data(args: argparse.Namespace, manager: BenchmarkTaskManager)
     try:
         raw_data = list(manager.load_benchmark_data(args.benchmark))
     except Exception as e:
+        import traceback
         print(f"Error loading benchmark data: {e}")
+        print("\nFull traceback:")
+        traceback.print_exc()
+        print(f"\nDebug info:")
+        print(f"  HF_HOME: {os.environ.get('HF_HOME')}")
+        print(f"  HF_DATASETS_CACHE: {os.environ.get('HF_DATASETS_CACHE')}")
+        print(f"  HF_MODULES_CACHE: {os.environ.get('HF_MODULES_CACHE')}")
         sys.exit(1)
 
     # Apply limit if specified

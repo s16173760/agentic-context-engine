@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🏁 Bug Hunter Race - Baseline vs ACE</title>
+    <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🏁 Code Bug Hunter Race</h1>
+            <p class="subtitle">Baseline LLM vs ACE-Enhanced LLM</p>
+        </header>
+
+        <div class="controls">
+            <button id="startRace" class="btn-primary">Start Race! 🚀</button>
+            <button id="resetRace" class="btn-secondary" style="display:none;">Reset Race 🔄</button>
+        </div>
+        
+        <div id="pretrainStatus" class="pretrain-status" style="display: none;"></div>
+
+        <div class="race-container">
+            <!-- Baseline Lane -->
+            <div class="lane" id="baselineLane">
+                <div class="lane-header">
+                    <h2>🔍 Baseline LLM</h2>
+                    <div class="lane-stats">
+                        <div class="stat">
+                            <span class="stat-label">Time</span>
+                            <span class="stat-value" id="baselineTime">0.0s</span>
+                        </div>
+                        <div class="stat">
+                            <span class="stat-label">Tokens</span>
+                            <span class="stat-value" id="baselineTokens">0</span>
+                        </div>
+                        <div class="stat">
+                            <span class="stat-label">Quality</span>
+                            <span class="stat-value" id="baselineQuality">-</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="progress-track" id="baselineTrack">
+                    <!-- Progress dots will be added dynamically -->
+                </div>
+                <div class="response-box" id="baselineResponse">
+                    <div class="response-placeholder">Waiting to start...</div>
+                </div>
+            </div>
+
+            <!-- ACE Lane -->
+            <div class="lane" id="aceLane">
+                <div class="lane-header">
+                    <h2>🧠 ACE-Enhanced LLM</h2>
+                    <div class="lane-stats">
+                        <div class="stat">
+                            <span class="stat-label">Time</span>
+                            <span class="stat-value" id="aceTime">0.0s</span>
+                        </div>
+                        <div class="stat">
+                            <span class="stat-label">Tokens</span>
+                            <span class="stat-value" id="aceTokens">0</span>
+                        </div>
+                        <div class="stat">
+                            <span class="stat-label">Quality</span>
+                            <span class="stat-value" id="aceQuality">-</span>
+                        </div>
+                        <div class="stat strategies-stat">
+                            <span class="stat-label">📚 Strategies</span>
+                            <span class="stat-value" id="aceStrategies">0</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="progress-track" id="aceTrack">
+                    <!-- Progress dots will be added dynamically -->
+                </div>
+                <div class="response-box" id="aceResponse">
+                    <div class="response-placeholder">Waiting to start...</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Winner Banner -->
+        <div class="winner-banner" id="winnerBanner" style="display:none;">
+            <div class="winner-content">
+                <h2 id="winnerTitle"></h2>
+                <div class="winner-stats" id="winnerStats"></div>
+            </div>
+        </div>
+
+        <!-- Learned Strategies Panel -->
+        <div class="strategies-panel" id="strategiesPanel" style="display:none;">
+            <h3>📚 Learned Strategies</h3>
+            <div id="strategiesList"></div>
+        </div>
+    </div>
+
+    <script src="/static/app.js"></script>
+</body>
+</html>
+

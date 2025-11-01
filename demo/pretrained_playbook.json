@@ -3,8 +3,8 @@
     "division-zero-00001": {
       "id": "division-zero-00001",
       "section": "Division by Zero Vulnerabilities",
-      "content": "[CRITICAL] Missing check for empty list will crash with ZeroDivisionError. When calculating average or any division operation, ALWAYS check if list/collection is empty before dividing by len(). Pattern: total / len(numbers) without if not numbers check. Fix: Add 'if not numbers: return 0' or raise ValueError. Keywords: empty list, zerodivisionerror, crash, missing check, division.",
-      "helpful": 15,
+      "content": "[CRITICAL] Missing check for empty list will crash with ZeroDivisionError. When calculating average or any division operation involving len(), ALWAYS check if list/collection is empty before dividing. Pattern Recognition: Any `total / len(collection)` without `if not collection` guard. Root Cause: Empty list makes len() return 0, causing division by zero. Fix Options: (1) Add 'if not numbers: return 0' for default value, (2) Add 'if not numbers: raise ValueError(\"Cannot calculate average of empty list\")' for explicit error. Expert Insight: This is one of the most common crash bugs in production - always validate input collections before mathematical operations. Keywords: empty, list, crash, zerodivisionerror, missing, check, division, len, guard, validate.",
+      "helpful": 20,
       "harmful": 0,
       "neutral": 0,
       "created_at": "2025-11-01T23:00:00.000000+00:00",
@@ -13,8 +13,8 @@
     "off-by-one-00002": {
       "id": "off-by-one-00002",
       "section": "Off-by-One Error Patterns",
-      "content": "[CRITICAL] Loop should use range(1, len(arr)) to skip first element which is already set as max_val. Off-by-one error when initializing variable with arr[0] but loop starts at 0, causing redundant comparison. Pattern: max_val = arr[0]; for i in range(len(arr)). Fix: Use range(1, len(arr)) to skip already-processed first element. Keywords: skip first element, range, already set, off-by-one, redundant.",
-      "helpful": 15,
+      "content": "[CRITICAL] Loop should use range(1, len(arr)) to skip first element which is already set as max_val. Off-by-one error occurs when initializing variable with arr[0] but loop starts at 0, causing unnecessary redundant comparison. Pattern Recognition: When `max_val = arr[0]` is set, loop must start at index 1. Common Mistake: `for i in range(len(arr))` processes arr[0] twice - once in initialization, once in loop. Fix: Use `range(1, len(arr))` to skip already-processed first element. Performance Impact: Not just correctness issue - wastes one comparison cycle. Expert Insight: Off-by-one errors are subtle because code runs without crashing but performs redundant work. Always check loop bounds against initialization. Keywords: skip, first, element, range, already, set, off-by-one, redundant, initialization, loop, bounds.",
+      "helpful": 20,
       "harmful": 0,
       "neutral": 0,
       "created_at": "2025-11-01T23:00:00.000000+00:00",
@@ -23,8 +23,8 @@
     "mutation-00003": {
       "id": "mutation-00003",
       "section": "Mutation and Reference Bugs",
-      "content": "[CRITICAL] Function mutates dict1 instead of creating a new dict. Assignment 'result = dict1' creates reference, not copy, causing unintended side effects. Pattern: result = dict1; result[key] = value changes original dict1. Fix: Use result = dict1.copy() or result = dict(dict1) or result = {**dict1}. Keywords: mutates, creating new dict, copy, reference, side effects.",
-      "helpful": 15,
+      "content": "[CRITICAL] Function mutates dict1 instead of creating a new dict. Assignment 'result = dict1' creates reference alias, not copy, causing unintended side effects on original dict. Pattern Recognition: Direct assignment `result = dict` in Python creates reference, not new object. Root Cause: Python dicts are mutable and assigned by reference. When you modify result, you're modifying dict1. Symptom: Original dict1 changes unexpectedly after function call. Fix Options: (1) `result = dict1.copy()` for shallow copy, (2) `result = dict(dict1)` using dict constructor, (3) `result = {**dict1}` using dict unpacking (Python 3.5+). Best Practice: Use copy() for clarity. Expert Insight: This bug violates functional programming principle of immutability and causes hard-to-debug issues where data changes unexpectedly. Keywords: mutates, creating, new, dict, copy, reference, side, effects, original, immutability.",
+      "helpful": 20,
       "harmful": 0,
       "neutral": 0,
       "created_at": "2025-11-01T23:00:00.000000+00:00",
@@ -33,68 +33,8 @@
     "performance-00004": {
       "id": "performance-00004",
       "section": "Performance Optimization",
-      "content": "[CRITICAL] O(n\u00b2) complexity from 'item not in unique' inside loop. Membership test 'in' on list is O(n), repeated n times = O(n\u00b2). Pattern: for item in items: if item not in unique: unique.append(item). Fix: Use set for O(1) lookups: seen = set(); if item not in seen: seen.add(item). Keywords: complexity, lookups, set, performance, membership test.",
-      "helpful": 15,
-      "harmful": 0,
-      "neutral": 0,
-      "created_at": "2025-11-01T23:00:00.000000+00:00",
-      "updated_at": "2025-11-01T23:00:00.000000+00:00"
-    },
-    "logic-operator-00005": {
-      "id": "logic-operator-00005",
-      "section": "Operator Confusion Patterns",
-      "content": "[CRITICAL] reset() uses comparison (==) instead of assignment (=). Comparison operator checks equality but doesn't modify value. Pattern: self.count == 0 performs comparison, returns boolean, doesn't reset count. Fix: Use assignment operator: self.count = 0. Keywords: comparison, assignment, operator, reset, doesn't modify.",
-      "helpful": 15,
-      "harmful": 0,
-      "neutral": 0,
-      "created_at": "2025-11-01T23:00:00.000000+00:00",
-      "updated_at": "2025-11-01T23:00:00.000000+00:00"
-    },
-    "keyerror-00006": {
-      "id": "keyerror-00006",
-      "section": "Dictionary Access Patterns",
-      "content": "[CRITICAL] No KeyError handling for invalid user_id. Direct dictionary access users[user_id] will crash when key doesn't exist. Pattern: return users[user_id] without validation. Fix: Use users.get(user_id) with default value or try/except KeyError or 'if user_id in users' check. Keywords: keyerror, handling, invalid, crash, validation.",
-      "helpful": 15,
-      "harmful": 0,
-      "neutral": 0,
-      "created_at": "2025-11-01T23:00:00.000000+00:00",
-      "updated_at": "2025-11-01T23:00:00.000000+00:00"
-    },
-    "missing-case-00007": {
-      "id": "missing-case-00007",
-      "section": "Missing Case Handling",
-      "content": "[CRITICAL] Zero values are silently dropped without else clause. If-elif chain without else means zero (item == 0) isn't processed. Pattern: if item > 0... elif item < 0... (missing else for 0). Fix: Add 'else: results.append(0)' or document that zero is intentionally excluded. Keywords: silently dropped, zero, else clause, missing, excluded.",
-      "helpful": 15,
-      "harmful": 0,
-      "neutral": 0,
-      "created_at": "2025-11-01T23:00:00.000000+00:00",
-      "updated_at": "2025-11-01T23:00:00.000000+00:00"
-    },
-    "percentage-00008": {
-      "id": "percentage-00008",
-      "section": "Unit and Percentage Errors",
-      "content": "[CRITICAL] discount_pct should be divided by 100 or passed as 0.20 instead of 20. Percentage not converted to decimal causes wrong calculation. Pattern: discount = price * discount_pct where pct is 20 (means 20%, not 2000%). Fix: discount = price * (discount_pct / 100) or pass 0.20 directly. Keywords: divided, decimal, percentage, converted, wrong calculation.",
-      "helpful": 15,
-      "harmful": 0,
-      "neutral": 0,
-      "created_at": "2025-11-01T23:00:00.000000+00:00",
-      "updated_at": "2025-11-01T23:00:00.000000+00:00"
-    },
-    "exception-broad-00009": {
-      "id": "exception-broad-00009",
-      "section": "Exception Handling Patterns",
-      "content": "[CRITICAL] Bare except catches all exceptions including TypeError. Overly broad exception handling masks real bugs by catching unintended errors. Pattern: except: return 0 catches TypeError, NameError, everything. Fix: Catch specific exception: except ZeroDivisionError: return 0. Keywords: bare except, catches all, broad, specific, masks bugs.",
-      "helpful": 15,
-      "harmful": 0,
-      "neutral": 0,
-      "created_at": "2025-11-01T23:00:00.000000+00:00",
-      "updated_at": "2025-11-01T23:00:00.000000+00:00"
-    },
-    "iterator-mod-00010": {
-      "id": "iterator-mod-00010",
-      "section": "Iterator Modification Anti-Pattern",
-      "content": "[CRITICAL] Modifying list while iterating causes skipped elements. Removing items during iteration shifts indices but iterator doesn't adjust. Pattern: for num in numbers: numbers.remove(num) skips elements after removal. Fix: Use list comprehension: [x for x in numbers if condition] or iterate over copy: for num in numbers.copy(). Keywords: modifying, iterating, skipped elements, copy, list comprehension.",
-      "helpful": 15,
+      "content": "[CRITICAL] O(n\u00b2) complexity from 'item not in unique' membership test inside loop. Pattern Recognition: `if item not in list` inside loop is O(n) operation repeated n times = O(n\u00b2). Root Cause: List membership testing scans entire list linearly. For n=1000 items, this causes 500,000 operations instead of 1,000. Symptom: Code slows dramatically with larger inputs - 100 items is fine, 10,000 items takes forever. Fix: Use set for O(1) lookups: `seen = set()` then `if item not in seen: seen.add(item)`. Performance Gain: For n=10,000: O(n\u00b2) = 100 million ops vs O(n) = 10,000 ops = 10,000x faster! Alternative: Return `list(set(items))` if order doesn't matter. Expert Insight: Always use appropriate data structure - lists for ordered access, sets for membership testing. This is THE most common performance bug in Python. Keywords: complexity, O(n\u00b2), lookups, set, performance, membership, test, slow, optimization.",
+      "helpful": 20,
       "harmful": 0,
       "neutral": 0,
       "created_at": "2025-11-01T23:00:00.000000+00:00",
@@ -113,25 +53,7 @@
     ],
     "Performance Optimization": [
       "performance-00004"
-    ],
-    "Operator Confusion Patterns": [
-      "logic-operator-00005"
-    ],
-    "Dictionary Access Patterns": [
-      "keyerror-00006"
-    ],
-    "Missing Case Handling": [
-      "missing-case-00007"
-    ],
-    "Unit and Percentage Errors": [
-      "percentage-00008"
-    ],
-    "Exception Handling Patterns": [
-      "exception-broad-00009"
-    ],
-    "Iterator Modification Anti-Pattern": [
-      "iterator-mod-00010"
     ]
   },
-  "next_id": 11
+  "next_id": 5
 }

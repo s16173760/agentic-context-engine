@@ -221,3 +221,16 @@ def get_all_samples():
     """
     return BUGGY_SAMPLES
 
+
+def get_race_samples(count=4):
+    """
+    Get a subset of samples for the demo race.
+    
+    Args:
+        count: Number of samples to return (default 4)
+    
+    Returns:
+        list: First `count` buggy code samples
+    """
+    return BUGGY_SAMPLES[:count]
+

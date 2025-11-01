@@ -26,7 +26,7 @@ from ace.llm_providers import LiteLLMClient
 
 # Import demo modules
 sys.path.insert(0, str(Path(__file__).parent))
-from buggy_code_samples import BUGGY_SAMPLES, get_all_samples
+from buggy_code_samples import BUGGY_SAMPLES, get_all_samples, get_race_samples
 from bug_hunter_environment import BugHunterEnvironment
 
 app = FastAPI(title="Bug Hunter Demo API")
@@ -164,10 +164,10 @@ async def stream_baseline_demo() -> AsyncGenerator[str, None]:
         playbook = Playbook()  # This will inject "(empty playbook)" into system prompt
         
         # Log baseline info for debugging
-        print(f"🔵 BASELINE using empty playbook (0 strategies)")
+        print(f"🔵 BASELINE (Junior Coder) using empty playbook (0 strategies)")
         
-        # Get ALL 10 samples
-        test_samples_raw = get_all_samples()
+        # Get 4 samples for the race
+        test_samples_raw = get_race_samples(count=4)
         
         # Convert samples
         samples = [
@@ -193,10 +193,10 @@ async def stream_baseline_demo() -> AsyncGenerator[str, None]:
             # Send progress
             yield f"data: {json.dumps({'type': 'progress', 'sample_id': i + 1, 'status': 'processing'})}\n\n"
             
-            # Generate response
+            # Generate response with junior coder context
             output = generator.generate(
                 question=f"Analyze this code and identify any bugs:\n\n{sample.question}",
-                context="You are a code reviewer. Identify bugs, explain the issue, and suggest a fix.",
+                context="You are a junior software engineer with 1-2 years of experience. You're still learning and might miss subtle bugs or edge cases. Analyze the code to the best of your ability.",
                 playbook=playbook
             )
             
@@ -263,12 +263,12 @@ async def stream_ace_demo() -> AsyncGenerator[str, None]:
         playbook = demo_state["ace_playbook"]
         
         # Log playbook info for debugging
-        print(f"🧠 ACE using playbook with {len(playbook.bullets())} strategies")
+        print(f"🧠 ACE (Senior Expert) using playbook with {len(playbook.bullets())} strategies")
         for i, bullet in enumerate(list(playbook.bullets())[:3], 1):
             print(f"   Strategy {i}: {bullet.content[:80]}...")
         
-        # Get ALL 10 samples
-        test_samples_raw = get_all_samples()
+        # Get 4 samples for the race
+        test_samples_raw = get_race_samples(count=4)
         
         # Convert samples
         samples = [
@@ -296,10 +296,10 @@ async def stream_ace_demo() -> AsyncGenerator[str, None]:
             # Send progress
             yield f"data: {json.dumps({'type': 'progress', 'sample_id': i + 1, 'status': 'processing'})}\n\n"
             
-            # Generate using pre-trained playbook
+            # Generate using pre-trained playbook with senior expert context
             output = generator.generate(
                 question=f"Analyze this code and identify any bugs:\n\n{sample.question}",
-                context="You are a code reviewer. Identify bugs, explain the issue, and suggest a fix.",
+                context="You are a senior software engineer with 10+ years of experience and deep expertise in code review. You have mastered all the bug patterns, edge cases, and best practices documented in your playbook. Apply your expert knowledge to identify and fix bugs efficiently.",
                 playbook=playbook
             )
             
@@ -442,7 +442,9 @@ app.mount("/static", StaticFiles(directory="demo/frontend"), name="static")
 if __name__ == "__main__":
     import uvicorn
     print("🚀 Starting Bug Hunter Demo Server...")
-    print("📊 Race: 10 bug samples (all pre-trained in playbook)")
+    print("📊 Race: 4 bug samples")
+    print("🔵 Baseline: Junior Engineer (no strategies)")
+    print("🟢 ACE: Senior Expert (with playbook strategies)")
     
     # Show playbook status
     if demo_state["training_complete"] and demo_state["ace_playbook"]:

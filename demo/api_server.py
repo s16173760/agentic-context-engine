@@ -177,7 +177,8 @@ async def stream_baseline_demo() -> AsyncGenerator[str, None]:
         total_time = 0
         
         for i, sample in enumerate(samples):
-            start_time = time.time()
+            # Start timer for THIS sample
+            sample_start_time = time.time()
             
             # Send progress
             yield f"data: {json.dumps({'type': 'progress', 'sample_id': i + 1, 'status': 'processing'})}\n\n"
@@ -189,8 +190,9 @@ async def stream_baseline_demo() -> AsyncGenerator[str, None]:
                 playbook=playbook
             )
             
-            elapsed = time.time() - start_time
-            total_time += elapsed
+            # Stop timer for THIS sample
+            sample_elapsed = time.time() - sample_start_time
+            total_time += sample_elapsed
             
             # Extract token usage from raw output
             tokens_used = 0

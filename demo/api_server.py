@@ -144,8 +144,13 @@ async def pretrain_ace() -> AsyncGenerator[str, None]:
 
 
 async def stream_baseline_demo() -> AsyncGenerator[str, None]:
-    """Stream baseline bug detection results on TEST samples."""
+    """Stream baseline (no ACE) bug detection results on TEST samples.
+    
+    Uses EMPTY PLAYBOOK - baseline LLM with no learned strategies.
+    System prompt will show: "(empty playbook)"
+    """
     try:
+        # Baseline LLM - fresh instance with NO strategies
         client = LiteLLMClient(
             model="claude-sonnet-4-5-20250929",
             temperature=0.0,
@@ -154,7 +159,12 @@ async def stream_baseline_demo() -> AsyncGenerator[str, None]:
         
         generator = Generator(client)
         environment = BugHunterEnvironment()
-        playbook = Playbook()  # Empty playbook for baseline
+        
+        # BASELINE: Empty playbook (no learned strategies)
+        playbook = Playbook()  # This will inject "(empty playbook)" into system prompt
+        
+        # Log baseline info for debugging
+        print(f"🔵 BASELINE using empty playbook (0 strategies)")
         
         # Get TEST samples only (last 4)
         _, test_samples_raw = get_train_test_split(train_size=6)
@@ -227,13 +237,18 @@ async def stream_baseline_demo() -> AsyncGenerator[str, None]:
 
 
 async def stream_ace_demo() -> AsyncGenerator[str, None]:
-    """Stream ACE bug detection results on TEST samples using pre-trained playbook."""
+    """Stream ACE bug detection results on TEST samples using pre-trained playbook.
+    
+    Uses PRE-TRAINED PLAYBOOK - ACE with 15 learned strategies.
+    System prompt will include all strategies via playbook.as_prompt()
+    """
     try:
         # Ensure pre-training is complete
         if not demo_state["training_complete"] or demo_state["ace_playbook"] is None:
             yield f"data: {json.dumps({'type': 'error', 'message': 'ACE not pre-trained. Run /api/pretrain first.'})}\n\n"
             return
         
+        # ACE LLM - fresh instance but WITH strategies
         client = LiteLLMClient(
             model="claude-sonnet-4-5-20250929",
             temperature=0.0,
@@ -243,7 +258,8 @@ async def stream_ace_demo() -> AsyncGenerator[str, None]:
         generator = Generator(client)
         environment = BugHunterEnvironment()
         
-        # Use the pre-trained playbook!
+        # ACE: Pre-trained playbook with 15 strategies!
+        # This will inject all strategies into the system prompt via playbook.as_prompt()
         playbook = demo_state["ace_playbook"]
         
         # Log playbook info for debugging

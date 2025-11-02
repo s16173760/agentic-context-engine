@@ -150,11 +150,11 @@ async def stream_baseline_demo() -> AsyncGenerator[str, None]:
     System prompt will show: "(empty playbook)"
     """
     try:
-        # Baseline LLM - fresh instance with NO strategies
+        # Baseline LLM with extended reasoning mode
         client = LiteLLMClient(
             model="claude-sonnet-4-5-20250929",
-            temperature=0.0,
-            max_tokens=1000
+            temperature=1.0,  # Higher temperature for creative reasoning
+            max_tokens=16000  # Allow deep reasoning (several thousand tokens)
         )
         
         generator = Generator(client)
@@ -248,11 +248,11 @@ async def stream_ace_demo() -> AsyncGenerator[str, None]:
             yield f"data: {json.dumps({'type': 'error', 'message': 'ACE not pre-trained. Run /api/pretrain first.'})}\n\n"
             return
         
-        # ACE LLM - fresh instance but WITH strategies
+        # ACE LLM with extended reasoning mode  
         client = LiteLLMClient(
             model="claude-sonnet-4-5-20250929",
-            temperature=0.0,
-            max_tokens=1000
+            temperature=1.0,  # Higher temperature for creative reasoning
+            max_tokens=16000  # Allow deep reasoning (several thousand tokens)
         )
         
         generator = Generator(client)

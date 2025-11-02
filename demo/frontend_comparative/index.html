@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ACE vs Baseline - LLM Judge Comparison</title>
+    <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🏆 ACE vs Baseline Code Review Competition</h1>
+            <p class="subtitle">With LLM-as-a-Judge Scoring (0-100%)</p>
+        </header>
+
+        <!-- Overall Stats -->
+        <div class="stats-container">
+            <div class="stat-box baseline-stat">
+                <h3>🔵 Baseline (Junior)</h3>
+                <div class="stat-value" id="baseline-avg-score">--%</div>
+                <div class="stat-label">Avg Score</div>
+                <div class="stat-value" id="baseline-total-tokens">-- tokens</div>
+            </div>
+            
+            <div class="stat-box judge-stat">
+                <h3>⚖️ LLM Judge</h3>
+                <div class="stat-value" id="judge-total-tokens">-- tokens</div>
+                <div class="stat-label">Judging Tokens</div>
+            </div>
+            
+            <div class="stat-box ace-stat">
+                <h3>🟢 ACE (Senior)</h3>
+                <div class="stat-value" id="ace-avg-score">--%</div>
+                <div class="stat-label">Avg Score</div>
+                <div class="stat-value" id="ace-total-tokens">-- tokens</div>
+            </div>
+        </div>
+
+        <!-- Start Button -->
+        <div class="controls">
+            <button id="start-btn" class="btn-primary">Start Competition!</button>
+            <div id="status-text" class="status-text"></div>
+        </div>
+
+        <!-- Rounds Container -->
+        <div id="rounds-container" class="rounds-container"></div>
+
+        <!-- Winner Banner -->
+        <div id="winner-banner" class="winner-banner" style="display:none;"></div>
+    </div>
+
+    <script src="/static/app.js"></script>
+</body>
+</html>
+

@@ -28,6 +28,7 @@ from ace.llm_providers import LiteLLMClient
 sys.path.insert(0, str(Path(__file__).parent))
 from buggy_code_samples import BUGGY_SAMPLES, get_all_samples, get_race_samples
 from bug_hunter_environment import BugHunterEnvironment
+from llm_judge import LLMJudge
 
 app = FastAPI(title="Bug Hunter Demo API")
 

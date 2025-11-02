@@ -193,10 +193,10 @@ async def stream_baseline_demo() -> AsyncGenerator[str, None]:
             # Send progress
             yield f"data: {json.dumps({'type': 'progress', 'sample_id': i + 1, 'status': 'processing'})}\n\n"
             
-            # Generate response with junior coder context
+            # Generate response with junior coder context - allow deep reasoning
             output = generator.generate(
-                question=f"Analyze this code and identify any bugs:\n\n{sample.question}",
-                context="You are a junior software engineer with 1-2 years of experience. You're still learning and might miss subtle bugs or edge cases. Analyze the code to the best of your ability.",
+                question=f"Analyze this complex code and identify ALL bugs, edge cases, and subtle issues. Think deeply and systematically:\n\n{sample.question}",
+                context="You are a junior software engineer with 1-2 years of experience. You're still learning and might miss subtle bugs or edge cases. Take your time to reason through the code carefully, considering performance, correctness, edge cases, and algorithmic complexity. Think step-by-step.",
                 playbook=playbook
             )
             
@@ -296,10 +296,10 @@ async def stream_ace_demo() -> AsyncGenerator[str, None]:
             # Send progress
             yield f"data: {json.dumps({'type': 'progress', 'sample_id': i + 1, 'status': 'processing'})}\n\n"
             
-            # Generate using pre-trained playbook with senior expert context
+            # Generate using pre-trained playbook with senior expert context - enable deep reasoning
             output = generator.generate(
-                question=f"Analyze this code and identify any bugs:\n\n{sample.question}",
-                context="You are a senior software engineer with 10+ years of experience and deep expertise in code review. You have mastered all the bug patterns, edge cases, and best practices documented in your playbook. Apply your expert knowledge to identify and fix bugs efficiently.",
+                question=f"Analyze this complex code and identify ALL bugs, edge cases, and subtle issues. Think deeply and systematically:\n\n{sample.question}",
+                context="You are a senior software engineer with 10+ years of experience and deep expertise in code review. You have mastered all the bug patterns, edge cases, and best practices documented in your playbook. Use your expert knowledge and the strategies in your playbook to systematically analyze this code. Think step-by-step about correctness, performance, edge cases, algorithmic complexity, and potential runtime issues.",
                 playbook=playbook
             )
             

@@ -32,12 +32,12 @@ def pretrain_and_save():
     print(f"🎯 Creating playbook with strategies for ALL samples")
     print()
     
-    # Initialize ACE components
-    print("🔧 Initializing ACE components...")
+    # Initialize ACE components with extended reasoning
+    print("🔧 Initializing ACE components with extended reasoning mode...")
     client = LiteLLMClient(
         model="claude-sonnet-4-5-20250929",
-        temperature=0.0,
-        max_tokens=1000
+        temperature=1.0,  # Higher temperature for deeper reasoning
+        max_tokens=16000  # Allow several thousand tokens for complex reasoning
     )
     
     generator = Generator(client)

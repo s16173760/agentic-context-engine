@@ -1,0 +1,59 @@
+{
+  "bullets": {
+    "division-zero-00001": {
+      "id": "division-zero-00001",
+      "section": "Division by Zero Vulnerabilities",
+      "content": "[CRITICAL] Missing check for empty list will crash with ZeroDivisionError. When calculating average or any division operation involving len(), ALWAYS check if list/collection is empty before dividing. Pattern Recognition: Any `total / len(collection)` without `if not collection` guard. Root Cause: Empty list makes len() return 0, causing division by zero. Fix Options: (1) Add 'if not numbers: return 0' for default value, (2) Add 'if not numbers: raise ValueError(\"Cannot calculate average of empty list\")' for explicit error. Expert Insight: This is one of the most common crash bugs in production - always validate input collections before mathematical operations. Keywords: empty, list, crash, zerodivisionerror, missing, check, division, len, guard, validate.",
+      "helpful": 20,
+      "harmful": 0,
+      "neutral": 0,
+      "created_at": "2025-11-01T23:00:00.000000+00:00",
+      "updated_at": "2025-11-01T23:00:00.000000+00:00"
+    },
+    "off-by-one-00002": {
+      "id": "off-by-one-00002",
+      "section": "Off-by-One Error Patterns",
+      "content": "[CRITICAL] Loop should use range(1, len(arr)) to skip first element which is already set as max_val. Off-by-one error occurs when initializing variable with arr[0] but loop starts at 0, causing unnecessary redundant comparison. Pattern Recognition: When `max_val = arr[0]` is set, loop must start at index 1. Common Mistake: `for i in range(len(arr))` processes arr[0] twice - once in initialization, once in loop. Fix: Use `range(1, len(arr))` to skip already-processed first element. Performance Impact: Not just correctness issue - wastes one comparison cycle. Expert Insight: Off-by-one errors are subtle because code runs without crashing but performs redundant work. Always check loop bounds against initialization. Keywords: skip, first, element, range, already, set, off-by-one, redundant, initialization, loop, bounds.",
+      "helpful": 20,
+      "harmful": 0,
+      "neutral": 0,
+      "created_at": "2025-11-01T23:00:00.000000+00:00",
+      "updated_at": "2025-11-01T23:00:00.000000+00:00"
+    },
+    "mutation-00003": {
+      "id": "mutation-00003",
+      "section": "Mutation and Reference Bugs",
+      "content": "[CRITICAL] Function mutates dict1 instead of creating a new dict. Assignment 'result = dict1' creates reference alias, not copy, causing unintended side effects on original dict. Pattern Recognition: Direct assignment `result = dict` in Python creates reference, not new object. Root Cause: Python dicts are mutable and assigned by reference. When you modify result, you're modifying dict1. Symptom: Original dict1 changes unexpectedly after function call. Fix Options: (1) `result = dict1.copy()` for shallow copy, (2) `result = dict(dict1)` using dict constructor, (3) `result = {**dict1}` using dict unpacking (Python 3.5+). Best Practice: Use copy() for clarity. Expert Insight: This bug violates functional programming principle of immutability and causes hard-to-debug issues where data changes unexpectedly. Keywords: mutates, creating, new, dict, copy, reference, side, effects, original, immutability.",
+      "helpful": 20,
+      "harmful": 0,
+      "neutral": 0,
+      "created_at": "2025-11-01T23:00:00.000000+00:00",
+      "updated_at": "2025-11-01T23:00:00.000000+00:00"
+    },
+    "performance-00004": {
+      "id": "performance-00004",
+      "section": "Performance Optimization",
+      "content": "[CRITICAL] O(n\u00b2) complexity from 'item not in unique' membership test inside loop. Pattern Recognition: `if item not in list` inside loop is O(n) operation repeated n times = O(n\u00b2). Root Cause: List membership testing scans entire list linearly. For n=1000 items, this causes 500,000 operations instead of 1,000. Symptom: Code slows dramatically with larger inputs - 100 items is fine, 10,000 items takes forever. Fix: Use set for O(1) lookups: `seen = set()` then `if item not in seen: seen.add(item)`. Performance Gain: For n=10,000: O(n\u00b2) = 100 million ops vs O(n) = 10,000 ops = 10,000x faster! Alternative: Return `list(set(items))` if order doesn't matter. Expert Insight: Always use appropriate data structure - lists for ordered access, sets for membership testing. This is THE most common performance bug in Python. Keywords: complexity, O(n\u00b2), lookups, set, performance, membership, test, slow, optimization.",
+      "helpful": 20,
+      "harmful": 0,
+      "neutral": 0,
+      "created_at": "2025-11-01T23:00:00.000000+00:00",
+      "updated_at": "2025-11-01T23:00:00.000000+00:00"
+    }
+  },
+  "sections": {
+    "Division by Zero Vulnerabilities": [
+      "division-zero-00001"
+    ],
+    "Off-by-One Error Patterns": [
+      "off-by-one-00002"
+    ],
+    "Mutation and Reference Bugs": [
+      "mutation-00003"
+    ],
+    "Performance Optimization": [
+      "performance-00004"
+    ]
+  },
+  "next_id": 5
+}

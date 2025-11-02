@@ -1,59 +1,256 @@
 {
   "bullets": {
-    "division-zero-00001": {
-      "id": "division-zero-00001",
-      "section": "Division by Zero Vulnerabilities",
-      "content": "[CRITICAL] Missing check for empty list will crash with ZeroDivisionError. When calculating average or any division operation involving len(), ALWAYS check if list/collection is empty before dividing. Pattern Recognition: Any `total / len(collection)` without `if not collection` guard. Root Cause: Empty list makes len() return 0, causing division by zero. Fix Options: (1) Add 'if not numbers: return 0' for default value, (2) Add 'if not numbers: raise ValueError(\"Cannot calculate average of empty list\")' for explicit error. Expert Insight: This is one of the most common crash bugs in production - always validate input collections before mathematical operations. Keywords: empty, list, crash, zerodivisionerror, missing, check, division, len, guard, validate.",
-      "helpful": 20,
+    "data-00001": {
+      "id": "data-00001",
+      "section": "Data Structure Analysis",
+      "content": "When reviewing data structure implementations, prioritize architectural soundness over test case validation—a passing test doesn't prove correct design",
+      "helpful": 3,
       "harmful": 0,
-      "neutral": 0,
-      "created_at": "2025-11-01T23:00:00.000000+00:00",
-      "updated_at": "2025-11-01T23:00:00.000000+00:00"
+      "neutral": 1,
+      "created_at": "2025-11-02T00:07:11.252806+00:00",
+      "updated_at": "2025-11-02T00:10:22.029549+00:00"
     },
-    "off-by-one-00002": {
-      "id": "off-by-one-00002",
-      "section": "Off-by-One Error Patterns",
-      "content": "[CRITICAL] Loop should use range(1, len(arr)) to skip first element which is already set as max_val. Off-by-one error occurs when initializing variable with arr[0] but loop starts at 0, causing unnecessary redundant comparison. Pattern Recognition: When `max_val = arr[0]` is set, loop must start at index 1. Common Mistake: `for i in range(len(arr))` processes arr[0] twice - once in initialization, once in loop. Fix: Use `range(1, len(arr))` to skip already-processed first element. Performance Impact: Not just correctness issue - wastes one comparison cycle. Expert Insight: Off-by-one errors are subtle because code runs without crashing but performs redundant work. Always check loop bounds against initialization. Keywords: skip, first, element, range, already, set, off-by-one, redundant, initialization, loop, bounds.",
-      "helpful": 20,
+    "data-00002": {
+      "id": "data-00002",
+      "section": "Data Structure Analysis",
+      "content": "Evaluate whether the chosen data structure matches required operation complexities; mismatched complexity is a fundamental bug, not an optimization opportunity",
+      "helpful": 2,
       "harmful": 0,
-      "neutral": 0,
-      "created_at": "2025-11-01T23:00:00.000000+00:00",
-      "updated_at": "2025-11-01T23:00:00.000000+00:00"
+      "neutral": 2,
+      "created_at": "2025-11-02T00:07:11.252848+00:00",
+      "updated_at": "2025-11-02T00:10:22.029553+00:00"
     },
-    "mutation-00003": {
-      "id": "mutation-00003",
-      "section": "Mutation and Reference Bugs",
-      "content": "[CRITICAL] Function mutates dict1 instead of creating a new dict. Assignment 'result = dict1' creates reference alias, not copy, causing unintended side effects on original dict. Pattern Recognition: Direct assignment `result = dict` in Python creates reference, not new object. Root Cause: Python dicts are mutable and assigned by reference. When you modify result, you're modifying dict1. Symptom: Original dict1 changes unexpectedly after function call. Fix Options: (1) `result = dict1.copy()` for shallow copy, (2) `result = dict(dict1)` using dict constructor, (3) `result = {**dict1}` using dict unpacking (Python 3.5+). Best Practice: Use copy() for clarity. Expert Insight: This bug violates functional programming principle of immutability and causes hard-to-debug issues where data changes unexpectedly. Keywords: mutates, creating, new, dict, copy, reference, side, effects, original, immutability.",
-      "helpful": 20,
+    "performance-critical-00003": {
+      "id": "performance-critical-00003",
+      "section": "Performance-Critical Structures",
+      "content": "For caches and performance-critical structures, O(n) operations where O(1) is expected constitute fundamental bugs that defeat the structure's purpose",
+      "helpful": 2,
       "harmful": 0,
-      "neutral": 0,
-      "created_at": "2025-11-01T23:00:00.000000+00:00",
-      "updated_at": "2025-11-01T23:00:00.000000+00:00"
+      "neutral": 1,
+      "created_at": "2025-11-02T00:07:11.252866+00:00",
+      "updated_at": "2025-11-02T00:08:52.009339+00:00"
     },
-    "performance-00004": {
-      "id": "performance-00004",
-      "section": "Performance Optimization",
-      "content": "[CRITICAL] O(n\u00b2) complexity from 'item not in unique' membership test inside loop. Pattern Recognition: `if item not in list` inside loop is O(n) operation repeated n times = O(n\u00b2). Root Cause: List membership testing scans entire list linearly. For n=1000 items, this causes 500,000 operations instead of 1,000. Symptom: Code slows dramatically with larger inputs - 100 items is fine, 10,000 items takes forever. Fix: Use set for O(1) lookups: `seen = set()` then `if item not in seen: seen.add(item)`. Performance Gain: For n=10,000: O(n\u00b2) = 100 million ops vs O(n) = 10,000 ops = 10,000x faster! Alternative: Return `list(set(items))` if order doesn't matter. Expert Insight: Always use appropriate data structure - lists for ordered access, sets for membership testing. This is THE most common performance bug in Python. Keywords: complexity, O(n\u00b2), lookups, set, performance, membership, test, slow, optimization.",
-      "helpful": 20,
+    "lru-00004": {
+      "id": "lru-00004",
+      "section": "LRU Cache Implementation",
+      "content": "LRU cache order tracking must support O(1) add, remove, and move operations—lists fail this requirement due to O(n) remove()",
+      "helpful": 1,
       "harmful": 0,
       "neutral": 0,
-      "created_at": "2025-11-01T23:00:00.000000+00:00",
-      "updated_at": "2025-11-01T23:00:00.000000+00:00"
+      "created_at": "2025-11-02T00:07:11.252881+00:00",
+      "updated_at": "2025-11-02T00:07:11.252884+00:00"
+    },
+    "lru-00005": {
+      "id": "lru-00005",
+      "section": "LRU Cache Implementation",
+      "content": "Correct LRU implementations: use collections.OrderedDict with move_to_end() or implement custom doubly-linked list with hashmap pointing to nodes",
+      "helpful": 1,
+      "harmful": 0,
+      "neutral": 0,
+      "created_at": "2025-11-02T00:07:11.252895+00:00",
+      "updated_at": "2025-11-02T00:07:11.252899+00:00"
+    },
+    "code-00006": {
+      "id": "code-00006",
+      "section": "Code Review Strategy",
+      "content": "Start architectural review by asking 'Is this data structure appropriate for the required operations?' before tracing execution paths",
+      "helpful": 10,
+      "harmful": 0,
+      "neutral": 0,
+      "created_at": "2025-11-02T00:07:11.252909+00:00",
+      "updated_at": "2025-11-02T00:15:42.951629+00:00"
+    },
+    "severity-00007": {
+      "id": "severity-00007",
+      "section": "Severity Assessment",
+      "content": "Recognize that severe performance degradation in data structures designed for performance is a critical bug, not a secondary concern",
+      "helpful": 8,
+      "harmful": 1,
+      "neutral": 1,
+      "created_at": "2025-11-02T00:07:11.252922+00:00",
+      "updated_at": "2025-11-02T00:15:42.951644+00:00"
+    },
+    "algo-00008": {
+      "id": "algo-00008",
+      "section": "Algorithm Diagnosis",
+      "content": "[algo-00008] When diagnosing algorithmic flaws, provide three levels of specificity: (1) CONCEPTUAL: identify the paradigm shift needed, (2) STRUCTURAL: outline core mechanics and validation logic, (3) IMPLEMENTATION: provide complete corrected code/methods, not just changed lines—especially when feedback indicates insufficient specificity. For infrastructure code, provide production-ready fixes with full method signatures and error handling. CRITICAL: Apply this methodology to ALL identified bugs exhaustively—if you identify N bugs, provide N complete implementation-level fixes. Dismissing bugs as 'secondary issues' without full fixes indicates incomplete application and will result in 'missed key details' feedback. **OUTPUT FORMAT**: Preserve the three-level structure as explicitly labeled sections in final predictions (e.g., '**CONCEPTUAL:**', '**STRUCTURAL:**', '**IMPLEMENTATION:**')—even for simple bugs. Collapsing these levels into simplified formats triggers 'insufficient specificity' feedback regardless of technical correctness",
+      "helpful": 6,
+      "harmful": 4,
+      "neutral": 1,
+      "created_at": "2025-11-02T00:08:04.506725+00:00",
+      "updated_at": "2025-11-02T00:15:42.951635+00:00"
+    },
+    "algo-00009": {
+      "id": "algo-00009",
+      "section": "Algorithm Diagnosis",
+      "content": "For algorithmic problems with established optimal solutions, articulate both WHAT is wrong (incorrect algorithm) and WHY (explain what makes naive approach tempting vs why optimal approach is required based on problem constraints)",
+      "helpful": 3,
+      "harmful": 0,
+      "neutral": 0,
+      "created_at": "2025-11-02T00:08:04.506744+00:00",
+      "updated_at": "2025-11-02T00:10:22.029543+00:00"
+    },
+    "sorted-00010": {
+      "id": "sorted-00010",
+      "section": "Sorted Array Problems",
+      "content": "Recognition pattern: sorted arrays + finding kth element/median/search target → consider binary search over linear merge/scan to achieve logarithmic complexity",
+      "helpful": 1,
+      "harmful": 0,
+      "neutral": 0,
+      "created_at": "2025-11-02T00:08:04.506751+00:00",
+      "updated_at": "2025-11-02T00:08:04.506753+00:00"
+    },
+    "sorted-00011": {
+      "id": "sorted-00011",
+      "section": "Sorted Array Problems",
+      "content": "For median of two sorted arrays: use binary search on the smaller array to find valid partition where maxLeft1 ≤ minRight2 and maxLeft2 ≤ minRight1, achieving O(log(min(m,n))) instead of O(m+n) merge",
+      "helpful": 1,
+      "harmful": 0,
+      "neutral": 0,
+      "created_at": "2025-11-02T00:08:04.506757+00:00",
+      "updated_at": "2025-11-02T00:08:04.506758+00:00"
+    },
+    "code-00008": {
+      "id": "code-00008",
+      "section": "Code Review Strategy",
+      "content": "[code-00012] For infrastructure code (event emitters, caches, routers), conduct separate per-method defensive analysis beyond the main execution trace—secondary bugs in helper methods require independent robustness checking for edge cases like missing keys, non-existent callbacks, or empty collections",
+      "helpful": 2,
+      "harmful": 0,
+      "neutral": 1,
+      "created_at": "2025-11-02T00:09:05.023286+00:00",
+      "updated_at": "2025-11-02T00:12:10.054543+00:00"
+    },
+    "event-driven-00009": {
+      "id": "event-driven-00009",
+      "section": "Event-Driven Systems",
+      "content": "[event-00013] Reentrancy bug pattern: modifying collections during iteration causes undefined behavior. In event emitters, if callbacks modify listener lists during emit(), iterate over shallow copy 'for callback in listeners[:]' or use deferred removal queue. Defensive remove operations should check existence before removal to avoid ValueError",
+      "helpful": 2,
+      "harmful": 0,
+      "neutral": 0,
+      "created_at": "2025-11-02T00:09:05.023298+00:00",
+      "updated_at": "2025-11-02T00:15:42.951616+00:00"
+    },
+    "severity-00010": {
+      "id": "severity-00010",
+      "section": "Severity Assessment",
+      "content": "[severity-00014] Domain-specific severity parity: In financial, security, or medical code, input validation bugs (weight sum verification, bounds checking, null handling) have equal severity to algorithmic bugs—both can cause catastrophic outcomes. When you identify multiple bug categories, apply the same fix rigor to validation logic as to core algorithms. Don't downgrade validation to 'secondary concerns' based on apparent simplicity (helpful=1, harmful=0, neutral=0)",
+      "helpful": 2,
+      "harmful": 0,
+      "neutral": 0,
+      "created_at": "2025-11-02T00:10:41.281799+00:00",
+      "updated_at": "2025-11-02T00:13:54.716825+00:00"
+    },
+    "severity-00011": {
+      "id": "severity-00011",
+      "section": "Severity Assessment",
+      "content": "[severity-00015] Red flag indicator: If your diagnostic reasoning contains phrases like 'secondary issues', 'minor concerns', or 'less critical' when describing input validation or edge case handling in domain-critical code, you are likely misclassifying severity. Re-evaluate whether all identified issues require full implementation-level fixes (helpful=1, harmful=0, neutral=0)",
+      "helpful": 1,
+      "harmful": 0,
+      "neutral": 0,
+      "created_at": "2025-11-02T00:10:41.281808+00:00",
+      "updated_at": "2025-11-02T00:10:41.281809+00:00"
+    },
+    "financial-00012": {
+      "id": "financial-00012",
+      "section": "Financial Code Analysis",
+      "content": "[financial-00001] Financial calculation functions require defensive validation chains before core logic: (1) weight/allocation sum verification with floating-point tolerance (e.g., abs(sum - 1.0) < 1e-9), (2) array length consistency across all assets, (3) positive value assertions for prices/amounts, (4) asset key consistency between related dictionaries, (5) compounding vs simple summation for multi-period returns. Provide complete implementations of all validation checks—partial fixes are production-unsafe (helpful=1, harmful=0, neutral=0)",
+      "helpful": 1,
+      "harmful": 0,
+      "neutral": 0,
+      "created_at": "2025-11-02T00:10:41.281814+00:00",
+      "updated_at": "2025-11-02T00:10:41.281815+00:00"
+    },
+    "code-00013": {
+      "id": "code-00013",
+      "section": "Code Review Strategy",
+      "content": "[code-00014] When providing fixes for bugs with multiple valid solutions (e.g., KeyError handling via dict.get(), try/except, or if/in checks), use prescriptive guidance: (1) Lead with the RECOMMENDED solution for the specific context with clear rationale, (2) Provide complete implementations for ALL error handling patterns mentioned in requirements (not just inline comments), (3) Use directive language ('The recommended fix is...' not 'Alternative approaches include...'), (4) Rank alternatives with explicit guidance on when each is appropriate. For data accessor functions, prioritize dict.get() as the simplest fix, then show try/except for custom error messages/logging, then if/in for explicit validation. Comprehensive analysis without clear recommendation triggers 'provide clearer fix' feedback",
+      "helpful": 4,
+      "harmful": 0,
+      "neutral": 0,
+      "created_at": "2025-11-02T00:12:20.410301+00:00",
+      "updated_at": "2025-11-02T00:15:42.951640+00:00"
+    },
+    "code-00015": {
+      "id": "code-00015",
+      "section": "Code Review Strategy",
+      "content": "[code-00015] Conditional exhaustiveness pattern: When reviewing if-elif chains, verify exhaustive coverage of the input domain (positive/negative/zero for numbers, empty/non-empty for collections, null/non-null for references). Silent failures from missing cases (e.g., data loss without errors) are critical bugs requiring explicit handling via else clauses or documented intentional behavior (commented pass statements). Boundary values (zero, empty, null) must be explicitly handled rather than relying on implicit fallthrough. Apply algo-00008's three-level framework to ensure edge cases are caught during analysis",
+      "helpful": 1,
+      "harmful": 0,
+      "neutral": 0,
+      "created_at": "2025-11-02T00:13:12.115609+00:00",
+      "updated_at": "2025-11-02T00:13:12.115618+00:00"
+    },
+    "financial-00014": {
+      "id": "financial-00014",
+      "section": "Financial Code Analysis",
+      "content": "[financial-00013] When diagnosing unit/format bugs in financial calculations (percentage-to-decimal, basis points, currency conversion), preemptively enumerate edge cases beyond the immediate fix: (1) boundary values (0%, 100%, negative discounts), (2) type validation (string inputs, None values), (3) floating-point precision concerns for monetary amounts, (4) domain constraints (discounts >100%, negative prices). Provide validation logic for these cases even when not mentioned in the bug report—'partial detection' feedback often indicates missing edge case coverage rather than incorrect primary diagnosis",
+      "helpful": 1,
+      "harmful": 0,
+      "neutral": 0,
+      "created_at": "2025-11-02T00:14:05.076352+00:00",
+      "updated_at": "2025-11-02T00:14:05.076359+00:00"
+    },
+    "code-00016": {
+      "id": "code-00016",
+      "section": "Code Review Strategy",
+      "content": "[code-00016] Exception handling specificity: Bare except clauses violate fail-fast debugging by catching unintended exceptions (TypeError, AttributeError, KeyError) alongside expected ones (ZeroDivisionError, FileNotFoundError). Always catch specific exception types that represent expected failure modes. Silent masking of programming errors (wrong types, missing attributes) is a critical bug because it prevents detection during development. When reviewing exception handlers, verify: (1) only expected exceptions are caught, (2) unexpected exceptions (indicating programmer error) propagate to expose bugs early, (3) if multiple exceptions need handling, catch them explicitly as tuple (except (ValueError, TypeError):) rather than bare except",
+      "helpful": 1,
+      "harmful": 0,
+      "neutral": 0,
+      "created_at": "2025-11-02T00:14:55.465714+00:00",
+      "updated_at": "2025-11-02T00:14:55.465723+00:00"
+    },
+    "event-00014": {
+      "id": "event-00014",
+      "section": "Event-Driven Systems",
+      "content": "[event-00014] When tracing collection modification bugs during iteration, select demonstration test cases where the bug visibly manifests rather than cases that coincidentally produce correct output. For removal-during-iteration bugs, use arrays of all-matching elements (e.g., [2,4,6,8] for even removal) to clearly show skipping behavior, rather than mixed arrays where index shifts may not affect final output",
+      "helpful": 1,
+      "harmful": 0,
+      "neutral": 0,
+      "created_at": "2025-11-02T00:15:52.939533+00:00",
+      "updated_at": "2025-11-02T00:15:52.939543+00:00"
     }
   },
   "sections": {
-    "Division by Zero Vulnerabilities": [
-      "division-zero-00001"
+    "Data Structure Analysis": [
+      "data-00001",
+      "data-00002"
     ],
-    "Off-by-One Error Patterns": [
-      "off-by-one-00002"
+    "Performance-Critical Structures": [
+      "performance-critical-00003"
     ],
-    "Mutation and Reference Bugs": [
-      "mutation-00003"
+    "LRU Cache Implementation": [
+      "lru-00004",
+      "lru-00005"
     ],
-    "Performance Optimization": [
-      "performance-00004"
+    "Code Review Strategy": [
+      "code-00006",
+      "code-00008",
+      "code-00013",
+      "code-00015",
+      "code-00016"
+    ],
+    "Severity Assessment": [
+      "severity-00007",
+      "severity-00010",
+      "severity-00011"
+    ],
+    "Algorithm Diagnosis": [
+      "algo-00008",
+      "algo-00009"
+    ],
+    "Sorted Array Problems": [
+      "sorted-00010",
+      "sorted-00011"
+    ],
+    "Event-Driven Systems": [
+      "event-driven-00009",
+      "event-00014"
+    ],
+    "Financial Code Analysis": [
+      "financial-00012",
+      "financial-00014"
     ]
   },
-  "next_id": 5
+  "next_id": 14
 }

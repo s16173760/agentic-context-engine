@@ -29,6 +29,10 @@ from ace import (
 load_dotenv()
 
 
+class BrowserUseAgent(Generator):
+    
+
+
 class SimpleEnvironment(TaskEnvironment):
     """Minimal environment for testing."""
 

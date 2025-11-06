@@ -9,6 +9,7 @@ Compare this with baseline_browser_use.py to see ACE's value.
 import asyncio
 import json
 from typing import List, Dict
+from pathlib import Path
 from dotenv import load_dotenv
 import argparse
 
@@ -25,9 +26,10 @@ from ace import (
     EnvironmentResult,
     Playbook,
 )
+from ace.observability import configure_opik
 load_dotenv()
 
-from utils import print_history_details
+# from utils import print_history_details
 import threading
 from http.server import HTTPServer, SimpleHTTPRequestHandler
 
@@ -36,16 +38,27 @@ import os
 os.environ["BROWSER_USE_LOGGING_LEVEL"] = "critical"
 os.environ["ANONYMIZED_TELEMETRY"] = "false"
 
-def _start_http_server(port: int = 8765) -> threading.Thread:
-    """Start HTTP server in background thread."""
+def _start_http_server(port: int = 8765) -> str:
+    """Start HTTP server in background thread, serving from script's directory."""
+    # Get the directory where this script is located
+    script_dir = Path(__file__).parent.absolute()
+    
     class QuietHandler(SimpleHTTPRequestHandler):
+        def translate_path(self, path):
+            """Translate URL path to file system path, relative to script directory."""
+            # Remove leading slash and query string
+            path = path.split('?', 1)[0].split('#', 1)[0]
+            path = path.lstrip('/')
+            # Return path relative to script directory
+            return str(script_dir / path)
+        
         def log_message(self, format, *args):
             pass
 
     server = HTTPServer(("127.0.0.1", port), QuietHandler)
     thread = threading.Thread(target=server.serve_forever, daemon=True)
     thread.start()
-    print(f"Started HTTP server on http://127.0.0.1:{port}")
+    print(f"Started HTTP server on http://127.0.0.1:{port} (serving from {script_dir})")
     return f"http://127.0.0.1:{port}/form.html"
 
 
@@ -56,9 +69,10 @@ def _start_http_server(port: int = 8765) -> threading.Thread:
 class BrowserUseEnvironment(TaskEnvironment):
     """Environment that evaluates browser automation performance."""
 
-    def __init__(self, headless: bool = True, model: str = "gpt-4o-mini", local_port: int = None):
+    def __init__(self, headless: bool = True, model: str = "gpt-4o-mini", local_port: int = None, run_start_time = None):
         self.headless = headless
         self.model = model
+        self.run_start_time = run_start_time
         if local_port:
             self.form_uri = _start_http_server(local_port)
 
@@ -117,21 +131,37 @@ class BrowserUseEnvironment(TaskEnvironment):
         # Run browser automation
         result = asyncio.run(self._run_browser_task(browser_use_prompt))
 
-        print_history_details(result)
+        # print_history_details(result)
 
 
-        # Success case - result is a history object
-        model_outputs = result.model_outputs() if hasattr(result, "model_outputs") else None
-        final_result = result.final_result() if hasattr(result, "final_result") else ""
-        is_done = result.is_done() if hasattr(result, "is_done") else False
-        is_successful = result.is_successful() if hasattr(result, "is_successful") else False
-        has_errors = result.has_errors() if hasattr(result, "has_errors") else False
-        number_of_steps = result.number_of_steps() if hasattr(result, "number_of_steps") else 0
+        try:
+            model_outputs = result.model_outputs()
+            final_result = result.final_result()
+            is_done = result.is_done()
+            is_successful = result.is_successful()
+            has_errors = result.has_errors()
+            number_of_steps = result.number_of_steps()
+        except:
+            print("ERROR GETTING MODEL OUTPUTS: ", e)
+            print("TYPE OF RESULT: ", type(result))
+            print("RESULT: ", result)
+            model_outputs = None
+            final_result = ""
+            is_done = False
+            is_successful = False
+            has_errors = True
+            number_of_steps = 0
 
-    
+
+        model_outputs_text = ""
+        for i, model_output in enumerate(model_outputs):
+            thinking = model_output.thinking if hasattr(model_output, "thinking") else ""
+            next_goal = model_output.next_goal if hasattr(model_output, "next_goal") else ""
+            evaluation_previous_goal = model_output.evaluation_previous_goal if hasattr(model_output, "evaluation_previous_goal") else ""
+            model_outputs_text += f"Thoughts about step {i+1}: {thinking}\nGoal for step {i+2}: {next_goal}\nEvaluation Previous Goal: {evaluation_previous_goal}\n\n"
+
       
         # Build steps text outside f-string to avoid backslash issue
-        model_outputs_text = "\n".join([str(output) for output in model_outputs]) if model_outputs else "No model outputs recorded"
         done_text = "" if is_done else "not "
         successful_text = "" if is_successful else "not "
         errors_text = "" if has_errors else "no "
@@ -142,7 +172,7 @@ class BrowserUseEnvironment(TaskEnvironment):
         The browser use agent had {errors_text}errors.
         Browser use agent took {number_of_steps} steps.
 
-        These are the outputs of the agent while executing the task:
+        Following are the thoughts and goals of the agent while executing the task:
         {model_outputs_text}
 
         The final result was: {final_result}
@@ -151,8 +181,6 @@ class BrowserUseEnvironment(TaskEnvironment):
         status = "SUCCESS" if is_successful else "ERROR"
         success = is_successful
         efficient = number_of_steps <= 15  # Consider efficient if <= max_steps
-
-        print("FEEDBACK: ", feedback)
 
 
         return EnvironmentResult(
@@ -216,6 +244,95 @@ class BrowserUseEnvironment(TaskEnvironment):
                 except:
                     pass
 
+    def _get_token_usage(self, trace_id: str = None) -> tuple[int, int, int, int]:
+        """Query Opik for ACE token usage only.
+
+        Returns:
+            tuple: (ace_tokens, generator_tokens, reflector_tokens, curator_tokens)
+        """
+        try:
+            import opik
+            import datetime
+
+            # Create client and flush to ensure data is sent
+            client = opik.Opik()
+            client.flush()
+
+            # Use run start time if available, otherwise fall back to last 10 minutes
+            if self.run_start_time:
+                recent_time = self.run_start_time.isoformat().replace('+00:00', 'Z')
+                print(f"   🕐 Searching for traces since run start: {recent_time}")
+            else:
+                now = datetime.datetime.now(datetime.timezone.utc)
+                recent_time = (now - datetime.timedelta(minutes=10)).isoformat().replace('+00:00', 'Z')
+                print(f"   🕐 Searching for traces since: {recent_time} (fallback: last 10 minutes)")
+
+            all_traces = []
+
+            # Only search ACE project for role breakdown
+            for project in ["ace-roles"]:
+                try:
+                    traces = client.search_traces(
+                        project_name=project,
+                        filter_string=f'start_time >= "{recent_time}"',
+                        max_results=50
+                    )
+                    print(f"   📊 Found {len(traces)} recent traces in '{project}' project")
+                    all_traces.extend(traces)
+                except Exception as e:
+                    print(f"   ⚠️ Failed to search '{project}' project: {e}")
+
+            # Track individual ACE role tokens
+            generator_tokens = 0
+            reflector_tokens = 0
+            curator_tokens = 0
+
+            print(f"   🔍 Processing {len(all_traces)} total traces...")
+
+            # Process ACE role traces
+            for trace in all_traces:
+                trace_name = getattr(trace, 'name', 'unknown')
+                trace_name_lower = trace_name.lower()
+
+                if any(role in trace_name_lower for role in ['generator', 'reflector', 'curator']):
+                    # Get usage from trace or spans
+                    total_tokens = 0
+
+                    if trace.usage:
+                        total_tokens = trace.usage.get('total_tokens', 0)
+                    else:
+                        # Check spans for this trace
+                        try:
+                            spans = client.search_spans(trace_id=trace.id)
+                            for span in spans:
+                                if hasattr(span, 'usage') and span.usage:
+                                    span_tokens = span.usage.get('total_tokens', 0)
+                                    total_tokens += span_tokens
+                        except Exception as e:
+                            print(f"         ⚠️ Failed to get spans: {e}")
+
+                    # Classify by role
+                    if 'generator' in trace_name_lower:
+                        generator_tokens += total_tokens
+                    elif 'reflector' in trace_name_lower:
+                        reflector_tokens += total_tokens
+                    elif 'curator' in trace_name_lower:
+                        curator_tokens += total_tokens
+
+            # Calculate total ACE tokens
+            ace_tokens = generator_tokens + reflector_tokens + curator_tokens
+
+            print(f"   📊 Role breakdown:")
+            print(f"      🎯 Generator: {generator_tokens} tokens")
+            print(f"      🔍 Reflector: {reflector_tokens} tokens")
+            print(f"      📝 Curator: {curator_tokens} tokens")
+
+            return (ace_tokens, generator_tokens, reflector_tokens, curator_tokens)
+
+        except Exception as e:
+            print(f"   Warning: Could not retrieve token usage from Opik: {e}")
+            return 0, 0, 0, 0
+
 
 def main(task_file: str = "task1_flight_search.txt"):
     """Main function - browser automation with ACE learning.
@@ -225,6 +342,17 @@ def main(task_file: str = "task1_flight_search.txt"):
                   Defaults to "task1_flight_search.txt".
     """
 
+    # Capture start time for trace filtering
+    import datetime
+    run_start_time = datetime.datetime.now(datetime.timezone.utc)
+
+    # Configure Opik if available
+    try:
+        configure_opik(project_name="ace-browser-use")
+        print("📊 Opik observability enabled")
+    except:
+        print("📊 Opik not available, continuing without observability")
+
     print("\n🤖 ACE Browser Agent (WITH ACE)")
     print("✨ Learning enabled - improves after each task")
     print("=" * 40)
@@ -233,7 +361,24 @@ def main(task_file: str = "task1_flight_search.txt"):
     print("\n🔄 Starting browser task with learning...\n")
 
     # Read task from file
-    with open(task_file, "r") as f:
+    # - Absolute paths: use as-is
+    # - Simple filenames (no path separators): resolve relative to script directory
+    # - Relative paths with directories: resolve relative to current working directory (original behavior)
+    script_dir = Path(__file__).parent.absolute()
+    task_file_path = Path(task_file)
+    
+    if task_file_path.is_absolute():
+        # Absolute path - use as-is
+        pass
+    elif not any(sep in task_file for sep in ['/', '\\']):
+        # Simple filename (e.g., "task1_flight_search.txt") - resolve relative to script directory
+        task_file_path = script_dir / task_file
+    else:
+        # Relative path with directories (e.g., "examples/browser-use/task2_form.txt")
+        # Resolve relative to current working directory (original behavior)
+        task_file_path = Path(task_file).resolve()
+    
+    with open(task_file_path, "r") as f:
         task_content = f.read()
     task_content = "Task:\n\n" + task_content
 
@@ -252,7 +397,8 @@ def main(task_file: str = "task1_flight_search.txt"):
     environment = BrowserUseEnvironment(
         headless=False,
         model="gpt-4o-mini",
-        local_port=8765
+        local_port=8765,
+        run_start_time=run_start_time
     )
 
     
@@ -290,13 +436,16 @@ def main(task_file: str = "task1_flight_search.txt"):
 
     results = adapter.run(samples, environment)
 
-    # Note: Results from adapter.run are AdapterStepResult objects, not dicts
-    # If you need to run an additional browser task outside the adapter,
-    # you would need to create a separate standalone function or use the environment
+    # Query ACE tokens after all roles have completed
+    print(f"\n💰 Querying ACE token usage after all tasks processed...")
+    import time
+    time.sleep(5)  # Wait for Opik to index final traces
+    (total_ace_tokens, total_generator_tokens, total_reflector_tokens, total_curator_tokens) = environment._get_token_usage()
 
     # Show final results
-    print("=" * 40)
-    print("📊 Results:")
+    print("\n" + "=" * 80)
+    print("📊 RESULTS")
+    print("=" * 80)
 
     # Extract metrics from adapter results
     if results:
@@ -306,13 +455,30 @@ def main(task_file: str = "task1_flight_search.txt"):
 
         print(f"\n✅ Success rate: {successful}/{len(results)} ({100*successful/len(results):.1f}%)")
         print(f"⚡ Average steps: {avg_steps:.1f}")
+        print()
+        print(f"{'📊 Steps:':<25} {total_steps:>6} total     {avg_steps:>6.1f} per task")
+        print(f"{'🧠 ACE Tokens:':<25} {total_ace_tokens:>6} total     {total_ace_tokens/len(results) if results else 0:>6.1f} per task")
+        print()
+        print("🧠 ACE Role Breakdown (Think → Learn):")
+        print(f"   🎯 Generator:      {total_generator_tokens:>6} tokens  (strategy planning)")
+        print(f"   🔍 Reflector:      {total_reflector_tokens:>6} tokens  (performance analysis)")
+        print(f"   📝 Curator:        {total_curator_tokens:>6} tokens  (playbook updates)")
+        print(f"   {'─' * 40}")
+        print(f"   🧠 Total ACE:      {total_ace_tokens:>6} tokens")
     else:
         print("\n⚠️ No results to display")
     
-    print(f"✨ Learning enabled - improves after each task")
+    print(f"\n✨ Learning enabled - improves after each task")
+
+    # Show learned strategies
+    if adapter.playbook.bullets():
+        print(f"\n🎯 Learned Strategies:")
+        for i, bullet in enumerate(adapter.playbook.bullets(), 1):
+            print(f"  {i}. {bullet.content}")
 
     print(f"\n💡 Compare with: python examples/browser-use/baseline_browser_use.py")
     print(f"   Baseline has no learning - same performance every time")
+    print("=" * 80)
 
 
 if __name__ == "__main__":

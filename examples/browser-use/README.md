@@ -8,19 +8,19 @@ ACE enables browser automation agents to **learn from their execution feedback**
 
 **How it works:**
 ```
-Sample → [Generator] → Strategy → [Browser-Use] → Result
-            ↑                                        ↓
-        Playbook ← [Curator] ← [Reflector] ← Feedback
-        (learns)
+Task → [browser-use Agent] → Execution Result
+         ↑                           ↓
+     Playbook ← [Curator] ← [Reflector] ← Feedback
+     (context)  (updates)   (analyzes)
 ```
 
-Instead of static prompts, ACE agents:
+Instead of static prompts, ACEAgent:
 
-1. **Generate** strategies for browser tasks
-2. **Execute** them using browser-use
-3. **Reflect** on what worked/failed
-4. **Curate** lessons into a persistent playbook
-5. **Improve** on subsequent tasks
+1. **Injects** playbook context into browser-use Agent
+2. **Executes** browser tasks using browser-use
+3. **Reflects** on execution feedback (what worked/failed)
+4. **Curates** lessons into the playbook
+5. **Improves** on subsequent tasks
 
 ## 📁 Folder Structure
 
@@ -53,10 +53,10 @@ Each example folder contains:
 ### 1. Installation
 
 ```bash
-# Install ACE framework (core only - does NOT include browser-use)
-pip install ace-framework
+# For end users (recommended)
+pip install ace-framework[browser-use]
 
-# For contributors running browser demos (UV - recommended)
+# For contributors running browser demos (UV)
 cd agentic-context-engine
 uv sync --group demos      # Installs browser-use, playwright, rich, etc.
 ```
@@ -161,6 +161,9 @@ uv run python examples/browser-use/domain-checker/ace_domain_checker.py
 Copy `TEMPLATE.py` and customize for your task:
 
 ```python
+from ace import ACEAgent
+from browser_use import ChatBrowserUse
+
 # 1. Create ACE agent - handles everything automatically!
 agent = ACEAgent(
     llm=ChatBrowserUse(),                    # Browser automation LLM
@@ -189,13 +192,13 @@ Browse `domain-checker/` or `form-filler/` examples and modify them for your nee
 
 ### ACE Components
 
-**ACEAgent**: Unified agent that automatically handles all three ACE roles:
-1. **Generator**: Plans browser automation strategies
+**ACEAgent**: Integration wrapper that adds ACE learning to browser-use:
+1. **browser-use Agent**: Executes browser automation tasks
 2. **Reflector**: Analyzes execution feedback (errors, successes, efficiency)
 3. **Curator**: Updates playbook with learned lessons
-4. **Playbook**: Persistent knowledge base (bullets with helpful/harmful scores)
+4. **Playbook**: Persistent knowledge base injected as context
 
-The new ACEAgent simplifies setup - just create one agent and it handles all the learning automatically!
+ACEAgent uses the Integration Pattern - browser-use handles execution, ACE handles learning!
 
 ### Learning Modes
 

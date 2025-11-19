@@ -1,51 +1,58 @@
 #!/usr/bin/env python3
 """
-Quick start example using LiteLLM with various providers.
+Quick start example using LiteLLM with ACELiteLLM integration.
 
-This example demonstrates how to use ACE with different LLM providers
-through the unified LiteLLM interface.
+This shows how to use ACELiteLLM with various providers for
+self-improving AI agents. The agent learns from examples and
+improves its responses over time.
+
+Requires:
+- API key for at least one provider (OpenAI, Anthropic, Google, etc.)
+- litellm package installed
+
+Features demonstrated:
+- Creating ACELiteLLM agent with different providers
+- Learning from training samples
+- Testing before/after learning
+- Saving learned strategies for reuse
+- Playbook persistence across runs
 """
 
 import os
+from pathlib import Path
 from dotenv import load_dotenv
-
-from ace import (
-    LiteLLMClient,
-    Generator,
-    Reflector,
-    Curator,
-    OfflineAdapter,
-    Sample,
-    TaskEnvironment,
-    EnvironmentResult,
-    Playbook,
-    LITELLM_AVAILABLE,
-)
-
+from ace.integrations import ACELiteLLM
+from ace import Sample, SimpleEnvironment
 
 # Load environment variables from .env file
 load_dotenv()
 
 
-class SimpleQAEnvironment(TaskEnvironment):
-    """Simple Q&A environment for testing."""
+def check_api_keys():
+    """Check which API keys are available."""
+    providers = {
+        "OpenAI (GPT)": os.getenv("OPENAI_API_KEY"),
+        "Anthropic (Claude)": os.getenv("ANTHROPIC_API_KEY"),
+        "Google (Gemini)": os.getenv("GOOGLE_API_KEY"),
+        "Cohere": os.getenv("COHERE_API_KEY"),
+    }
 
-    def evaluate(self, sample: Sample, generator_output) -> EnvironmentResult:
-        ground_truth = sample.ground_truth or ""
-        prediction = generator_output.final_answer
+    available = {name: bool(key) for name, key in providers.items()}
+    return available
 
-        if ground_truth.lower() in prediction.lower():
-            feedback = "Correct!"
-            score = 1.0
-        else:
-            feedback = (
-                f"Expected something about '{ground_truth}', but got '{prediction}'"
-            )
-            score = 0.0
 
-        return EnvironmentResult(
-            feedback=feedback, ground_truth=ground_truth, metrics={"score": score}
-        )
+def get_recommended_model(available_providers):
+    """Get a recommended model based on available API keys."""
+    if available_providers.get("OpenAI (GPT)"):
+        return "gpt-4o-mini", "OpenAI GPT-4o Mini (fast, cost-effective)"
+    elif available_providers.get("Anthropic (Claude)"):
+        return "claude-3-haiku-20240307", "Anthropic Claude 3 Haiku (fast)"
+    elif available_providers.get("Google (Gemini)"):
+        return "gemini/gemini-1.5-flash", "Google Gemini 1.5 Flash"
+    elif available_providers.get("Cohere"):
+        return "command-r", "Cohere Command R"
+    else:
+        return None, None
 
 
 def example_openai():
@@ -53,21 +60,26 @@ def example_openai():
     print("\n=== OpenAI GPT Example ===")
 
     if not os.getenv("OPENAI_API_KEY"):
-        print("Please set OPENAI_API_KEY in your .env file")
-        return
+        print("❌ Please set OPENAI_API_KEY in your .env file")
+        return None
 
-    # Create client for OpenAI
-    client = LiteLLMClient(
-        model="gpt-4o-mini",  # or "gpt-4", "gpt-3.5-turbo"
-        temperature=0.0,
-        max_tokens=256,
+    playbook_path = Path(__file__).parent / "openai_learned_strategies.json"
+
+    print("🤖 Creating ACELiteLLM agent with OpenAI...")
+    agent = ACELiteLLM(
+        model="gpt-4o-mini",
+        max_tokens=1024,
+        temperature=0.2,
+        is_learning=True,
+        playbook_path=str(playbook_path) if playbook_path.exists() else None
     )
 
-    # Test direct completion
-    response = client.complete("What is the capital of France?")
-    print(f"Response: {response.text}")
-    print(f"Provider: {response.raw.get('provider')}")
-    print(f"Model: {response.raw.get('model')}")
+    if playbook_path.exists():
+        print(f"📚 Loaded {len(agent.playbook.bullets())} existing strategies")
+    else:
+        print("🆕 Starting with empty playbook")
+
+    return agent, playbook_path
 
 
 def example_anthropic():
@@ -75,198 +87,187 @@ def example_anthropic():
     print("\n=== Anthropic Claude Example ===")
 
     if not os.getenv("ANTHROPIC_API_KEY"):
-        print("Please set ANTHROPIC_API_KEY in your .env file")
-        return
+        print("❌ Please set ANTHROPIC_API_KEY in your .env file")
+        return None
 
-    # Create client for Claude
-    client = LiteLLMClient(
-        model="claude-3-haiku-20240307",  # or "claude-3-sonnet-20240229"
-        temperature=0.0,
-        max_tokens=256,
+    playbook_path = Path(__file__).parent / "claude_learned_strategies.json"
+
+    print("🤖 Creating ACELiteLLM agent with Claude...")
+    agent = ACELiteLLM(
+        model="claude-3-haiku-20240307",
+        max_tokens=1024,
+        temperature=0.2,
+        is_learning=True,
+        playbook_path=str(playbook_path) if playbook_path.exists() else None
     )
 
-    # Test direct completion
-    response = client.complete("Explain quantum computing in one sentence.")
-    print(f"Response: {response.text}")
-    print(f"Provider: {response.raw.get('provider')}")
+    if playbook_path.exists():
+        print(f"📚 Loaded {len(agent.playbook.bullets())} existing strategies")
+    else:
+        print("🆕 Starting with empty playbook")
+
+    return agent, playbook_path
 
 
-def example_with_fallbacks():
-    """Example using fallback models for resilience."""
-    print("\n=== Fallback Example ===")
+def example_google():
+    """Example using Google Gemini models."""
+    print("\n=== Google Gemini Example ===")
 
-    # Create client with fallbacks
-    # If primary model fails, it will try fallback models
-    client = LiteLLMClient(
-        model="gpt-4",  # Primary (more expensive)
-        fallbacks=[
-            "gpt-3.5-turbo",  # First fallback (cheaper)
-            "claude-3-haiku-20240307",  # Second fallback
-        ],
-        temperature=0.0,
-        max_tokens=256,
+    if not os.getenv("GOOGLE_API_KEY"):
+        print("❌ Please set GOOGLE_API_KEY in your .env file")
+        return None
+
+    playbook_path = Path(__file__).parent / "gemini_learned_strategies.json"
+
+    print("🤖 Creating ACELiteLLM agent with Gemini...")
+    agent = ACELiteLLM(
+        model="gemini/gemini-1.5-flash",
+        max_tokens=1024,
+        temperature=0.2,
+        is_learning=True,
+        playbook_path=str(playbook_path) if playbook_path.exists() else None
     )
 
-    response = client.complete("What is 2 + 2?")
-    print(f"Response: {response.text}")
-    print(f"Used model: {response.raw.get('model')}")
+    if playbook_path.exists():
+        print(f"📚 Loaded {len(agent.playbook.bullets())} existing strategies")
+    else:
+        print("🆕 Starting with empty playbook")
+
+    return agent, playbook_path
 
 
-def example_ace_adaptation():
-    """Example using ACE adaptation with LiteLLM."""
-    print("\n=== ACE Adaptation Example ===")
+def run_learning_demo(agent, playbook_path, provider_name):
+    """Run the learning demonstration with any agent."""
+    print(f"\n🧪 Testing {provider_name} agent before learning:")
 
-    if not os.getenv("OPENAI_API_KEY"):
-        print("Please set OPENAI_API_KEY in your .env file")
-        return
-
-    # Create LiteLLM client
-    client = LiteLLMClient(
-        model="gpt-4o-mini",
-        temperature=0.0,
-        max_tokens=512,
-    )
-
-    # Set up ACE components
-    playbook = Playbook()
-    generator = Generator(client)
-    reflector = Reflector(client)
-    curator = Curator(client)
-
-    # Create adapter
-    adapter = OfflineAdapter(
-        playbook=playbook,
-        generator=generator,
-        reflector=reflector,
-        curator=curator,
-        max_refinement_rounds=1,
-    )
-
-    # Create sample questions
-    samples = [
-        Sample(
-            question="What is the capital of France?",
-            context="This is a geography question.",
-            ground_truth="Paris",
-        ),
-        Sample(
-            question="What is 2 + 2?",
-            context="This is a math question.",
-            ground_truth="4",
-        ),
-        Sample(
-            question="What color is the sky on a clear day?",
-            context="This is about weather and atmosphere.",
-            ground_truth="blue",
-        ),
+    # Test before learning
+    test_questions = [
+        "What is 2+2?",
+        "What color is the sky?",
+        "What is the capital of France?"
     ]
 
-    # Run adaptation
-    print("Running adaptation...")
-    environment = SimpleQAEnvironment()
-    results = adapter.run(samples, environment, epochs=1)
+    print("📋 Pre-learning responses:")
+    for question in test_questions[:1]:  # Just test one before learning
+        answer = agent.ask(question)
+        print(f"Q: {question}")
+        print(f"A: {answer}")
 
-    print(f"\nProcessed {len(results)} samples")
-    print(f"Final playbook has {len(playbook.bullets())} bullets")
+    # Create training samples
+    samples = [
+        Sample(question="What is 2+2?", ground_truth="4"),
+        Sample(question="What color is the sky?", ground_truth="blue"),
+        Sample(question="What is the capital of France?", ground_truth="Paris"),
+        Sample(question="What is the largest planet?", ground_truth="Jupiter"),
+        Sample(question="Who wrote Romeo and Juliet?", ground_truth="Shakespeare"),
+    ]
 
-    # Show some bullets
-    print("\nSample bullets from playbook:")
-    for bullet in playbook.bullets()[:3]:
-        print(f"- [{bullet.id}] {bullet.content[:100]}...")
+    print(f"\n🚀 Running ACE learning with {provider_name}...")
+    environment = SimpleEnvironment()
 
+    try:
+        results = agent.learn(samples, environment, epochs=1)
+        successful_samples = len([r for r in results if r.success])
+        print(f"✅ Successfully processed {successful_samples}/{len(results)} samples")
+    except Exception as e:
+        print(f"❌ Learning failed: {e}")
+        results = []
 
-def example_streaming():
-    """Example with streaming responses."""
-    print("\n=== Streaming Example ===")
+    # Show results
+    print(f"\n📊 Training results:")
+    print(f"  • Processed: {len(results)} samples")
+    print(f"  • Playbook size: {len(agent.playbook.bullets())} strategies")
 
-    if not os.getenv("OPENAI_API_KEY"):
-        print("Please set OPENAI_API_KEY in your .env file")
-        return
+    # Test after learning
+    print(f"\n🧠 Testing {provider_name} agent after learning:")
+    for question in ["What is 3+3?", "What color is grass?", "Capital of Italy?"]:
+        answer = agent.ask(question)
+        print(f"Q: {question}")
+        print(f"A: {answer}")
 
-    client = LiteLLMClient(
-        model="gpt-3.5-turbo",
-        temperature=0.7,
-        max_tokens=100,
-    )
+    # Show learned strategies
+    if agent.playbook.bullets():
+        print(f"\n💡 Recent learned strategies:")
+        recent_bullets = agent.playbook.bullets()[-3:]  # Last 3
+        for bullet in recent_bullets:
+            helpful = bullet.helpful
+            harmful = bullet.harmful
+            score = f"(+{helpful}/-{harmful})"
+            print(f"  • {bullet.content[:70]}... {score}")
 
-    print("Streaming response: ", end="")
-    for chunk in client.complete_with_stream("Tell me a short joke about programming"):
-        print(chunk, end="", flush=True)
-    print()  # New line at the end
-
-
-async def example_async():
-    """Example with async completion."""
-    print("\n=== Async Example ===")
-
-    if not os.getenv("OPENAI_API_KEY"):
-        print("Please set OPENAI_API_KEY in your .env file")
-        return
-
-    client = LiteLLMClient(
-        model="gpt-3.5-turbo",
-        temperature=0.0,
-        max_tokens=50,
-    )
-
-    # Async completion
-    response = await client.acomplete("What is the meaning of life?")
-    print(f"Async Response: {response.text}")
+    # Save strategies
+    agent.save_playbook(str(playbook_path))
+    print(f"\n💾 Saved learned strategies to {playbook_path}")
+    print("🔄 Next run will automatically load these strategies!")
 
 
 def main():
-    """Run all examples."""
-
-    if not LITELLM_AVAILABLE:
-        print("LiteLLM is not installed. Please run: pip install litellm")
-        return
-
+    """Run the quickstart demo with available providers."""
     print("=" * 60)
-    print("ACE with LiteLLM Examples")
+    print("🚀 ACELiteLLM Quickstart Demo")
+    print("Self-improving AI agents with LiteLLM")
     print("=" * 60)
 
-    # Check for at least one API key
-    has_any_key = any(
-        [
-            os.getenv("OPENAI_API_KEY"),
-            os.getenv("ANTHROPIC_API_KEY"),
-            os.getenv("GOOGLE_API_KEY"),
-            os.getenv("COHERE_API_KEY"),
-        ]
-    )
+    # Check available providers
+    available = check_api_keys()
+    print("\n🔑 Available API providers:")
+
+    has_any_key = False
+    for provider, available_status in available.items():
+        status = "✅" if available_status else "❌"
+        print(f"  {status} {provider}")
+        if available_status:
+            has_any_key = True
 
     if not has_any_key:
-        print("\nNo API keys found!")
+        print("\n❌ No API keys found!")
         print("Please copy .env.example to .env and add your API keys.")
-        print("\nAt minimum, you need one of:")
-        print("  - OPENAI_API_KEY")
-        print("  - ANTHROPIC_API_KEY")
-        print("  - GOOGLE_API_KEY")
-        print("  - COHERE_API_KEY")
+        print("\nSupported providers:")
+        print("  - OPENAI_API_KEY (for GPT models)")
+        print("  - ANTHROPIC_API_KEY (for Claude models)")
+        print("  - GOOGLE_API_KEY (for Gemini models)")
+        print("  - COHERE_API_KEY (for Cohere models)")
         return
 
-    # Run examples based on available API keys
-    if os.getenv("OPENAI_API_KEY"):
-        example_openai()
-        example_streaming()
-        example_ace_adaptation()
+    # Get recommended model
+    model, description = get_recommended_model(available)
+    print(f"\n🎯 Using: {description}")
 
-    if os.getenv("ANTHROPIC_API_KEY"):
-        example_anthropic()
+    # Run example based on available provider
+    agent = None
+    playbook_path = None
+    provider_name = None
 
-    # Run fallback example if we have multiple providers
-    if os.getenv("OPENAI_API_KEY") and os.getenv("ANTHROPIC_API_KEY"):
-        example_with_fallbacks()
+    if available.get("OpenAI (GPT)"):
+        result = example_openai()
+        if result:
+            agent, playbook_path = result
+            provider_name = "OpenAI GPT"
+    elif available.get("Anthropic (Claude)"):
+        result = example_anthropic()
+        if result:
+            agent, playbook_path = result
+            provider_name = "Anthropic Claude"
+    elif available.get("Google (Gemini)"):
+        result = example_google()
+        if result:
+            agent, playbook_path = result
+            provider_name = "Google Gemini"
 
-    # Run async example
-    if os.getenv("OPENAI_API_KEY"):
-        import asyncio
-
-        asyncio.run(example_async())
+    if agent:
+        run_learning_demo(agent, playbook_path, provider_name)
+    else:
+        print("❌ Failed to create agent with available providers")
+        return
 
     print("\n" + "=" * 60)
-    print("Examples completed!")
+    print("✅ Quickstart demo completed!")
     print("=" * 60)
+    print("\n💡 Next steps:")
+    print("  • Run this script again to see incremental learning")
+    print("  • Try different models by changing the model parameter")
+    print("  • Add more training samples to improve performance")
+    print("  • Check other examples in the examples/ directory")
 
 
 if __name__ == "__main__":

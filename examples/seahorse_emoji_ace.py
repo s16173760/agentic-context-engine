@@ -22,8 +22,8 @@ except ImportError:
 from rich.console import Console
 from rich.panel import Panel
 
-from ace import Generator, Reflector, Curator, Playbook
-from ace.llm_providers import LiteLLMClient
+from ace.integrations import ACELiteLLM
+from ace import Sample, SimpleEnvironment
 from ace.observability import configure_opik
 
 # Suppress LiteLLM debug messages
@@ -51,77 +51,59 @@ def main():
         console.print("[dim]View traces at: https://www.comet.com/[/dim]")
     console.print()
 
-    # Setup - Claude Opus 4.1 for transparent reasoning
-    client = LiteLLMClient(
+    # Setup - Claude Opus 4.1 via ACELiteLLM
+    agent = ACELiteLLM(
         model="claude-opus-4-1-20250805",
         temperature=0.7,
         max_tokens=4000,
-        timeout=60,
+        is_learning=True
     )
-
-    # Using v1 prompts (default)
-    generator = Generator(client)
-    reflector = Reflector(client)
-    curator = Curator(client)
-    playbook = Playbook()
 
     question = "Give me the seahorse emoji?"
 
-    # First ask
-    console.print("[yellow]━━━ Round 1: Initial Query ━━━[/yellow]")
-    console.print(f"[bold]Question:[/bold] {question}")
-    console.print("[dim]Playbook: Empty (no prior knowledge)[/dim]\n")
-    output1 = generator.generate(
-        question=question,
-        context="",
-        playbook=playbook,
-    )
-    console.print(f"[bold]Final Answer:[/bold] {output1.final_answer}")
-    console.print(f"[dim]Reasoning: {output1.reasoning}[/dim]")
+    # First ask - provide initial learning material
+    console.print("[yellow]━━━ Round 1: Teaching ACE About Emojis ━━━[/yellow]")
+    console.print("[dim]First, let's teach ACE with a sample that will provide context...[/dim]\n")
 
-    # ACE self-reflects without external feedback
-    console.print("\n[cyan]━━━ Self-Reflection Phase ━━━[/cyan]")
-    console.print("[dim]ACE analyzes its own response without external feedback...[/dim]")
-    console.print("[dim]Note: ACE has no ground truth - it doesn't know if the answer is correct![/dim]")
-
-    # Reflect without feedback - just based on the output
-    reflection = reflector.reflect(
-        question=question,
-        generator_output=output1,
-        playbook=playbook,
-        ground_truth=None,  # No ground truth provided
-        feedback=None,  # No feedback provided
+    # Create a learning sample about emojis (with some ground truth to establish knowledge)
+    learning_sample = Sample(
+        question="What emoji represents a horse?",
+        ground_truth="🐴 (horse emoji)"
     )
 
-    # Update playbook based on reflection
-    curator_output = curator.curate(
-        reflection=reflection,
-        playbook=playbook,
-        question_context="emoji questions",
-        progress="self-learning",
-    )
-    playbook.apply_delta(curator_output.delta)
+    environment = SimpleEnvironment()
+    console.print("Teaching ACE about emoji questions...")
+    agent.learn(samples=[learning_sample], environment=environment, epochs=1)
 
-    if len(playbook.bullets()) > 0:
-        console.print(
-            f"[green]Playbook updated with {len(playbook.bullets())} self-learned insights[/green]"
-        )
+    if len(agent.playbook.bullets()) > 0:
+        console.print(f"[green]Playbook updated with {len(agent.playbook.bullets())} learned strategies[/green]")
         console.print("\n[cyan]📚 Current Playbook:[/cyan]")
-        console.print(Panel(playbook.as_prompt(), style="cyan"))
+        console.print(Panel(agent.playbook.as_prompt(), style="cyan"))
 
-    # Second ask - should use playbook
-    console.print(f"\n[yellow]━━━ Round 2: With Learned Strategies ━━━[/yellow]")
+    # Now ask the actual question
+    console.print(f"\n[yellow]━━━ Round 2: Asking About Seahorse ━━━[/yellow]")
     console.print(f"[bold]Question:[/bold] {question}")
-    console.print(f"[dim]Playbook: {len(playbook.bullets())} learned strategies[/dim]\n")
-    output2 = generator.generate(
-        question=question,
-        context="",
-        playbook=playbook,
-    )
-    console.print(f"[bold]Final Answer:[/bold] {output2.final_answer}")
-    console.print(f"[dim]Reasoning: {output2.reasoning}[/dim]")
-    if output2.bullet_ids:
-        console.print(f"[dim]Used bullets: {output2.bullet_ids}[/dim]")
+    console.print(f"[dim]Playbook: {len(agent.playbook.bullets())} learned strategies[/dim]\n")
+    answer1 = agent.ask(question=question, context="")
+    console.print(f"[bold]Final Answer:[/bold] {answer1}")
+    console.print(f"[dim]Note: ACE applies learned emoji strategies to new question[/dim]")
+
+    # Learn from this interaction too
+    console.print("\n[cyan]━━━ Self-Learning Phase ━━━[/cyan]")
+    console.print("[dim]ACE learns from its seahorse emoji response...[/dim]")
+
+    seahorse_sample = Sample(question=question, ground_truth=None)  # Self-learning
+    agent.learn(samples=[seahorse_sample], environment=environment, epochs=1)
+
+    console.print(f"[green]Playbook now contains {len(agent.playbook.bullets())} total learned insights[/green]")
+
+    # Final ask to show further evolution
+    console.print(f"\n[yellow]━━━ Round 3: Enhanced Knowledge ━━━[/yellow]")
+    console.print(f"[bold]Question:[/bold] {question}")
+    console.print(f"[dim]Playbook: {len(agent.playbook.bullets())} learned strategies[/dim]\n")
+    answer2 = agent.ask(question=question, context="")
+    console.print(f"[bold]Final Answer:[/bold] {answer2}")
+    console.print(f"[dim]Note: ACE continuously refines its approach[/dim]")
 
     # Just show the two answers for comparison
     import time
@@ -130,11 +112,11 @@ def main():
     console.print("[bold cyan]📊 Results Comparison[/bold cyan]")
     console.print("=" * 60)
 
-    console.print("\n[yellow]Round 1 Answer:[/yellow]")
-    console.print(Panel(output1.final_answer, style="yellow"))
+    console.print("\n[yellow]Round 2 Answer (initial with emoji knowledge):[/yellow]")
+    console.print(Panel(answer1, style="yellow"))
 
-    console.print("[green]Round 2 Answer (with playbook):[/green]")
-    console.print(Panel(output2.final_answer, style="green"))
+    console.print("[green]Round 3 Answer (enhanced with seahorse learning):[/green]")
+    console.print(Panel(answer2, style="green"))
 
     console.print("\n[bold red]⚠️  Fact Check:[/bold red]")
     console.print("[dim]There is NO seahorse emoji in Unicode (despite what models often claim).[/dim]")

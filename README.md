@@ -31,36 +31,23 @@ Star ⭐️ this repo if you find it useful!
 pip install ace-framework
 ```
 
-### 2. Set Your API Key
+### 2. Set API Key
 
 ```bash
 export OPENAI_API_KEY="your-api-key"
-# Or use Claude, Gemini, or 100+ other providers
 ```
 
-### 3. Create Your First ACE Agent
+### 3. Run
 
 ```python
 from ace import ACELiteLLM
 
-# Create agent that learns automatically
 agent = ACELiteLLM(model="gpt-4o-mini")
-
-# Ask questions - it learns from each interaction
-answer1 = agent.ask("What is 2+2?")
-print(f"Answer: {answer1}")
-
-answer2 = agent.ask("What is the capital of France?")
-print(f"Answer: {answer2}")
-
-# Agent now has learned strategies!
-print(f"✅ Learned {len(agent.playbook.bullets())} strategies")
-
-# Save for later
-agent.save_playbook("my_agent.json")
+answer = agent.ask("What is the capital of France?")
+print(answer)  # Paris
 ```
 
-🎉 **Your agent just got smarter!** It learned from examples and improved.
+🎉 **Done! Your agent learns automatically from each interaction.**
 
 ---
 
@@ -75,8 +62,22 @@ Perfect for Q&A, classification, reasoning:
 ```python
 from ace import ACELiteLLM
 
+# Create self-improving agent
 agent = ACELiteLLM(model="gpt-4o-mini")
-answer = agent.ask("What is 2+2?")  # Uses learned strategies
+
+# Ask related questions - agent learns patterns
+answer1 = agent.ask("If all cats are animals, is Felix (a cat) an animal?")
+answer2 = agent.ask("If all birds fly, can penguins (birds) fly?")  # Learns to check assumptions!
+answer3 = agent.ask("If all metals conduct electricity, does copper conduct electricity?")
+
+# View learned strategies
+print(f"✅ Learned {len(agent.playbook.bullets())} reasoning strategies")
+
+# Save for reuse
+agent.save_playbook("my_agent.json")
+
+# Load and continue
+agent2 = ACELiteLLM.from_playbook("my_agent.json", model="gpt-4o-mini")
 ```
 
 ### **ACEAgent (browser-use)** - Browser Automation 🌐

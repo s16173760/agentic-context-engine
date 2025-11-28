@@ -21,7 +21,7 @@ def main():
         return
 
     # 1. Create ACE agent (bundles all components with v2.1 prompts)
-    agent = ACELiteLLM(model="claude-sonnet-4-5-20250929", max_tokens=4096)
+    agent = ACELiteLLM(model="claude-sonnet-4-5-20250929")
 
     # 2. Create training samples
     samples = [

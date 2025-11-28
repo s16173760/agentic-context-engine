@@ -101,7 +101,7 @@ class ACELiteLLM:
     def __init__(
         self,
         model: str = "gpt-4o-mini",
-        max_tokens: int = 512,
+        max_tokens: int = 2048,
         temperature: float = 0.0,
         playbook_path: Optional[str] = None,
         is_learning: bool = True,
@@ -113,7 +113,7 @@ class ACELiteLLM:
         Args:
             model: LiteLLM model name (default: gpt-4o-mini)
                    Supports 100+ providers: OpenAI, Anthropic, Google, etc.
-            max_tokens: Max tokens for responses (default: 512)
+            max_tokens: Max tokens for responses (default: 2048)
             temperature: Sampling temperature (default: 0.0)
             playbook_path: Path to existing playbook (optional)
             is_learning: Enable/disable learning (default: True)

@@ -41,7 +41,7 @@ class LiteLLMConfig:
     api_base: Optional[str] = None
     api_version: Optional[str] = None
     temperature: float = 0.0
-    max_tokens: int = 512
+    max_tokens: int = 2048
     top_p: Optional[float] = None
     timeout: int = 60
     max_retries: int = 3
@@ -112,7 +112,7 @@ class LiteLLMClient(LLMClient):
         api_key: Optional[str] = None,
         api_base: Optional[str] = None,
         temperature: float = 0.0,
-        max_tokens: int = 512,
+        max_tokens: int = 2048,
         fallbacks: Optional[List[str]] = None,
         sampling_priority: str = "temperature",
         config: Optional[LiteLLMConfig] = None,

@@ -100,7 +100,7 @@ class LangChain(ACERunner):
 
             dm = DeduplicationManager(dedup_config)
 
-        steps: list[StepProtocol] = [
+        steps: list[StepProtocol[ACEStepContext]] = [
             LangChainExecuteStep(runnable, output_parser=output_parser),
             LangChainToTrace(),
             *learning_tail(
@@ -225,7 +225,7 @@ class LangChain(ACERunner):
         """
         return self.run([input], **kwargs)
 
-    def _build_context(
+    def _build_context(  # type: ignore[override]
         self,
         raw_input: Any,
         *,

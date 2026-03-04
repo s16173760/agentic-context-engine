@@ -2,9 +2,9 @@
 
 import pytest
 
-from ace.reflector.config import RecursiveConfig
-from ace.reflector.sandbox import TraceSandbox
-from ace.reflector.subagent import CallBudget
+from ace_next.rr.config import RecursiveConfig
+from ace_next.rr.sandbox import TraceSandbox
+from ace_next.rr.subagent import CallBudget
 from ace.llm import LLMResponse
 
 from ace_next.rr.context import RRIterationContext
@@ -16,7 +16,6 @@ from ace_next.rr.steps import (
     _parse_final_value,
     _parse_direct_response,
 )
-
 
 # ---------------------------------------------------------------------------
 # Fixtures / helpers

@@ -74,7 +74,7 @@ class ACE(ACERunner):
                 tail (e.g. ``OpikStep``).
         """
         skillbook = skillbook or Skillbook()
-        steps: list[StepProtocol] = [
+        steps: list[StepProtocol[ACEStepContext]] = [
             AgentStep(agent),
             EvaluateStep(environment),
             *learning_tail(
@@ -164,7 +164,7 @@ class ACE(ACERunner):
         """
         return self._run(samples, epochs=epochs, wait=wait)
 
-    def _build_context(
+    def _build_context(  # type: ignore[override]
         self,
         sample: Sample,
         *,

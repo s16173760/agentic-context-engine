@@ -213,6 +213,31 @@ Protocols use structural typing (duck typing checked by mypy). A class satisfies
 - Mocks satisfy protocols without ceremony.
 - Steps are decoupled from implementations at the type level, not just by convention.
 
+### Architecture Layers
+
+The framework separates concerns into four layers:
+
+| Layer | Location | Responsibility | Example |
+|-------|----------|----------------|---------|
+| **Protocols** | `ace_next/protocols/` | Interface contracts | `ReflectorLike.reflect()` |
+| **Roles** | `ace_next/implementations/` | Business logic (LLM calls) | `Reflector`, `RRStep` |
+| **Steps** | `ace_next/steps/` | Context plumbing (extract → call role → put back) | `ReflectStep` |
+| **Runners** | `ace_next/runners/` | Orchestration (sample loop, epoch management) | `ACELiteLLM` |
+
+**Protocols** define what a role must look like. **Roles** implement the logic. **Steps** adapt between the pipeline's context-based data flow and the role's parameter-based API. **Runners** compose steps into pipelines and iterate over inputs.
+
+This means roles are interchangeable anywhere their protocol is expected:
+
+```python
+# Simple single-pass reflection
+ace = ACELiteLLM(llm, reflector=Reflector(llm))
+
+# Deep recursive reflection (drop-in replacement)
+ace = ACELiteLLM(llm, reflector=RRStep(llm, config=RRConfig(max_iterations=10)))
+```
+
+Both `Reflector` and `RRStep` satisfy `ReflectorLike`. The runner and pipeline don't know or care which one is in use.
+
 ---
 
 ## Class Hierarchy
@@ -230,15 +255,15 @@ ACELiteLLM (standalone convenience wrapper — not an ACERunner subclass)
 ├── ask()               — direct Agent call, no pipeline
 ├── learn()             — delegates to lazy-init ACE runner
 ├── learn_from_traces() — delegates to lazy-init TraceAnalyser
-└── learn_from_feedback()— manual single-shot learning from last ask()
+└── learn_from_feedback()— runs learning_tail pipeline from last ask()
 
-RRStep (SubRunner — composable iterative step)
-├── __call__()          — StepProtocol entry; can be placed in any runner's pipeline
-├── reflect()           — ReflectorLike entry; standalone use
+RRStep (SubRunner[ACEStepContext] — composable iterative step)
+├── __call__()          — StepProtocol[ACEStepContext] entry; can be placed in any runner's pipeline
+├── reflect()           — ReflectorLike entry; usable as drop-in reflector in runners
 └── run_loop()          — SubRunner loop driver; inner Pipeline([LLMCall, ExtractCode, SandboxExec, CheckResult])
 ```
 
-All runners compose a `Pipeline` rather than extending it. `RRStep` extends `SubRunner` (from `ace_next/core/sub_runner.py`) and can be used as a step in any runner's pipeline — it is a black box that satisfies `StepProtocol`. The pipeline is an implementation detail, not part of the public interface. Each subclass only overrides `run()` (public signature) and `_build_context()` (input mapping).
+All runners compose a `Pipeline` rather than extending it. `RRStep` extends `SubRunner[ACEStepContext]` (from `ace_next/core/sub_runner.py`) and can be used as a step in any runner's pipeline — it is a black box that satisfies `StepProtocol[ACEStepContext]`. The pipeline is an implementation detail, not part of the public interface. Each subclass only overrides `run()` (public signature) and `_build_context()` (input mapping).
 
 Integration runners (`BrowserUse`, `LangChain`, `ClaudeCode`) each provide two construction paths: `from_roles()` for pre-built role instances, and `from_model()` for auto-building roles from a model string. `ACELiteLLM` is a standalone class (not an `ACERunner` subclass) because it wraps two different runners and exposes a different API (`ask`, `learn`, `learn_from_traces`).
 
@@ -585,7 +610,7 @@ Read-only steps (ReflectStep, UpdateStep) access the skillbook via `ctx.skillboo
 
 ## Steps
 
-Reusable step implementations live in `ace_next/steps/`. Each is a single class in a single file. All satisfy the `StepProtocol` from the pipeline engine. Each step does exactly one thing.
+Reusable step implementations live in `ace_next/steps/`. Each is a single class in a single file. All satisfy `StepProtocol[ACEStepContext]` from the pipeline engine. Each step does exactly one thing.
 
 **Design principle: steps are stateless.** A step's `__call__` is a pure function of its constructor arguments and the incoming `ACEStepContext`. No internal counters, no accumulated state between invocations. If a step needs run-scoped information (like a global sample index for interval logic), the runner computes it and places it on the context. This keeps steps predictable across multiple `run()` calls — behaviour depends only on what's in the context, not on invocation history.
 
@@ -635,6 +660,7 @@ Every runner also exposes a `build_steps()` classmethod that returns the step li
 | **DeduplicateStep** | `global_sample_index` | `manager` (DeduplicationManagerLike), `skillbook` (real) | — | Consolidates similar skills | 1 |
 | **CheckpointStep** | `global_sample_index` | `skillbook` (real) | — | Saves skillbook to disk | 1 |
 | **OpikStep** | `skillbook` | `project_name`, `tags` | — | Logs pipeline traces to Opik | 1 |
+| **RROpikStep** | `reflection` | `project_name`, `tags` | — | Logs RR REPL traces to Opik (hierarchical) | 1 |
 | **LoadTracesStep** | `sample` | — | `trace` | None (pure) | default (1) |
 | **OpenClawToTraceStep** | `trace` | — | `trace` | None (pure) | default (1) |
 | **PersistStep** | `skillbook` | `target_path` | — | Writes skillbook to CLAUDE.md or similar | 1 |
@@ -915,6 +941,48 @@ from ace_next import register_opik_litellm_callback
 register_opik_litellm_callback()
 ```
 
+### RROpikStep
+
+```python
+class RROpikStep:
+    requires = frozenset({"reflection"})
+    provides = frozenset()
+
+    def __init__(
+        self,
+        project_name: str = "ace-rr",
+        tags: list[str] | None = None,
+    ) -> None: ...
+```
+
+Dedicated observability step for the Recursive Reflector. Reads `ctx.reflection.raw["rr_trace"]` — a dict populated by `RRStep` containing per-iteration REPL data and sub-agent call history — and creates a hierarchical Opik trace with child spans per iteration.
+
+Follows the same patterns as `OpikStep`: explicit opt-in only, soft-imports `opik`, respects `OPIK_DISABLED` env var, gracefully degrades to a no-op. Located in `ace_next/rr/opik.py` (co-located with the RR module, not in `ace_next/steps/`).
+
+**Trace hierarchy:**
+
+```
+rr_reflect (trace)
+├── rr_iteration_0 (span)    ← code, stdout, stderr
+├── rr_iteration_1 (span)
+└── rr_iteration_2 (span)    ← FINAL called here
+```
+
+Sub-agent call history is attached to the parent trace metadata. Each iteration span logs the code sent to the sandbox, stdout/stderr output, and whether `FINAL()` was called.
+
+**Data flow:** `RRStep` collects iteration data during `run_loop()` and enriches `ReflectorOutput.raw["rr_trace"]` after the loop completes. `RROpikStep` reads this data — observability is fully decoupled from business logic, matching the `OpikStep` philosophy.
+
+```python
+from ace_next.rr import RRStep, RRConfig, RROpikStep
+
+# Place RROpikStep after RRStep in your pipeline
+steps = [
+    ...,
+    rr_step,
+    RROpikStep(project_name="my-project"),
+]
+```
+
 ### LoadTracesStep
 
 ```python
@@ -1014,7 +1082,10 @@ Concrete LLM-based implementations of the role protocols. Live in `ace_next/impl
 |---|---|---|---|
 | `Agent` | `AgentLike` | `generate()` | `implementations/agent.py` |
 | `Reflector` | `ReflectorLike` | `reflect()` | `implementations/reflector.py` |
+| `RRStep` | `ReflectorLike` + `StepProtocol[ACEStepContext]` | `reflect()` / `__call__()` | `rr/runner.py` |
 | `SkillManager` | `SkillManagerLike` | `update_skills()` | `implementations/skill_manager.py` |
+
+`RRStep` has a different constructor pattern — see [RR_DESIGN.md](RR_DESIGN.md) for the full Recursive Reflector architecture, configuration (`RRConfig`), sandbox API, sub-agent system, trace context, and observability (`RROpikStep`).
 
 All three share the same constructor pattern:
 
@@ -1043,7 +1114,7 @@ output = agent.generate(
 
 Analyzes agent outputs to extract lessons and improve strategies. Builds a skillbook excerpt from the agent's cited skill IDs (via `make_skillbook_excerpt()`), formats the prompt, and calls `llm.complete_structured(prompt, ReflectorOutput)`.
 
-**SIMPLE mode only** — single-pass reflection. Recursive mode (where the Reflector iterates multiple times to deepen analysis) is an advanced feature deferred to a later version.
+**SIMPLE mode only** — single-pass reflection. For recursive multi-iteration reflection, use `RRStep` — it satisfies the same `ReflectorLike` protocol and can be used as a drop-in replacement in any runner. See [RR_DESIGN.md](RR_DESIGN.md) for the full architecture.
 
 ```python
 reflector = Reflector(llm)
@@ -1335,13 +1406,13 @@ def learning_tail(
     dedup_interval: int = 10,
     checkpoint_dir: str | Path | None = None,
     checkpoint_interval: int = 10,
-) -> list[StepProtocol]:
+) -> list[StepProtocol[ACEStepContext]]:
     """Return the standard ACE learning steps.
 
     Use this when building custom integrations that provide their own
     execute step(s) but want the standard learning pipeline.
     """
-    steps: list[StepProtocol] = [
+    steps: list[StepProtocol[ACEStepContext]] = [
         ReflectStep(reflector),
         TagStep(skillbook),
         UpdateStep(skill_manager),
@@ -1671,6 +1742,7 @@ Each integration provides: (1) an execute step, (2) a result type, and (3) a ToT
 | New | `ace_next/steps/checkpoint.py` | CheckpointStep |
 | New | `ace_next/steps/observability.py` | ObservabilityStep (logger.info) |
 | New | `ace_next/steps/opik.py` | OpikStep (Opik trace logging) |
+| New | `ace_next/rr/opik.py` | RROpikStep (hierarchical RR trace logging to Opik) |
 | New | `ace_next/steps/persist.py` | PersistStep |
 | New | `ace_next/runners/` | ACERunner, TraceAnalyser, ACE, BrowserUse, LangChain, ClaudeCode |
 | `ace/integrations/browser_use.py` | `ace_next/integrations/browser_use.py` + `ace_next/runners/browser_use.py` | Split into execute step + result type + ToTrace converter + runner |
@@ -2053,7 +2125,7 @@ Keeping ReflectStep as both reflection and tagging, and UpdateStep as both gener
 The old `ace/roles.py` auto-wrapped LLM clients with Instructor if `complete_structured` was missing (duck-typing check + fallback). This has since been updated: `ace/roles.py` now checks `INSTRUCTOR_AVAILABLE` and gracefully falls back to the raw LLM if the `instructor` package is not installed (it is an optional dependency via `pip install ace-framework[instructor]`). Rejected for `ace_next` — auto-wrapping masks what the implementation actually requires. In `ace_next`, `LLMClientLike` explicitly requires both `complete()` and `complete_structured()`. Callers wrap their LLM clients before passing them in (e.g. `wrap_with_instructor(LiteLLMClient(...))` from `ace_next.providers`). This makes the requirement visible at the call site and keeps implementations dependency-free.
 
 **Recursive Reflector (initial rejection, now implemented):**
-The old `ace/reflector/` subsystem supports recursive mode where the Reflector iterates multiple times to deepen analysis. Initially rejected for `ace_next` due to complexity. Now implemented as `RRStep` in `ace_next/rr/` — a `SubRunner`-based step that runs an iterative REPL loop (LLM call → extract code → sandbox exec → check result). `RRStep` satisfies both `StepProtocol` (composable in any pipeline) and `ReflectorLike` (usable as a drop-in reflector, e.g. `ACELiteLLM(llm, reflector=rr)`). Exported from `ace_next` as `RRStep` and `RRConfig`.
+The old `ace/reflector/` subsystem supports recursive mode where the Reflector iterates multiple times to deepen analysis. Initially rejected for `ace_next` due to complexity. Now implemented as `RRStep` in `ace_next/rr/` — a `SubRunner[ACEStepContext]`-based step that runs an iterative REPL loop (LLM call → extract code → sandbox exec → check result). `RRStep` satisfies both `StepProtocol[ACEStepContext]` (composable in any pipeline) and `ReflectorLike` (usable as a drop-in reflector, e.g. `ACELiteLLM(llm, reflector=rr)`). Exported from `ace_next` as `RRStep` and `RRConfig`.
 
 **Observability decorator on implementations:**
 The old `ace/roles.py` uses `@maybe_track()` decorators for Opik tracing on every role method. Rejected — `OpikStep` handles metrics at the pipeline level with full visibility into all context fields. Adding per-method decorators would double-count and create coupling between implementations and the observability system.

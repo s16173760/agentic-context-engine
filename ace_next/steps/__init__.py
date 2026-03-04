@@ -6,6 +6,7 @@ from pathlib import Path
 
 from pipeline.protocol import StepProtocol
 
+from ..core.context import ACEStepContext
 from ..protocols import (
     DeduplicationManagerLike,
     ReflectorLike,
@@ -56,7 +57,7 @@ def learning_tail(
     dedup_interval: int = 10,
     checkpoint_dir: str | Path | None = None,
     checkpoint_interval: int = 10,
-) -> list[StepProtocol]:
+) -> list[StepProtocol[ACEStepContext]]:
     """Return the standard ACE learning steps.
 
     Use this when building custom integrations that provide their own
@@ -72,7 +73,7 @@ def learning_tail(
     with optional DeduplicateStep and CheckpointStep appended when
     the corresponding config is provided.
     """
-    steps: list[StepProtocol] = [
+    steps: list[StepProtocol[ACEStepContext]] = [
         ReflectStep(reflector),
         TagStep(skillbook),
         UpdateStep(skill_manager),

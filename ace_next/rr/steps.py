@@ -15,9 +15,9 @@ from .context import RRIterationContext
 from .message_trimming import trim_messages
 
 if TYPE_CHECKING:
-    from ace.reflector.config import RecursiveConfig
-    from ace.reflector.sandbox import TraceSandbox
-    from ace.reflector.subagent import CallBudget
+    from .config import RecursiveConfig
+    from .sandbox import TraceSandbox
+    from .subagent import CallBudget
 
 logger = logging.getLogger(__name__)
 
@@ -28,7 +28,7 @@ def _truncate_output(output: str, max_chars: int = 20_000) -> str:
         return output
     truncated = output[:max_chars]
     remaining = len(output) - max_chars
-    return f"{truncated}\n... + [{remaining} chars truncated]"
+    return f"{truncated}\n[TRUNCATED: {remaining} chars remaining]"
 
 
 # ---------------------------------------------------------------------------
@@ -57,14 +57,12 @@ class LLMCallStep:
         self.budget = budget
 
     def __call__(self, ctx: RRIterationContext) -> RRIterationContext:
-        if self.budget.exhausted:
+        if not self.budget.consume():
             logger.warning("Budget exhausted, returning empty response")
             return ctx.replace(llm_response="")
 
-        trimmed = trim_messages(list(ctx.messages), self.config.max_context_chars)
-        response = self.llm.complete_messages(trimmed)
+        response = self.llm.complete_messages(list(ctx.messages))
         response_text: str = response.text or ""
-        self.budget.consume()
 
         if not response_text:
             logger.warning(
@@ -221,6 +219,13 @@ class CheckResultStep:
         # --- Normal continuation: feed output back ---
         max_output = self.config.max_output_chars
         output_parts: list[str] = []
+
+        # Iteration progress header
+        next_iter = ctx.iteration + 1
+        iter_header = f"[Iteration {next_iter}/{self.config.max_iterations}]"
+        if next_iter >= self.config.max_iterations - 2:
+            iter_header += " (approaching limit — finalize soon)"
+
         if result and result.stdout:
             output_parts.append(
                 f"stdout:\n{_truncate_output(result.stdout, max_output)}"
@@ -235,7 +240,7 @@ class CheckResultStep:
         return ctx.replace(
             feedback_messages=(
                 {"role": "assistant", "content": response_text},
-                {"role": "user", "content": f"Output:\n{output_message}"},
+                {"role": "user", "content": f"{iter_header}\nOutput:\n{output_message}"},
             ),
         )
 

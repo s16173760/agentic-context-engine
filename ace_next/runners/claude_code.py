@@ -102,7 +102,7 @@ class ClaudeCode(ACERunner):
 
             dm = DeduplicationManager(dedup_config)
 
-        steps: list[StepProtocol] = [
+        steps: list[StepProtocol[ACEStepContext]] = [
             ClaudeCodeExecuteStep(
                 working_dir=working_dir,
                 timeout=timeout,
@@ -231,7 +231,7 @@ class ClaudeCode(ACERunner):
             tasks = [tasks]
         return self._run(tasks, epochs=epochs, wait=wait)
 
-    def _build_context(
+    def _build_context(  # type: ignore[override]
         self,
         task: str,
         *,

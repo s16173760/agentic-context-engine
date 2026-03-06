@@ -449,6 +449,7 @@ project-root/
 |---|-------|--------|
 | 6 | No `--non-interactive` mode for CI/Docker | Blocks CI automation — requires a future `ace setup --model MODEL --skip-validation` flag |
 | 9 | Per-role model selection skips validation when keeping default | Low — the default was already validated in Step 1 |
+| 15 | No multi-provider key setup in one pass | When reconfiguring (`ace setup` on an existing config), users who want different providers per role (e.g. OpenAI default + Anthropic agent + Bedrock reflector) must go through each role sequentially — keys are only prompted when a model fails validation. A future improvement should let users configure all providers and their keys upfront in a single credentials step, before role assignment begins. |
 
 ---
 

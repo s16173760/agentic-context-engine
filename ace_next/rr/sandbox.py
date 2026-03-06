@@ -177,7 +177,7 @@ class TraceSandbox:
         llm_query_fn: Optional[Callable[[str], str]] = None,
         additional_globals: Optional[Dict[str, Any]] = None,
         *,
-        parallel_max_concurrency: int = 4,
+        parallel_max_concurrency: int = 10,
         parallel_max_retries: int = 3,
         parallel_retry_delay: float = 1.0,
         parallel_timeout: Optional[float] = None,

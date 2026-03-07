@@ -1,4 +1,4 @@
-<img src="https://framerusercontent.com/images/XBGa12hY8xKYI6KzagBxpbgY4.png" alt="Kayba Logo" width="1080"/>
+<img src="assets/kayba-banner.png" alt="Kayba Logo" width="1080"/>
 
 # Agentic Context Engine (ACE)
 

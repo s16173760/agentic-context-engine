@@ -92,6 +92,12 @@ all = [
     "transformers>=4.30.0",
     "torch>=2.0.0",
     "accelerate>=0.20.0",
+    "click>=8.1.0",
+    "requests>=2.31.0",
+]
+cloud = [
+    "click>=8.1.0",
+    "requests>=2.31.0",
 ]
 mcp = [
     "mcp>=1.22.0",
@@ -100,6 +106,7 @@ mcp = [
 ]
 
 [project.scripts]
+ace = "ace.cli:main"
 ace-learn = "ace.integrations.claude_code.learner:main"
 ace-mcp = "ace_next.integrations.mcp.server:main"
 

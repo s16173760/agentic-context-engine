@@ -228,6 +228,21 @@ prompt = client.get_prompt(prompts[0]["id"])
 | `GET` | `/prompts` | `list_prompts()` |
 | `GET` | `/prompts/:id` | `get_prompt()` |
 
+## Coding agent setup
+
+**Quick (current session):** Tell your coding agent to run `kayba setup`. The agent will see
+the full CLI reference in its context and know how to use every command.
+
+**Persistent (all future sessions):** Append instructions to your project's agent file:
+
+```bash
+kayba setup --append-to AGENTS.md      # universal (Claude Code, Cursor, Copilot, Windsurf, etc.)
+kayba setup --append-to CLAUDE.md      # Claude Code only
+kayba setup --append-to .cursorrules   # Cursor only
+```
+
+`AGENTS.md` is the recommended target — it's the universal standard supported by 20+ coding agents.
+
 ## Environment variables
 
 | Variable | Description |

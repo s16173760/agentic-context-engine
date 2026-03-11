@@ -1,4 +1,4 @@
-"""End-to-end integration tests for ace cloud CLI against the live Kayba API.
+"""End-to-end integration tests for Kayba CLI against the live Kayba API.
 
 Required env vars:
     KAYBA_API_KEY      – Kayba platform key (kayba_ak_...)
@@ -77,7 +77,7 @@ class TestCloudE2E(unittest.TestCase):
             trace_path = f.name
 
         try:
-            result = runner.invoke(cli, ["cloud", "upload", trace_path] + base)
+            result = runner.invoke(cli, ["upload", trace_path] + base)
             self.assertEqual(result.exit_code, 0, result.output)
             self.assertIn("Uploaded 1 trace(s)", result.output)
         finally:
@@ -87,7 +87,6 @@ class TestCloudE2E(unittest.TestCase):
         result = runner.invoke(
             cli,
             [
-                "cloud",
                 "insights",
                 "generate",
                 "--anthropic-key",
@@ -102,7 +101,7 @@ class TestCloudE2E(unittest.TestCase):
         # 3. List insights
         result = runner.invoke(
             cli,
-            ["cloud", "insights", "list", "--json"] + base,
+            ["insights", "list", "--json"] + base,
         )
         self.assertEqual(result.exit_code, 0, result.output)
         insights = json.loads(result.output)
@@ -111,24 +110,24 @@ class TestCloudE2E(unittest.TestCase):
         # 4. Triage — accept all pending
         result = runner.invoke(
             cli,
-            ["cloud", "insights", "triage", "--accept-all"] + base,
+            ["insights", "triage", "--accept-all"] + base,
         )
         self.assertEqual(result.exit_code, 0, result.output)
 
         # 5. Generate prompt
         result = runner.invoke(
             cli,
-            ["cloud", "prompts", "generate", "--label", "E2E Test"] + base,
+            ["prompts", "generate", "--label", "E2E Test"] + base,
         )
         self.assertEqual(result.exit_code, 0, result.output)
         self.assertIn("generated", result.output.lower())
 
         # 6. List prompts
-        result = runner.invoke(cli, ["cloud", "prompts", "list"] + base)
+        result = runner.invoke(cli, ["prompts", "list"] + base)
         self.assertEqual(result.exit_code, 0, result.output)
 
         # 7. Pull latest prompt
-        result = runner.invoke(cli, ["cloud", "prompts", "pull"] + base)
+        result = runner.invoke(cli, ["prompts", "pull"] + base)
         self.assertEqual(result.exit_code, 0, result.output)
         self.assertTrue(
             len(result.output.strip()) > 0, "Prompt content should be non-empty"
@@ -144,7 +143,7 @@ class TestCloudE2E(unittest.TestCase):
             f.flush()
             path = f.name
         try:
-            result = self.runner.invoke(cli, ["cloud", "upload", path] + self.base_args)
+            result = self.runner.invoke(cli, ["upload", path] + self.base_args)
             self.assertEqual(result.exit_code, 0, result.output)
             self.assertIn("Uploaded 1 trace(s)", result.output)
         finally:
@@ -154,7 +153,7 @@ class TestCloudE2E(unittest.TestCase):
         with tempfile.TemporaryDirectory() as d:
             (Path(d) / "trace_a.md").write_text("User: Hi\nAssistant: Hello!")
             (Path(d) / "trace_b.md").write_text("User: Bye\nAssistant: Goodbye!")
-            result = self.runner.invoke(cli, ["cloud", "upload", d] + self.base_args)
+            result = self.runner.invoke(cli, ["upload", d] + self.base_args)
             self.assertEqual(result.exit_code, 0, result.output)
             self.assertIn("Uploaded 2 trace(s)", result.output)
 
@@ -162,8 +161,7 @@ class TestCloudE2E(unittest.TestCase):
         # List with --status filter and --json
         result = self.runner.invoke(
             cli,
-            ["cloud", "insights", "list", "--status", "pending", "--json"]
-            + self.base_args,
+            ["insights", "list", "--status", "pending", "--json"] + self.base_args,
         )
         self.assertEqual(result.exit_code, 0, result.output)
         parsed = json.loads(result.output)
@@ -172,22 +170,21 @@ class TestCloudE2E(unittest.TestCase):
     def test_status_nonexistent_job(self):
         result = self.runner.invoke(
             cli,
-            ["cloud", "status", "nonexistent-job-id-000"] + self.base_args,
+            ["status", "nonexistent-job-id-000"] + self.base_args,
         )
         self.assertNotEqual(result.exit_code, 0)
 
     def test_materialize_nonexistent_job(self):
         result = self.runner.invoke(
             cli,
-            ["cloud", "materialize", "nonexistent-job-id-000"] + self.base_args,
+            ["materialize", "nonexistent-job-id-000"] + self.base_args,
         )
         self.assertNotEqual(result.exit_code, 0)
 
     def test_prompts_pull_nonexistent(self):
         result = self.runner.invoke(
             cli,
-            ["cloud", "prompts", "pull", "--id", "nonexistent-prompt-000"]
-            + self.base_args,
+            ["prompts", "pull", "--id", "nonexistent-prompt-000"] + self.base_args,
         )
         self.assertNotEqual(result.exit_code, 0)
 
@@ -216,7 +213,7 @@ class TestCloudE2ENoAnthropic(unittest.TestCase):
             env = os.environ.copy()
             env.pop("KAYBA_API_KEY", None)
             with patch.dict(os.environ, env, clear=True):
-                result = self.runner.invoke(cli, ["cloud", "upload", path])
+                result = self.runner.invoke(cli, ["upload", path])
             self.assertNotEqual(result.exit_code, 0)
         finally:
             os.unlink(path)
@@ -228,7 +225,7 @@ class TestCloudE2ENoAnthropic(unittest.TestCase):
             out = os.path.join(d, "out.json")
             result = self.runner.invoke(
                 cli,
-                ["cloud", "batch", d, "-o", out, "--min-batch-size", "1"],
+                ["batch", d, "-o", out, "--min-batch-size", "1"],
             )
             self.assertEqual(result.exit_code, 0, result.output)
             self.assertIn("trace classification system", result.output)
@@ -254,7 +251,6 @@ class TestCloudE2ENoAnthropic(unittest.TestCase):
             result = self.runner.invoke(
                 cli,
                 [
-                    "cloud",
                     "batch",
                     traces_dir,
                     "--apply",

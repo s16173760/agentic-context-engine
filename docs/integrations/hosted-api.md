@@ -1,6 +1,6 @@
 # Kayba Hosted API
 
-The Kayba hosted API lets you upload traces, generate insights, and pull optimised prompts without running ACE roles locally. The `ace-cloud` CLI wraps every API endpoint.
+The Kayba hosted API lets you upload traces, generate insights, and pull optimised prompts without running ACE roles locally. The `kayba` CLI wraps every API endpoint.
 
 ## Prerequisites
 
@@ -23,7 +23,7 @@ Every command reads `KAYBA_API_KEY` from the environment. You can also pass it e
 
 ```bash
 export KAYBA_API_KEY=your-key-here
-ace-cloud cloud upload traces/
+kayba upload traces/
 ```
 
 The default API endpoint is `https://use.kayba.ai/api`. Override it with `KAYBA_API_URL` or `--base-url`.
@@ -34,16 +34,16 @@ The default API endpoint is `https://use.kayba.ai/api`. Override it with `KAYBA_
 
 ```bash
 # Single file
-ace-cloud cloud upload trace.md
+kayba upload trace.md
 
 # Directory (recursive)
-ace-cloud cloud upload traces/
+kayba upload traces/
 
 # Pipe from stdin
-cat trace.md | ace-cloud cloud upload -
+cat trace.md | kayba upload -
 
 # Force file type
-ace-cloud cloud upload traces/ --type json
+kayba upload traces/ --type json
 ```
 
 Files larger than 350k characters trigger a warning. Supported types: `md`, `json`, `txt` (auto-detected from extension).
@@ -52,13 +52,13 @@ Files larger than 350k characters trigger a warning. Supported types: `md`, `jso
 
 ```bash
 # From all uploaded traces
-ace-cloud cloud insights generate --wait
+kayba insights generate --wait
 
 # Specific traces
-ace-cloud cloud insights generate --traces ID1 --traces ID2
+kayba insights generate --traces ID1 --traces ID2
 
 # Custom model and epochs
-ace-cloud cloud insights generate --model claude-opus-4-6 --epochs 3 --wait
+kayba insights generate --model claude-opus-4-6 --epochs 3 --wait
 ```
 
 Options:
@@ -76,57 +76,57 @@ Options:
 
 ```bash
 # List all
-ace-cloud cloud insights list
+kayba insights list
 
 # Filter by status
-ace-cloud cloud insights list --status pending
+kayba insights list --status pending
 
 # JSON output
-ace-cloud cloud insights list --json
+kayba insights list --json
 
 # Accept specific insights
-ace-cloud cloud insights triage --accept ID1 --accept ID2
+kayba insights triage --accept ID1 --accept ID2
 
 # Accept all pending
-ace-cloud cloud insights triage --accept-all
+kayba insights triage --accept-all
 
 # Reject with a note
-ace-cloud cloud insights triage --reject ID1 --note "Too vague"
+kayba insights triage --reject ID1 --note "Too vague"
 ```
 
 ### Generate and pull prompts
 
 ```bash
 # Generate a prompt from accepted insights
-ace-cloud cloud prompts generate
+kayba prompts generate
 
 # Generate with a label and save to file
-ace-cloud cloud prompts generate --label "v2-coding" -o prompt.md
+kayba prompts generate --label "v2-coding" -o prompt.md
 
 # List prompt versions
-ace-cloud cloud prompts list
+kayba prompts list
 
 # Pull latest prompt
-ace-cloud cloud prompts pull
+kayba prompts pull
 
 # Pull specific version
-ace-cloud cloud prompts pull --id PROMPT_ID -o skillbook-prompt.md
+kayba prompts pull --id PROMPT_ID -o skillbook-prompt.md
 
 # Pretty-print full JSON
-ace-cloud cloud prompts pull --pretty
+kayba prompts pull --pretty
 ```
 
 ### Job status and materialisation
 
 ```bash
 # Check job status
-ace-cloud cloud status JOB_ID
+kayba status JOB_ID
 
 # Poll until complete
-ace-cloud cloud status JOB_ID --wait --interval 10
+kayba status JOB_ID --wait --interval 10
 
 # Materialise results into the skillbook
-ace-cloud cloud materialize JOB_ID
+kayba materialize JOB_ID
 ```
 
 ### Batch pre-processing
@@ -136,7 +136,7 @@ The `batch` command groups traces into batches before analysis. It works in two 
 **Prepare mode** (default) — extracts trace metadata and prints a classification prompt:
 
 ```bash
-ace-cloud cloud batch traces/
+kayba batch traces/
 ```
 
 This writes a skeleton `batches.json` and prints a prompt to stdout. Pipe it to an LLM (e.g. Claude Code) to fill in the batch assignments.
@@ -145,10 +145,10 @@ This writes a skeleton `batches.json` and prints a prompt to stdout. Pipe it to 
 
 ```bash
 # Validate only
-ace-cloud cloud batch traces/ --apply batches.json
+kayba batch traces/ --apply batches.json
 
 # Validate and upload each batch
-ace-cloud cloud batch traces/ --apply batches.json --upload
+kayba batch traces/ --apply batches.json --upload
 ```
 
 Options:
@@ -166,19 +166,19 @@ Options:
 
 ```bash
 # 1. Upload traces
-ace-cloud cloud upload traces/
+kayba upload traces/
 
 # 2. Generate insights (waits for completion)
-ace-cloud cloud insights generate --wait
+kayba insights generate --wait
 
 # 3. Review insights
-ace-cloud cloud insights list --status pending
+kayba insights list --status pending
 
 # 4. Accept the good ones
-ace-cloud cloud insights triage --accept-all
+kayba insights triage --accept-all
 
 # 5. Generate a prompt
-ace-cloud cloud prompts generate -o prompt.md
+kayba prompts generate -o prompt.md
 
 # 6. Use the prompt in your agent
 cat prompt.md

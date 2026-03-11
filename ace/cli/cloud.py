@@ -1,4 +1,4 @@
-"""ace cloud — CLI commands for the Kayba hosted API."""
+"""Kayba CLI — commands for the Kayba hosted API."""
 
 from __future__ import annotations
 
@@ -12,7 +12,7 @@ import click
 
 from ace.cli.client import KaybaClient, KaybaAPIError
 
-# Shared options applied to every command in the cloud group.
+# Shared options applied to every command.
 _api_key_option = click.option(
     "--api-key",
     envvar="KAYBA_API_KEY",
@@ -40,22 +40,11 @@ def _detect_file_type(filename: str) -> str:
 
 
 # ---------------------------------------------------------------------------
-# Top-level group
-# ---------------------------------------------------------------------------
-
-
-@click.group()
-def cloud():
-    """Interact with the Kayba hosted API."""
-    pass
-
-
-# ---------------------------------------------------------------------------
 # upload
 # ---------------------------------------------------------------------------
 
 
-@cloud.command()
+@click.command()
 @click.argument("paths", nargs=-1)
 @click.option(
     "--type",
@@ -121,7 +110,7 @@ def _add_file(traces: list, path: Path, forced_type: Optional[str]):
 # ---------------------------------------------------------------------------
 
 
-@cloud.group()
+@click.group()
 def insights():
     """Generate, list, and triage insights."""
     pass
@@ -258,7 +247,7 @@ def insights_triage(accept_ids, reject_ids, accept_all, note, api_key, base_url)
 # ---------------------------------------------------------------------------
 
 
-@cloud.group()
+@click.group()
 def prompts():
     """Generate, list, and pull prompts."""
     pass
@@ -368,7 +357,7 @@ def prompts_pull(prompt_id, output_path, pretty, api_key, base_url):
 # ---------------------------------------------------------------------------
 
 
-@cloud.command()
+@click.command()
 @click.argument("job_id")
 @click.option("--wait", is_flag=True, help="Poll until the job completes.")
 @click.option(
@@ -395,7 +384,7 @@ def status(job_id, wait, interval, api_key, base_url):
 # ---------------------------------------------------------------------------
 
 
-@cloud.command()
+@click.command()
 @click.argument("job_id")
 @_api_key_option
 @_base_url_option
@@ -547,7 +536,7 @@ def _upload_batches(
             click.echo(f"  Error uploading batch '{name}': {exc}", err=True)
 
 
-@cloud.command()
+@click.command()
 @click.argument("paths", nargs=-1)
 @click.option(
     "--prompt",
@@ -701,7 +690,7 @@ def _poll_job(client: KaybaClient, job_id: str, *, interval: int = 5):
         if st in terminal:
             _print_job(job)
             if st == "completed":
-                click.echo(f"\nRun: ace cloud materialize {job_id}")
+                click.echo(f"\nRun: kayba materialize {job_id}")
             return
 
         time.sleep(interval)

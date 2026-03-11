@@ -353,24 +353,24 @@ Examples:
 
 ---
 
-## Cloud CLI (`ace-cloud`)
+## Kayba CLI (`kayba`)
 
-A separate entry point (`ace-cloud`) provides commands for the Kayba hosted API. It is implemented with Click in `ace/cli/`.
+A separate entry point (`kayba`) provides commands for the Kayba hosted API. It is implemented with Click in `ace/cli/`.
 
 ### Entry point
 
 ```toml
 [project.scripts]
-ace-cloud = "ace.cli:main"
+kayba = "ace.cli:main"
 ```
 
-`ace.cli:main` creates a Click group with the `cloud` subcommand.
+`ace.cli:main` creates a Click group with commands registered directly (no intermediate subgroup).
 
 ### Architecture
 
 ```
 ace/cli/
-  __init__.py       # Click group, registers cloud command
+  __init__.py       # Click group, registers commands directly
   client.py         # KaybaClient — HTTP client for the hosted API
   cloud.py          # Click commands: upload, insights, prompts, status, materialize, batch
 ```
@@ -378,16 +378,16 @@ ace/cli/
 ### Commands
 
 ```
-ace-cloud cloud upload PATHS...            Upload trace files (files, dirs, or stdin)
-ace-cloud cloud insights generate          Trigger insight generation
-ace-cloud cloud insights list              List insights (--status, --section, --json)
-ace-cloud cloud insights triage            Accept/reject insights (--accept, --reject, --accept-all)
-ace-cloud cloud prompts generate           Generate prompt from accepted insights
-ace-cloud cloud prompts list               List prompt versions
-ace-cloud cloud prompts pull               Download a prompt (--id, --pretty, -o)
-ace-cloud cloud status JOB_ID              Check job status (--wait, --interval)
-ace-cloud cloud materialize JOB_ID         Materialise job results into skillbook
-ace-cloud cloud batch PATHS...             Pre-batch traces for Recursive Reflector
+kayba upload PATHS...            Upload trace files (files, dirs, or stdin)
+kayba insights generate          Trigger insight generation
+kayba insights list              List insights (--status, --section, --json)
+kayba insights triage            Accept/reject insights (--accept, --reject, --accept-all)
+kayba prompts generate           Generate prompt from accepted insights
+kayba prompts list               List prompt versions
+kayba prompts pull               Download a prompt (--id, --pretty, -o)
+kayba status JOB_ID              Check job status (--wait, --interval)
+kayba materialize JOB_ID         Materialise job results into skillbook
+kayba batch PATHS...             Pre-batch traces for Recursive Reflector
 ```
 
 ### Authentication
@@ -426,8 +426,8 @@ Validation checks: min/max batch size, all traces assigned, no duplicates, no un
 ### Relationship to `ace setup`
 
 The `ace` entry point (`ace_next.cli.setup:main`) handles local model configuration.
-The `ace-cloud` entry point (`ace.cli:main`) handles hosted API operations.
-They are independent — `ace-cloud` does not require `ace.toml` or any local LLM setup.
+The `kayba` entry point (`ace.cli:main`) handles hosted API operations.
+They are independent — `kayba` does not require `ace.toml` or any local LLM setup.
 
 ---
 
@@ -478,7 +478,7 @@ def __getattr__(name: str) -> object:
 
 ```
 ace/cli/
-  __init__.py                   # Click group, registers cloud subcommand
+  __init__.py                   # Click group, registers commands directly
   client.py                     # KaybaClient HTTP client
   cloud.py                      # upload, insights, prompts, status, materialize, batch
 

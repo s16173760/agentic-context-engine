@@ -1,4 +1,4 @@
-"""Tests for ace cloud CLI commands and KaybaClient."""
+"""Tests for Kayba CLI commands and KaybaClient."""
 
 import json
 import os
@@ -229,7 +229,7 @@ class TestKaybaClient(unittest.TestCase):
 
 @pytest.mark.unit
 class TestUploadCommand(unittest.TestCase):
-    """Test ace cloud upload command."""
+    """Test kayba upload command."""
 
     def setUp(self):
         self.runner = CliRunner()
@@ -245,9 +245,7 @@ class TestUploadCommand(unittest.TestCase):
         with tempfile.NamedTemporaryFile(suffix=".md", mode="w", delete=False) as f:
             f.write("# trace content")
             f.flush()
-            result = self.runner.invoke(
-                cli, ["cloud", "upload", f.name, "--api-key", "k"]
-            )
+            result = self.runner.invoke(cli, ["upload", f.name, "--api-key", "k"])
 
         self.assertEqual(result.exit_code, 0, result.output)
         self.assertIn("Uploaded 1 trace(s)", result.output)
@@ -261,7 +259,7 @@ class TestUploadCommand(unittest.TestCase):
         with tempfile.NamedTemporaryFile(suffix=".json", mode="w", delete=False) as f:
             f.write("{}")
             f.flush()
-            self.runner.invoke(cli, ["cloud", "upload", f.name, "--api-key", "k"])
+            self.runner.invoke(cli, ["upload", f.name, "--api-key", "k"])
 
         call_args = mock.upload_traces.call_args[0][0]
         self.assertEqual(call_args[0]["fileType"], "json")
@@ -277,7 +275,7 @@ class TestUploadCommand(unittest.TestCase):
             f.flush()
             self.runner.invoke(
                 cli,
-                ["cloud", "upload", f.name, "--type", "md", "--api-key", "k"],
+                ["upload", f.name, "--type", "md", "--api-key", "k"],
             )
 
         call_args = mock.upload_traces.call_args[0][0]
@@ -292,7 +290,7 @@ class TestUploadCommand(unittest.TestCase):
         with tempfile.TemporaryDirectory() as d:
             (Path(d) / "a.md").write_text("alpha")
             (Path(d) / "b.txt").write_text("beta")
-            result = self.runner.invoke(cli, ["cloud", "upload", d, "--api-key", "k"])
+            result = self.runner.invoke(cli, ["upload", d, "--api-key", "k"])
 
         self.assertEqual(result.exit_code, 0, result.output)
         call_args = mock.upload_traces.call_args[0][0]
@@ -304,7 +302,7 @@ class TestUploadCommand(unittest.TestCase):
         mock.upload_traces.return_value = {"traces": [], "count": 1}
 
         result = self.runner.invoke(
-            cli, ["cloud", "upload", "-", "--api-key", "k"], input="stdin data"
+            cli, ["upload", "-", "--api-key", "k"], input="stdin data"
         )
 
         self.assertEqual(result.exit_code, 0, result.output)
@@ -315,7 +313,7 @@ class TestUploadCommand(unittest.TestCase):
     def test_upload_no_api_key(self):
         with patch.dict(os.environ, {}, clear=True):
             os.environ.pop("KAYBA_API_KEY", None)
-            result = self.runner.invoke(cli, ["cloud", "upload", "foo.md"])
+            result = self.runner.invoke(cli, ["upload", "foo.md"])
         self.assertNotEqual(result.exit_code, 0)
 
 
@@ -326,7 +324,7 @@ class TestUploadCommand(unittest.TestCase):
 
 @pytest.mark.unit
 class TestInsightsCommands(unittest.TestCase):
-    """Test ace cloud insights subcommands."""
+    """Test kayba insights subcommands."""
 
     def setUp(self):
         self.runner = CliRunner()
@@ -341,7 +339,7 @@ class TestInsightsCommands(unittest.TestCase):
 
         result = self.runner.invoke(
             cli,
-            ["cloud", "insights", "generate", "--api-key", "k"],
+            ["insights", "generate", "--api-key", "k"],
         )
         self.assertEqual(result.exit_code, 0, result.output)
         self.assertIn("job-1", result.output)
@@ -357,7 +355,6 @@ class TestInsightsCommands(unittest.TestCase):
         result = self.runner.invoke(
             cli,
             [
-                "cloud",
                 "insights",
                 "generate",
                 "--traces",
@@ -401,7 +398,7 @@ class TestInsightsCommands(unittest.TestCase):
 
         result = self.runner.invoke(
             cli,
-            ["cloud", "insights", "list", "--status", "pending", "--api-key", "k"],
+            ["insights", "list", "--status", "pending", "--api-key", "k"],
         )
         self.assertEqual(result.exit_code, 0, result.output)
         self.assertIn("ins-1", result.output)
@@ -415,7 +412,7 @@ class TestInsightsCommands(unittest.TestCase):
 
         result = self.runner.invoke(
             cli,
-            ["cloud", "insights", "list", "--json", "--api-key", "k"],
+            ["insights", "list", "--json", "--api-key", "k"],
         )
         self.assertEqual(result.exit_code, 0, result.output)
         parsed = json.loads(result.output)
@@ -429,7 +426,6 @@ class TestInsightsCommands(unittest.TestCase):
         result = self.runner.invoke(
             cli,
             [
-                "cloud",
                 "insights",
                 "triage",
                 "--accept",
@@ -453,7 +449,7 @@ class TestInsightsCommands(unittest.TestCase):
 
         result = self.runner.invoke(
             cli,
-            ["cloud", "insights", "triage", "--accept-all", "--api-key", "k"],
+            ["insights", "triage", "--accept-all", "--api-key", "k"],
         )
         self.assertEqual(result.exit_code, 0, result.output)
         self.assertEqual(mock.triage_insight.call_count, 2)
@@ -463,7 +459,7 @@ class TestInsightsCommands(unittest.TestCase):
         MockClient.return_value
         result = self.runner.invoke(
             cli,
-            ["cloud", "insights", "triage", "--api-key", "k"],
+            ["insights", "triage", "--api-key", "k"],
         )
         self.assertNotEqual(result.exit_code, 0)
 
@@ -475,7 +471,7 @@ class TestInsightsCommands(unittest.TestCase):
 
 @pytest.mark.unit
 class TestJobCommands(unittest.TestCase):
-    """Test ace cloud status and materialize commands."""
+    """Test kayba status and materialize commands."""
 
     def setUp(self):
         self.runner = CliRunner()
@@ -494,7 +490,7 @@ class TestJobCommands(unittest.TestCase):
             },
         }
 
-        result = self.runner.invoke(cli, ["cloud", "status", "job-1", "--api-key", "k"])
+        result = self.runner.invoke(cli, ["status", "job-1", "--api-key", "k"])
         self.assertEqual(result.exit_code, 0, result.output)
         self.assertIn("completed", result.output)
         self.assertIn("3", result.output)
@@ -513,7 +509,7 @@ class TestJobCommands(unittest.TestCase):
         ]
 
         result = self.runner.invoke(
-            cli, ["cloud", "status", "job-1", "--wait", "--api-key", "k"]
+            cli, ["status", "job-1", "--wait", "--api-key", "k"]
         )
         self.assertEqual(result.exit_code, 0, result.output)
         self.assertEqual(mock.get_job.call_count, 2)
@@ -528,9 +524,7 @@ class TestJobCommands(unittest.TestCase):
             "skillsGenerated": 5,
         }
 
-        result = self.runner.invoke(
-            cli, ["cloud", "materialize", "job-1", "--api-key", "k"]
-        )
+        result = self.runner.invoke(cli, ["materialize", "job-1", "--api-key", "k"])
         self.assertEqual(result.exit_code, 0, result.output)
         self.assertIn("5 skill(s)", result.output)
 
@@ -542,7 +536,7 @@ class TestJobCommands(unittest.TestCase):
 
 @pytest.mark.unit
 class TestPromptCommands(unittest.TestCase):
-    """Test ace cloud prompts subcommands."""
+    """Test kayba prompts subcommands."""
 
     def setUp(self):
         self.runner = CliRunner()
@@ -560,7 +554,6 @@ class TestPromptCommands(unittest.TestCase):
         result = self.runner.invoke(
             cli,
             [
-                "cloud",
                 "prompts",
                 "generate",
                 "--insights",
@@ -591,7 +584,6 @@ class TestPromptCommands(unittest.TestCase):
         result = self.runner.invoke(
             cli,
             [
-                "cloud",
                 "prompts",
                 "generate",
                 "--label",
@@ -616,7 +608,7 @@ class TestPromptCommands(unittest.TestCase):
             ]
         }
 
-        result = self.runner.invoke(cli, ["cloud", "prompts", "list", "--api-key", "k"])
+        result = self.runner.invoke(cli, ["prompts", "list", "--api-key", "k"])
         self.assertEqual(result.exit_code, 0, result.output)
         self.assertIn("p1", result.output)
         self.assertIn("p2", result.output)
@@ -631,7 +623,7 @@ class TestPromptCommands(unittest.TestCase):
 
         result = self.runner.invoke(
             cli,
-            ["cloud", "prompts", "pull", "--id", "p1", "--api-key", "k"],
+            ["prompts", "pull", "--id", "p1", "--api-key", "k"],
         )
         self.assertEqual(result.exit_code, 0, result.output)
         self.assertIn("pulled text", result.output)
@@ -647,7 +639,7 @@ class TestPromptCommands(unittest.TestCase):
             "content": {"text": "latest prompt", "sectionMapping": {}},
         }
 
-        result = self.runner.invoke(cli, ["cloud", "prompts", "pull", "--api-key", "k"])
+        result = self.runner.invoke(cli, ["prompts", "pull", "--api-key", "k"])
         self.assertEqual(result.exit_code, 0, result.output)
         self.assertIn("latest prompt", result.output)
 
@@ -661,7 +653,7 @@ class TestPromptCommands(unittest.TestCase):
 
         result = self.runner.invoke(
             cli,
-            ["cloud", "prompts", "pull", "--id", "p1", "--pretty", "--api-key", "k"],
+            ["prompts", "pull", "--id", "p1", "--pretty", "--api-key", "k"],
         )
         self.assertEqual(result.exit_code, 0, result.output)
         parsed = json.loads(result.output)
@@ -675,7 +667,7 @@ class TestPromptCommands(unittest.TestCase):
 
 @pytest.mark.unit
 class TestBatchCommand(unittest.TestCase):
-    """Test ace cloud batch command (prepare/apply modes) and helpers."""
+    """Test kayba batch command (prepare/apply modes) and helpers."""
 
     def setUp(self):
         self.runner = CliRunner()
@@ -769,7 +761,7 @@ class TestBatchCommand(unittest.TestCase):
     # -- CLI: no paths errors --
 
     def test_batch_no_paths_errors(self):
-        result = self.runner.invoke(cli, ["cloud", "batch", "--api-key", "k"])
+        result = self.runner.invoke(cli, ["batch", "--api-key", "k"])
         self.assertNotEqual(result.exit_code, 0)
         self.assertIn("Provide at least one path", result.output)
 
@@ -781,7 +773,7 @@ class TestBatchCommand(unittest.TestCase):
             out = os.path.join(d, "out.json")
             result = self.runner.invoke(
                 cli,
-                ["cloud", "batch", d, "-o", out, "--min-batch-size", "1"],
+                ["batch", d, "-o", out, "--min-batch-size", "1"],
             )
             self.assertEqual(result.exit_code, 0, result.output)
             # Prompt printed to stdout
@@ -803,7 +795,6 @@ class TestBatchCommand(unittest.TestCase):
             result = self.runner.invoke(
                 cli,
                 [
-                    "cloud",
                     "batch",
                     d,
                     "--prompt",
@@ -836,7 +827,6 @@ class TestBatchCommand(unittest.TestCase):
             result = self.runner.invoke(
                 cli,
                 [
-                    "cloud",
                     "batch",
                     traces_dir,
                     "--apply",
@@ -865,7 +855,6 @@ class TestBatchCommand(unittest.TestCase):
             result = self.runner.invoke(
                 cli,
                 [
-                    "cloud",
                     "batch",
                     traces_dir,
                     "--apply",
@@ -888,7 +877,7 @@ class TestBatchCommand(unittest.TestCase):
             (Path(d) / "a.md").write_text("data")
             result = self.runner.invoke(
                 cli,
-                ["cloud", "batch", d, "--upload", "--min-batch-size", "1"],
+                ["batch", d, "--upload", "--min-batch-size", "1"],
             )
             self.assertNotEqual(result.exit_code, 0)
             self.assertIn("--upload requires --apply", result.output)

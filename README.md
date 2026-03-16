@@ -7,7 +7,9 @@
 [![Twitter Follow](https://img.shields.io/twitter/follow/kaybaai?style=social)](https://twitter.com/kaybaai)
 [![Documentation](https://img.shields.io/badge/docs-latest-blue.svg)](https://kayba-ai.github.io/agentic-context-engine/latest/)
 
-### Want this without the setup? [kayba.ai](https://kayba.ai) is our hosted dashboard: upload traces, review learned skills, deploy improved prompts.
+> [!TIP]
+> ### Try our hosted solution at [kayba.ai](https://kayba.ai): automated agent self-improvement from your terminal. CLI + dashboard that analyzes traces, surfaces failures, and ships improvements directly from Claude Code, Codex, and more.
+> [![Kayba Pro](https://img.shields.io/badge/Kayba_Pro-Try_it-blue?style=for-the-badge)](https://kayba.ai)
 
 ---
 

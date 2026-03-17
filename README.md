@@ -7,13 +7,14 @@
 [![Twitter Follow](https://img.shields.io/twitter/follow/kaybaai?style=social)](https://twitter.com/kaybaai)
 [![Documentation](https://img.shields.io/badge/docs-latest-blue.svg)](https://kayba-ai.github.io/agentic-context-engine/latest/)
 
-### Want this without the setup? [kayba.ai](https://kayba.ai) is our hosted dashboard: upload traces, review learned skills, deploy improved prompts.
+> [!TIP]
+> ### Try our hosted solution at [kayba.ai](https://kayba.ai): automated agent self-improvement from your terminal. CLI + dashboard that analyzes traces, surfaces failures, and ships improvements directly from Claude Code, Codex, and more.
+> ### Start your 7-day free trial
+> [![Kayba Pro](https://img.shields.io/badge/Kayba_Pro-Start_Free_Trial-4A6B80?style=for-the-badge)](https://kayba.ai)
 
 ---
 
 ## What is ACE?
-
-> **ACE v2 is coming.** We're rebuilding the framework from the ground up — a cleaner architecture, a modular pipeline engine, first-class async support, and a dramatically simpler API. Follow the progress in [`ace_next/`](ace_next/) and [`pipeline/`](pipeline/), or join the [Discord](https://discord.gg/mqCqH7sTyK) to stay in the loop.
 
 ACE enables AI agents to **learn from their execution feedback**—what works, what doesn't—and continuously improve. No fine-tuning, no training data, just automatic in-context learning.
 
@@ -178,6 +179,8 @@ flowchart LR
 ---
 
 ## Documentation
+
+> **ACE v2 is coming.** We're rebuilding the framework from the ground up — a cleaner architecture, a modular pipeline engine, first-class async support, and a dramatically simpler API. Follow the progress in [`ace_next/`](ace_next/) and [`pipeline/`](pipeline/), or join the [Discord](https://discord.gg/mqCqH7sTyK) to stay in the loop.
 
 - [Kayba Documentation](https://kayba-ai.github.io/agentic-context-engine/latest/) - Full documentation with guides, API reference, and examples
 

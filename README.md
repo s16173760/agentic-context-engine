@@ -9,7 +9,8 @@
 
 > [!TIP]
 > ### Try our hosted solution at [kayba.ai](https://kayba.ai): automated agent self-improvement from your terminal. CLI + dashboard that analyzes traces, surfaces failures, and ships improvements directly from Claude Code, Codex, and more.
-> [![Kayba Pro](https://img.shields.io/badge/Kayba_Pro-Try_it-blue?style=for-the-badge)](https://kayba.ai)
+> ### Start your 7-day free trial
+> [![Kayba Pro](https://img.shields.io/badge/Kayba_Pro-Start_Free_Trial-4A6B80?style=for-the-badge)](https://kayba.ai)
 
 ---
 

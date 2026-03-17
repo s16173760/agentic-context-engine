@@ -684,8 +684,19 @@ def batch(
     help="Append instructions to this file (default: print to stdout). "
     "Recommended: AGENTS.md (universal), CLAUDE.md, .cursorrules.",
 )
-def setup(append_to):
-    """Print or install Kayba CLI instructions for coding agents."""
+@click.option(
+    "--skills/--no-skills",
+    default=True,
+    help="Install Claude Code skills (default: enabled).",
+)
+@click.option(
+    "--project-dir",
+    type=click.Path(exists=True, file_okay=False),
+    default=".",
+    help="Project root directory (default: current directory).",
+)
+def setup(append_to, skills, project_dir):
+    """Print or install Kayba CLI instructions and skills for coding agents."""
     snippet = (
         importlib.resources.files("ace.cli.commands")
         .joinpath("kayba-agent-instructions.md")
@@ -702,6 +713,47 @@ def setup(append_to):
         click.echo(f"Appended Kayba CLI instructions to {path}")
     else:
         click.echo(snippet)
+
+    if skills:
+        target = Path(project_dir) / ".claude" / "skills"
+        _install_skills(target)
+
+
+def _install_skills(target_dir: Path) -> None:
+    """Copy bundled skill files to the target .claude/skills/ directory."""
+    skills_pkg = importlib.resources.files("ace.cli.skills")
+    installed = []
+
+    for skill_dir in skills_pkg.iterdir():
+        if skill_dir.name.startswith("_") or not skill_dir.is_dir():
+            continue
+
+        dest = target_dir / skill_dir.name
+        dest.mkdir(parents=True, exist_ok=True)
+
+        # Copy top-level SKILL.md
+        skill_file = skill_dir / "SKILL.md"
+        if skill_file.is_file():
+            (dest / "SKILL.md").write_bytes(skill_file.read_bytes())
+
+        # Copy stage subdirectories
+        for sub in skill_dir.iterdir():
+            if sub.is_dir() and not sub.name.startswith("_"):
+                sub_dest = dest / sub.name
+                sub_dest.mkdir(parents=True, exist_ok=True)
+                sub_skill = sub / "SKILL.md"
+                if sub_skill.is_file():
+                    (sub_dest / "SKILL.md").write_bytes(sub_skill.read_bytes())
+
+        stages = [d.name for d in dest.iterdir() if d.is_dir()]
+        installed.append((skill_dir.name, len(stages)))
+
+    if installed:
+        click.echo(f"\nInstalled skills to {target_dir}/:")
+        for name, stage_count in installed:
+            click.echo(f"  {name} ({stage_count} stages)")
+    else:
+        click.echo("\nNo skills found to install.")
 
 
 # ---------------------------------------------------------------------------

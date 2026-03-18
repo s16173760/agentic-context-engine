@@ -27,12 +27,6 @@ The framework maintains a **Skillbook**: a living document of strategies that ev
 
 ---
 
-## LLM Quickstart
-1. Direct your favorite coding agent (Cursor, Claude Code, Codex, etc) to [Quick Start Guide](docs/QUICK_START.md)
-2. Prompt away!
-
----
-
 ## Quick Start
 
 ### 1. Install
@@ -60,7 +54,7 @@ print(answer)  # "ACE allows AI agents to remember and learn from experience!"
 
 **Done! Your agent learns automatically from each interaction.**
 
-[→ Quick Start Guide](docs/QUICK_START.md) | [→ Setup Guide](docs/SETUP_GUIDE.md)
+[→ Quick Start Guide](https://kayba-ai.github.io/agentic-context-engine/latest/getting-started/quick-start/) | [→ Setup Guide](https://kayba-ai.github.io/agentic-context-engine/latest/getting-started/setup/)
 
 ---
 
@@ -185,7 +179,7 @@ flowchart LR
 - [Kayba Documentation](https://kayba-ai.github.io/agentic-context-engine/latest/) - Full documentation with guides, API reference, and examples
 
 Quick links:
-- [Quick Start Guide](https://kayba-ai.github.io/agentic-context-engine/latest/getting-started/quickstart/) - Get running in 5 minutes
+- [Quick Start Guide](https://kayba-ai.github.io/agentic-context-engine/latest/getting-started/quick-start/) - Get running in 5 minutes
 - [Setup Guide](https://kayba-ai.github.io/agentic-context-engine/latest/getting-started/setup/) - Installation, configuration, providers
 - [Integration Guide](https://kayba-ai.github.io/agentic-context-engine/latest/integrations/browser-use/) - Add ACE to existing agents
 - [API Reference](https://kayba-ai.github.io/agentic-context-engine/latest/api/) - Complete API documentation

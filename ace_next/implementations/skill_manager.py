@@ -1,4 +1,8 @@
-"""SkillManager — transforms reflections into actionable skillbook updates."""
+"""SkillManager — transforms reflections into actionable skillbook updates.
+
+Uses PydanticAI for structured output validation with automatic retry
+and error feedback.
+"""
 
 from __future__ import annotations
 
@@ -6,8 +10,11 @@ import json
 import logging
 from typing import Any
 
+from pydantic_ai import Agent as PydanticAgent
+from pydantic_ai.settings import ModelSettings
+
 from ..core.outputs import ReflectorOutput, SkillManagerOutput
-from ..protocols.llm import LLMClientLike
+from ..providers.pydantic_ai import resolve_model
 from .prompts import SKILL_MANAGER_PROMPT
 
 logger = logging.getLogger(__name__)
@@ -28,13 +35,16 @@ class SkillManager:
         a dedup manager itself.
 
     Args:
-        llm: An LLM client that satisfies :class:`LLMClientLike`.
+        model: Model identifier string. Supports any LiteLLM model
+            or PydanticAI-native identifier.
         prompt_template: Custom prompt template (defaults to
             :data:`SKILL_MANAGER_PROMPT`).
+        max_retries: Maximum retries for structured output validation.
+        model_settings: Optional PydanticAI ``ModelSettings``.
 
     Example::
 
-        sm = SkillManager(llm)
+        sm = SkillManager("gpt-4o-mini")
         output = sm.update_skills(
             reflections=(reflection_output,),
             skillbook=skillbook,
@@ -46,14 +56,20 @@ class SkillManager:
 
     def __init__(
         self,
-        llm: LLMClientLike,
-        prompt_template: str = SKILL_MANAGER_PROMPT,
+        model: str,
         *,
+        prompt_template: str = SKILL_MANAGER_PROMPT,
         max_retries: int = 3,
+        model_settings: ModelSettings | None = None,
     ) -> None:
-        self.llm = llm
-        self.prompt_template = prompt_template
-        self.max_retries = max_retries
+        self._prompt_template = prompt_template
+        self._agent = PydanticAgent(
+            resolve_model(model),
+            output_type=SkillManagerOutput,
+            retries=max_retries,
+            model_settings=model_settings,
+            defer_model_check=True,
+        )
 
     def update_skills(
         self,
@@ -94,7 +110,7 @@ class SkillManager:
             for r in reflections
         ]
 
-        prompt = self.prompt_template.format(
+        prompt = self._prompt_template.format(
             progress=progress,
             stats=json.dumps(skillbook.stats()),
             reflections=json.dumps(reflections_data, ensure_ascii=False, indent=2),
@@ -102,6 +118,14 @@ class SkillManager:
             question_context=question_context,
         )
 
-        return self.llm.complete_structured(
-            prompt, SkillManagerOutput, max_retries=self.max_retries
-        )
+        result = self._agent.run_sync(prompt)
+        output = result.output
+        usage = result.usage()
+        output.raw = {
+            "usage": {
+                "prompt_tokens": usage.input_tokens or 0,
+                "completion_tokens": usage.output_tokens or 0,
+                "total_tokens": usage.total_tokens or 0,
+            },
+        }
+        return output

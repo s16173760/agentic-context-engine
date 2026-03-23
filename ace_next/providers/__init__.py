@@ -19,6 +19,7 @@ from .config import ACEModelConfig, ModelConfig, load_config, save_config
 if TYPE_CHECKING:
     from .instructor import InstructorClient, wrap_with_instructor
     from .litellm import LiteLLMClient, LiteLLMConfig, LLMResponse
+    from .pydantic_ai import resolve_model, settings_from_config
     from .registry import ValidationResult, search_models, validate_connection
 
 _LAZY_IMPORTS: dict[str, tuple[str, str]] = {
@@ -29,6 +30,9 @@ _LAZY_IMPORTS: dict[str, tuple[str, str]] = {
     # Instructor
     "InstructorClient": ("ace_next.providers.instructor", "InstructorClient"),
     "wrap_with_instructor": ("ace_next.providers.instructor", "wrap_with_instructor"),
+    # PydanticAI helpers
+    "resolve_model": ("ace_next.providers.pydantic_ai", "resolve_model"),
+    "settings_from_config": ("ace_next.providers.pydantic_ai", "settings_from_config"),
     # Registry
     "ValidationResult": ("ace_next.providers.registry", "ValidationResult"),
     "validate_connection": ("ace_next.providers.registry", "validate_connection"),
@@ -64,6 +68,9 @@ __all__ = [
     "ACEModelConfig",
     "load_config",
     "save_config",
+    # PydanticAI helpers
+    "resolve_model",
+    "settings_from_config",
     # Registry
     "ValidationResult",
     "validate_connection",

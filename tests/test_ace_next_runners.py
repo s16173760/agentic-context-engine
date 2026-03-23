@@ -19,42 +19,70 @@ from ace_next.core.skillbook import Skillbook, UpdateBatch, UpdateOperation
 from ace_next.runners.base import ACERunner
 
 # ------------------------------------------------------------------ #
-# Mock roles
+# Mock roles — satisfy protocols without any LLM dependency
 # ------------------------------------------------------------------ #
 
 
-class MockLLMClient:
-    """Minimal mock satisfying LLMClientLike."""
+class MockAgent:
+    """Minimal mock satisfying AgentLike."""
 
-    def complete(self, prompt: str, **kwargs: Any) -> str:
-        return "mock response"
+    def generate(
+        self,
+        *,
+        question: str,
+        context: Optional[str],
+        skillbook: Any,
+        reflection: Optional[str] = None,
+        **kwargs: Any,
+    ) -> AgentOutput:
+        return AgentOutput(reasoning="mock reasoning", final_answer="mock answer")
 
-    def complete_structured(
-        self, prompt: str, response_model: type, **kwargs: Any
-    ) -> Any:
-        if response_model.__name__ == "AgentOutput":
-            return AgentOutput(reasoning="mock reasoning", final_answer="mock answer")
-        if response_model.__name__ == "ReflectorOutput":
-            return ReflectorOutput(
-                reasoning="mock reflection",
-                correct_approach="mock approach",
-                key_insight="mock insight",
-                skill_tags=[],
-            )
-        if response_model.__name__ == "SkillManagerOutput":
-            return SkillManagerOutput(
-                update=UpdateBatch(
-                    reasoning="mock update",
-                    operations=[
-                        UpdateOperation(
-                            type="ADD",
-                            section="learned",
-                            content="mock skill",
-                        )
-                    ],
-                ),
-            )
-        raise ValueError(f"Unknown model: {response_model}")
+
+class MockReflector:
+    """Minimal mock satisfying ReflectorLike."""
+
+    def reflect(
+        self,
+        *,
+        question: str,
+        agent_output: AgentOutput,
+        skillbook: Any,
+        ground_truth: Optional[str] = None,
+        feedback: Optional[str] = None,
+        **kwargs: Any,
+    ) -> ReflectorOutput:
+        return ReflectorOutput(
+            reasoning="mock reflection",
+            correct_approach="mock approach",
+            key_insight="mock insight",
+            skill_tags=[],
+        )
+
+
+class MockSkillManager:
+    """Minimal mock satisfying SkillManagerLike."""
+
+    def update_skills(
+        self,
+        *,
+        reflections: tuple[ReflectorOutput, ...],
+        skillbook: Any,
+        question_context: str,
+        progress: str,
+        **kwargs: Any,
+    ) -> SkillManagerOutput:
+        return SkillManagerOutput(
+            update=UpdateBatch(
+                reasoning="mock update",
+                operations=[
+                    UpdateOperation(
+                        type="ADD",
+                        section="learned",
+                        content="mock skill",
+                    )
+                ],
+            ),
+        )
 
 
 # ------------------------------------------------------------------ #
@@ -140,17 +168,15 @@ class TestLoadSkillbookAlias:
 
 class TestACERunner:
     def test_from_roles_run(self):
-        """ACE.from_roles().run() should complete without error with mock LLM."""
-        from ace_next.implementations import Agent, Reflector, SkillManager
+        """ACE.from_roles().run() should complete without error with mock roles."""
         from ace_next.runners.ace import ACE
 
-        llm = MockLLMClient()
         env = SimpleEnvironment()
 
         runner = ACE.from_roles(
-            agent=Agent(llm),
-            reflector=Reflector(llm),
-            skill_manager=SkillManager(llm),
+            agent=MockAgent(),
+            reflector=MockReflector(),
+            skill_manager=MockSkillManager(),
             environment=env,
         )
 
@@ -165,16 +191,14 @@ class TestACERunner:
         assert len(runner.skillbook.skills()) > 0
 
     def test_multi_epoch(self):
-        from ace_next.implementations import Agent, Reflector, SkillManager
         from ace_next.runners.ace import ACE
 
-        llm = MockLLMClient()
         env = SimpleEnvironment()
 
         runner = ACE.from_roles(
-            agent=Agent(llm),
-            reflector=Reflector(llm),
-            skill_manager=SkillManager(llm),
+            agent=MockAgent(),
+            reflector=MockReflector(),
+            skill_manager=MockSkillManager(),
             environment=env,
         )
 
@@ -190,15 +214,12 @@ class TestACERunner:
 
 class TestTraceAnalyser:
     def test_from_roles_run(self):
-        """TraceAnalyser.from_roles().run() with mock LLM should work."""
-        from ace_next.implementations import Reflector, SkillManager
+        """TraceAnalyser.from_roles().run() with mock roles should work."""
         from ace_next.runners.trace_analyser import TraceAnalyser
 
-        llm = MockLLMClient()
-
         runner = TraceAnalyser.from_roles(
-            reflector=Reflector(llm),
-            skill_manager=SkillManager(llm),
+            reflector=MockReflector(),
+            skill_manager=MockSkillManager(),
         )
 
         traces = [
@@ -225,8 +246,13 @@ class TestACELiteLLM:
     def _make_ace(self, **kwargs):
         from ace_next.runners.litellm import ACELiteLLM
 
-        llm = MockLLMClient()
-        return ACELiteLLM(llm, **kwargs)
+        return ACELiteLLM(
+            "test-model",
+            agent=MockAgent(),
+            reflector=MockReflector(),
+            skill_manager=MockSkillManager(),
+            **kwargs,
+        )
 
     def test_ask(self):
         ace = self._make_ace()
@@ -299,6 +325,11 @@ class TestACELiteLLM:
 
         from ace_next.runners.litellm import ACELiteLLM
 
-        llm = MockLLMClient()
-        ace = ACELiteLLM(llm, skillbook_path=path)
+        ace = ACELiteLLM(
+            "test-model",
+            agent=MockAgent(),
+            reflector=MockReflector(),
+            skill_manager=MockSkillManager(),
+            skillbook_path=path,
+        )
         assert ace.skillbook.get_skill("t-001") is not None

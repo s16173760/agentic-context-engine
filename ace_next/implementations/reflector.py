@@ -1,12 +1,19 @@
-"""Reflector — analyzes agent outputs to extract lessons and improve strategies."""
+"""Reflector — analyzes agent outputs to extract lessons and improve strategies.
+
+Uses PydanticAI for structured output validation with automatic retry
+and error feedback.
+"""
 
 from __future__ import annotations
 
 import logging
 from typing import Any, Optional
 
+from pydantic_ai import Agent as PydanticAgent
+from pydantic_ai.settings import ModelSettings
+
 from ..core.outputs import AgentOutput, ReflectorOutput
-from ..protocols.llm import LLMClientLike
+from ..providers.pydantic_ai import resolve_model
 from .helpers import format_optional, make_skillbook_excerpt
 from .prompts import REFLECTOR_PROMPT
 
@@ -21,16 +28,19 @@ class Reflector:
     classifying which skillbook skills were helpful, harmful, or neutral.
 
     This implementation supports **SIMPLE** mode only (single-pass
-    reflection). Recursive mode can be added later.
+    reflection). Recursive mode is handled by :mod:`ace_next.rr`.
 
     Args:
-        llm: An LLM client that satisfies :class:`LLMClientLike`.
+        model: Model identifier string. Supports any LiteLLM model
+            or PydanticAI-native identifier.
         prompt_template: Custom prompt template (defaults to
             :data:`REFLECTOR_PROMPT`).
+        max_retries: Maximum retries for structured output validation.
+        model_settings: Optional PydanticAI ``ModelSettings``.
 
     Example::
 
-        reflector = Reflector(llm)
+        reflector = Reflector("gpt-4o-mini")
         reflection = reflector.reflect(
             question="What is 2+2?",
             agent_output=agent_output,
@@ -43,14 +53,20 @@ class Reflector:
 
     def __init__(
         self,
-        llm: LLMClientLike,
-        prompt_template: str = REFLECTOR_PROMPT,
+        model: str,
         *,
+        prompt_template: str = REFLECTOR_PROMPT,
         max_retries: int = 3,
+        model_settings: ModelSettings | None = None,
     ) -> None:
-        self.llm = llm
-        self.prompt_template = prompt_template
-        self.max_retries = max_retries
+        self._prompt_template = prompt_template
+        self._agent = PydanticAgent(
+            resolve_model(model),
+            output_type=ReflectorOutput,
+            retries=max_retries,
+            model_settings=model_settings,
+            defer_model_check=True,
+        )
 
     def reflect(
         self,
@@ -85,7 +101,7 @@ class Reflector:
         else:
             skillbook_context = "(No strategies cited - outcome-based learning)"
 
-        prompt = self.prompt_template.format(
+        prompt = self._prompt_template.format(
             question=question,
             reasoning=agent_output.reasoning,
             prediction=agent_output.final_answer,
@@ -94,6 +110,14 @@ class Reflector:
             skillbook_excerpt=skillbook_context,
         )
 
-        return self.llm.complete_structured(
-            prompt, ReflectorOutput, max_retries=self.max_retries
-        )
+        result = self._agent.run_sync(prompt)
+        output = result.output
+        usage = result.usage()
+        output.raw = {
+            "usage": {
+                "prompt_tokens": usage.input_tokens or 0,
+                "completion_tokens": usage.output_tokens or 0,
+                "total_tokens": usage.total_tokens or 0,
+            },
+        }
+        return output

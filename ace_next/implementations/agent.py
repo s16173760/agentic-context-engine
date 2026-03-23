@@ -1,12 +1,19 @@
-"""Agent — produces answers using the current skillbook of strategies."""
+"""Agent — produces answers using the current skillbook of strategies.
+
+Uses PydanticAI for structured output validation with automatic retry
+and error feedback.
+"""
 
 from __future__ import annotations
 
 import logging
 from typing import Any, Optional
 
+from pydantic_ai import Agent as PydanticAgent
+from pydantic_ai.settings import ModelSettings
+
 from ..core.outputs import AgentOutput
-from ..protocols.llm import LLMClientLike
+from ..providers.pydantic_ai import resolve_model
 from .helpers import extract_cited_skill_ids, format_optional
 from .prompts import AGENT_PROMPT
 
@@ -21,13 +28,19 @@ class Agent:
     answers.
 
     Args:
-        llm: An LLM client that satisfies :class:`LLMClientLike`.
+        model: Model identifier string. Supports any LiteLLM model
+            (e.g. ``"gpt-4o-mini"``, ``"openrouter/anthropic/claude-3.5-sonnet"``)
+            or a PydanticAI-native identifier (e.g. ``"openai:gpt-4o"``).
         prompt_template: Custom prompt template (defaults to
             :data:`AGENT_PROMPT`).
+        max_retries: Maximum retries for structured output validation.
+            PydanticAI feeds validation errors back to the LLM on retry.
+        model_settings: Optional PydanticAI ``ModelSettings`` for
+            temperature, max_tokens, etc.
 
     Example::
 
-        agent = Agent(llm)
+        agent = Agent("gpt-4o-mini")
         output = agent.generate(
             question="What is the capital of France?",
             context="Answer concisely",
@@ -38,14 +51,20 @@ class Agent:
 
     def __init__(
         self,
-        llm: LLMClientLike,
-        prompt_template: str = AGENT_PROMPT,
+        model: str,
         *,
+        prompt_template: str = AGENT_PROMPT,
         max_retries: int = 3,
+        model_settings: ModelSettings | None = None,
     ) -> None:
-        self.llm = llm
-        self.prompt_template = prompt_template
-        self.max_retries = max_retries
+        self._prompt_template = prompt_template
+        self._agent = PydanticAgent(
+            resolve_model(model),
+            output_type=AgentOutput,
+            retries=max_retries,
+            model_settings=model_settings,
+            defer_model_check=True,
+        )
 
     def generate(
         self,
@@ -71,15 +90,27 @@ class Agent:
             :class:`AgentOutput` with reasoning, final_answer, and
             cited skill_ids.
         """
-        prompt = self.prompt_template.format(
+        prompt = self._prompt_template.format(
             skillbook=skillbook.as_prompt() or "(empty skillbook)",
             reflection=format_optional(reflection),
             question=question,
             context=format_optional(context),
         )
 
-        output: AgentOutput = self.llm.complete_structured(
-            prompt, AgentOutput, max_retries=self.max_retries
-        )
+        result = self._agent.run_sync(prompt)
+        output = result.output
         output.skill_ids = extract_cited_skill_ids(output.reasoning)
+        output.raw = _extract_usage(result)
         return output
+
+
+def _extract_usage(result: Any) -> dict[str, Any]:
+    """Extract usage metadata from a PydanticAI run result."""
+    usage = result.usage()
+    return {
+        "usage": {
+            "prompt_tokens": usage.input_tokens or 0,
+            "completion_tokens": usage.output_tokens or 0,
+            "total_tokens": usage.total_tokens or 0,
+        },
+    }

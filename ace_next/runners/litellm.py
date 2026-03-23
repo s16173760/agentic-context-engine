@@ -5,10 +5,13 @@ from __future__ import annotations
 import logging
 from collections.abc import Sequence
 from pathlib import Path
-from typing import Any, Dict, Optional, Union
+from typing import Any, Optional, Union
+
+from pydantic_ai.settings import ModelSettings
 
 from pipeline.protocol import SampleResult
 
+from ..core.context import ACEStepContext, SkillbookView
 from ..core.environments import Sample, TaskEnvironment
 from ..core.outputs import AgentOutput
 from ..core.skillbook import Skillbook
@@ -18,11 +21,10 @@ from ..protocols import (
     AgentLike,
     DeduplicationConfig,
     DeduplicationManagerLike,
-    LLMClientLike,
     ReflectorLike,
     SkillManagerLike,
 )
-from ..core.context import ACEStepContext, SkillbookView
+from ..providers.pydantic_ai import resolve_model, settings_from_config
 from ..steps import learning_tail
 from .ace import ACE
 from .trace_analyser import TraceAnalyser
@@ -31,7 +33,7 @@ logger = logging.getLogger(__name__)
 
 
 class ACELiteLLM:
-    """LiteLLM-powered conversational agent with ACE learning.
+    """PydanticAI-powered conversational agent with ACE learning.
 
     Bundles Agent, Reflector, SkillManager, and Skillbook into a simple
     interface.  Delegates to :class:`ACE` for batch learning and
@@ -39,11 +41,10 @@ class ACELiteLLM:
 
     Two construction paths:
 
-    1. ``ACELiteLLM(llm, ...)`` — accepts a pre-built ``LLMClientLike``
-       and optionally pre-built role instances.
-    2. ``ACELiteLLM.from_model("gpt-4o-mini", ...)`` — builds a
-       ``LiteLLMClient``, wraps with Instructor, and creates all roles
-       automatically.
+    1. ``ACELiteLLM("gpt-4o-mini", ...)`` — builds PydanticAI-backed
+       roles from a model string.
+    2. ``ACELiteLLM.from_model("gpt-4o-mini", ...)`` — explicit factory
+       with full parameter control.
 
     Example::
 
@@ -55,7 +56,7 @@ class ACELiteLLM:
 
     def __init__(
         self,
-        llm: LLMClientLike,
+        model: str,
         *,
         skillbook: Skillbook | None = None,
         skillbook_path: str | None = None,
@@ -63,6 +64,7 @@ class ACELiteLLM:
         agent: AgentLike | None = None,
         reflector: ReflectorLike | None = None,
         skill_manager: SkillManagerLike | None = None,
+        model_settings: ModelSettings | None = None,
         dedup_config: DeduplicationConfig | None = None,
         dedup_manager: DeduplicationManagerLike | None = None,
         dedup_interval: int = 10,
@@ -81,10 +83,16 @@ class ACELiteLLM:
         else:
             self._skillbook = Skillbook()
 
-        # Build roles (use provided or create defaults)
-        self.agent: AgentLike = agent or Agent(llm)
-        self.reflector: ReflectorLike = reflector or Reflector(llm)
-        self.skill_manager: SkillManagerLike = skill_manager or SkillManager(llm)
+        # Build roles (use provided or create PydanticAI-backed defaults)
+        self.agent: AgentLike = agent or Agent(
+            model, model_settings=model_settings
+        )
+        self.reflector: ReflectorLike = reflector or Reflector(
+            model, model_settings=model_settings
+        )
+        self.skill_manager: SkillManagerLike = skill_manager or SkillManager(
+            model, model_settings=model_settings
+        )
 
         self.environment = environment
         self.is_learning = is_learning
@@ -164,7 +172,6 @@ class ACELiteLLM:
             ConnectionError: If validate=True and a model fails.
         """
         from ..providers.config import (
-            ACEModelConfig,
             find_config,
             load_config,
             load_dotenv,
@@ -198,8 +205,8 @@ class ACELiteLLM:
         """Build from an ``ACEModelConfig`` with per-role model selection.
 
         API keys are resolved from the environment (not from config).
-        Each role gets its own ``LiteLLMClient`` instance, allowing
-        different models for Agent, Reflector, and SkillManager.
+        Each role gets its own PydanticAI-backed implementation,
+        allowing different models for Agent, Reflector, and SkillManager.
 
         Args:
             config: An ``ACEModelConfig`` mapping roles to models.
@@ -217,7 +224,6 @@ class ACELiteLLM:
             )
             ace = ACELiteLLM.from_config(config)
         """
-        from ..providers import LiteLLMClient
         from ..providers.config import ACEModelConfig
 
         if not isinstance(config, ACEModelConfig):
@@ -239,24 +245,24 @@ class ACELiteLLM:
                         f"{result.error}"
                     )
 
-        def _build_client(role: str) -> LiteLLMClient:
-            mc = config.for_role(role)
-            return LiteLLMClient(
-                model=mc.model,
-                temperature=mc.temperature,
-                max_tokens=mc.max_tokens,
-                **(mc.extra_params or {}),
-            )
-
-        agent_llm = _build_client("agent")
-        reflector_llm = _build_client("reflector")
-        sm_llm = _build_client("skill_manager")
+        agent_config = config.for_role("agent")
+        reflector_config = config.for_role("reflector")
+        sm_config = config.for_role("skill_manager")
 
         return cls(
-            agent_llm,  # default llm (used by ask())
-            agent=Agent(agent_llm),
-            reflector=Reflector(reflector_llm),
-            skill_manager=SkillManager(sm_llm),
+            agent_config.model,
+            agent=Agent(
+                agent_config.model,
+                model_settings=settings_from_config(agent_config),
+            ),
+            reflector=Reflector(
+                reflector_config.model,
+                model_settings=settings_from_config(reflector_config),
+            ),
+            skill_manager=SkillManager(
+                sm_config.model,
+                model_settings=settings_from_config(sm_config),
+            ),
             **kwargs,
         )
 
@@ -267,10 +273,6 @@ class ACELiteLLM:
         *,
         max_tokens: int = 2048,
         temperature: float = 0.0,
-        api_key: Optional[str] = None,
-        base_url: Optional[str] = None,
-        extra_headers: Optional[Dict[str, str]] = None,
-        ssl_verify: Optional[Union[bool, str]] = None,
         skillbook: Skillbook | None = None,
         skillbook_path: Optional[str] = None,
         environment: Optional[TaskEnvironment] = None,
@@ -282,18 +284,13 @@ class ACELiteLLM:
         opik: bool = False,
         opik_project: str = "ace-framework",
         opik_tags: Optional[list[str]] = None,
-        **llm_kwargs: Any,
     ) -> ACELiteLLM:
-        """Build from a model string (creates LiteLLMClient + roles).
+        """Build from a model string.
 
         Args:
             model: LiteLLM model identifier (e.g. ``"gpt-4o-mini"``).
             max_tokens: Max tokens for LLM responses.
             temperature: Sampling temperature.
-            api_key: API key (or set via environment variable).
-            base_url: Custom API base URL.
-            extra_headers: Extra HTTP headers for the LLM provider.
-            ssl_verify: SSL verification setting.
             skillbook: Starting skillbook.
             skillbook_path: Path to load skillbook from.
             environment: Task environment for evaluation.
@@ -302,24 +299,17 @@ class ACELiteLLM:
             checkpoint_dir: Directory for checkpoint files.
             checkpoint_interval: Samples between checkpoint saves.
             is_learning: Whether learning is enabled.
-            opik: Enable Opik observability (pipeline traces +
-                LiteLLM per-call token/cost tracking).
+            opik: Enable Opik observability.
             opik_project: Opik project name.
             opik_tags: Tags applied to every Opik trace.
-            **llm_kwargs: Extra kwargs forwarded to ``LiteLLMClient``.
         """
-        from ..providers import LiteLLMClient
-
-        llm = LiteLLMClient(
-            model=model,
-            max_tokens=max_tokens,
+        model_settings = ModelSettings(
             temperature=temperature,
-            api_key=api_key,
-            api_base=base_url,
-            **llm_kwargs,
+            max_tokens=max_tokens,
         )
         return cls(
-            llm,
+            model,
+            model_settings=model_settings,
             skillbook=skillbook,
             skillbook_path=skillbook_path,
             environment=environment,

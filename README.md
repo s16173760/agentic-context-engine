@@ -8,8 +8,7 @@
 [![Documentation](https://img.shields.io/badge/docs-latest-blue.svg)](https://kayba-ai.github.io/agentic-context-engine/latest/)
 
 > [!TIP]
-> ### Try our hosted solution at [kayba.ai](https://kayba.ai): automated agent self-improvement from your terminal. CLI + dashboard that analyzes traces, surfaces failures, and ships improvements directly from Claude Code, Codex, and more.
-> ### Start your 7-day free trial
+> ### Try our hosted solution for free at [kayba.ai](https://kayba.ai): automated agent self-improvement from your terminal. CLI + dashboard that analyzes traces, surfaces failures, and ships improvements directly from Claude Code, Codex, and more.
 > [![Kayba Pro](https://img.shields.io/badge/Kayba_Pro-Start_Free_Trial-4A6B80?style=for-the-badge)](https://kayba.ai)
 
 ---

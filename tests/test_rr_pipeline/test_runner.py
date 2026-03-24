@@ -294,33 +294,3 @@ class TestRRBatchReflection:
         assert result_ctx.reflections[1].raw["task_id"] == "t1"
 
 
-@pytest.mark.unit
-class TestRROpikStep:
-    """Test RROpikStep — graceful degradation and data reading."""
-
-    def test_noop_when_opik_unavailable(self):
-        """RROpikStep is a no-op when Opik is not installed."""
-        from ace.rr.opik import RROpikStep, OPIK_AVAILABLE
-
-        step = RROpikStep(project_name="test")
-        if not OPIK_AVAILABLE:
-            assert not step.enabled
-
-    def test_noop_when_no_reflection(self):
-        """RROpikStep returns ctx unchanged when reflections is empty."""
-        from ace.rr.opik import RROpikStep
-
-        step = RROpikStep(project_name="test")
-        step.enabled = False
-
-        ctx = ACEStepContext(skillbook=SkillbookView(Skillbook()))
-        result = step(ctx)
-        assert result is ctx
-
-    def test_step_protocol_attributes(self):
-        """RROpikStep has correct requires/provides."""
-        from ace.rr.opik import RROpikStep
-
-        step = RROpikStep(project_name="test")
-        assert "reflections" in step.requires
-        assert len(step.provides) == 0

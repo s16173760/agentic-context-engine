@@ -25,7 +25,6 @@ Options:
     --epochs, -e            Number of passes over all traces (default: 1)
     --input-skillbook, -i   Path to existing skillbook to continue from
     --output-dir, -o        Output directory for results (default: script directory)
-    --opik                  Enable Opik tracing via RROpikStep (requires opik package)
 """
 
 import argparse
@@ -57,7 +56,6 @@ from ace.rr import RRStep, RRConfig
 from ace.core.context import ACEStepContext
 from ace.deduplication import DeduplicationManager
 from ace.protocols.deduplication import DeduplicationConfig
-from ace.providers.litellm import LiteLLMClient, LiteLLMConfig
 from ace.implementations.prompts import wrap_skillbook_for_external_agent
 from ace.steps import TagStep, UpdateStep, ApplyStep, DeduplicateStep
 from ace.rr.prompts import REFLECTOR_RECURSIVE_PROMPT
@@ -161,9 +159,6 @@ def main():
     parser.add_argument(
         "-o", "--output-dir", type=Path, default=None, help="Output directory"
     )
-    parser.add_argument(
-        "--opik", action="store_true", help="Enable Opik tracing via RROpikStep"
-    )
     args = parser.parse_args()
 
     if not os.getenv("OPENAI_API_KEY"):
@@ -183,32 +178,17 @@ def main():
         skillbook = Skillbook.load_from_file(str(args.input_skillbook))
         print(f"Loaded skillbook: {len(skillbook.skills())} skills")
 
-    # LLM clients
-    llm = LiteLLMClient(
-        config=LiteLLMConfig(
-            model=args.model,
-            max_tokens=8192,
-            temperature=1,
-        )
-    )
-    subagent_llm = LiteLLMClient(
-        config=LiteLLMConfig(
-            model="bedrock/eu.anthropic.claude-haiku-4-5-20251001-v1:0",
-            max_tokens=4096,
-            temperature=0.3,
-        )
-    )
+    # Build PydanticAI-backed roles directly from model strings
     rr = RRStep(
-        llm=llm,
+        args.model,
         config=RRConfig(
             subagent_model="bedrock/eu.anthropic.claude-haiku-4-5-20251001-v1:0",
             max_iterations=60,
             max_llm_calls=60,
         ),
         prompt_template=REFLECTOR_RECURSIVE_PROMPT,
-        subagent_llm=subagent_llm,
     )
-    skill_manager = SkillManager(llm=llm)
+    skill_manager = SkillManager(args.model)
     dedup = DeduplicationManager(
         DeduplicationConfig(
             enabled=True,
@@ -217,15 +197,8 @@ def main():
         )
     )
 
-    # Build pipeline: RRTraceStep → [RROpikStep] → Tag → Update → Apply → Dedup
+    # Build pipeline: RRTraceStep → Tag → Update → Apply → Dedup
     steps: list[Any] = [RRTraceStep(rr)]
-
-    if args.opik:
-        from ace.rr import RROpikStep
-
-        steps.append(RROpikStep(project_name="ace-rr"))
-        print("Opik tracing enabled via RROpikStep")
-
     steps.extend(
         [
             TagStep(skillbook),

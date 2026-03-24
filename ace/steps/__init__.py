@@ -22,7 +22,6 @@ from .evaluate import EvaluateStep
 from .export_markdown import ExportSkillbookMarkdownStep
 from .load_traces import LoadTracesStep
 from .observability import ObservabilityStep
-from .opik import OPIK_AVAILABLE, OpikStep, register_opik_litellm_callback
 from .persist import PersistStep
 from .reflect import ReflectStep
 from .tag import TagStep
@@ -37,13 +36,10 @@ __all__ = [
     "ExportSkillbookMarkdownStep",
     "LoadTracesStep",
     "ObservabilityStep",
-    "OPIK_AVAILABLE",
-    "OpikStep",
     "PersistStep",
     "ReflectStep",
     "TagStep",
     "UpdateStep",
-    "register_opik_litellm_callback",
     "learning_tail",
 ]
 

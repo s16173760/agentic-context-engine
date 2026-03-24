@@ -1,8 +1,8 @@
-"""ACE next — pipeline-based rewrite of the ACE framework.
+"""ACE — Agentic Context Engine.
 
 All public symbols are lazily imported to keep ``import ace`` fast.
 Direct attribute access (``ace.ACE``, ``from ace import ACE``)
-works as before — the underlying module is loaded on first use.
+works — the underlying module is loaded on first use.
 """
 
 from __future__ import annotations
@@ -29,13 +29,7 @@ if TYPE_CHECKING:
     from .implementations import Agent, Reflector, SkillManager
     from .integrations import wrap_skillbook_context
     from .protocols import DeduplicationConfig
-    from .providers import (
-        ACEModelConfig,
-        InstructorClient,
-        LiteLLMClient,
-        ModelConfig,
-        wrap_with_instructor,
-    )
+    from .providers import ACEModelConfig, ModelConfig
     from .rr import RRConfig, RRStep
     from .runners import (
         ACE,
@@ -61,7 +55,6 @@ if TYPE_CHECKING:
         UpdateStep,
         learning_tail,
     )
-    from .steps.opik import OPIK_AVAILABLE, OpikStep, register_opik_litellm_callback
 
 # ---- lazy import mapping: name -> (module_path, attribute) ----------------
 
@@ -94,10 +87,7 @@ _LAZY_IMPORTS: dict[str, tuple[str, str]] = {
     "SimilarityDetector": ("ace.deduplication", "SimilarityDetector"),
     # Integrations
     "wrap_skillbook_context": ("ace.integrations", "wrap_skillbook_context"),
-    # LLM providers + config
-    "LiteLLMClient": ("ace.providers", "LiteLLMClient"),
-    "InstructorClient": ("ace.providers", "InstructorClient"),
-    "wrap_with_instructor": ("ace.providers", "wrap_with_instructor"),
+    # Config
     "ModelConfig": ("ace.providers", "ModelConfig"),
     "ACEModelConfig": ("ace.providers", "ACEModelConfig"),
     # Runners
@@ -125,13 +115,6 @@ _LAZY_IMPORTS: dict[str, tuple[str, str]] = {
     # Recursive Reflector
     "RRStep": ("ace.rr", "RRStep"),
     "RRConfig": ("ace.rr", "RRConfig"),
-    # Observability
-    "OpikStep": ("ace.steps.opik", "OpikStep"),
-    "OPIK_AVAILABLE": ("ace.steps.opik", "OPIK_AVAILABLE"),
-    "register_opik_litellm_callback": (
-        "ace.steps.opik",
-        "register_opik_litellm_callback",
-    ),
 }
 
 
@@ -172,10 +155,7 @@ __all__ = [
     "Agent",
     "Reflector",
     "SkillManager",
-    # LLM providers + config
-    "LiteLLMClient",
-    "InstructorClient",
-    "wrap_with_instructor",
+    # Config
     "ModelConfig",
     "ACEModelConfig",
     # Runners
@@ -207,10 +187,6 @@ __all__ = [
     "DeduplicationConfig",
     "DeduplicationManager",
     "SimilarityDetector",
-    # Observability
-    "OpikStep",
-    "OPIK_AVAILABLE",
-    "register_opik_litellm_callback",
     # Utilities
     "wrap_skillbook_context",
 ]

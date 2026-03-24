@@ -29,7 +29,6 @@ from ace import (
     ACE,
     ACELiteLLM,
     Agent,
-    LiteLLMClient,
     Reflector,
     Sample,
     SimpleEnvironment,
@@ -56,10 +55,9 @@ def assert_skills_have_content(skillbook: Skillbook, label: str) -> None:
 
 
 # ── Shared setup ────────────────────────────────────────────
-client = LiteLLMClient(model=MODEL)
-agent = Agent(client)
-reflector = Reflector(client)
-skill_manager = SkillManager(client)
+agent = Agent(MODEL)
+reflector = Reflector(MODEL)
+skill_manager = SkillManager(MODEL)
 
 # ── 1. ACE runner (full pipeline) ───────────────────────────
 section("1. ACE runner — 3 samples, 1 epoch")
@@ -139,7 +137,7 @@ passed += 1
 # ── 3. ACELiteLLM ask + learn_from_feedback ─────────────────
 section("3. ACELiteLLM — ask + learn_from_feedback")
 llm_skillbook = Skillbook()
-ace_llm = ACELiteLLM(client, skillbook=llm_skillbook)
+ace_llm = ACELiteLLM(MODEL, skillbook=llm_skillbook)
 answer = ace_llm.ask("What colour is the sky on a clear day?")
 assert isinstance(answer, str) and len(answer.strip()) > 0, f"Bad answer: {answer!r}"
 print(f"  ask() → {answer[:80]}")
@@ -200,16 +198,16 @@ finally:
 
 # ── 5. max_retries wiring ───────────────────────────────────
 section("5. max_retries wiring")
-a = Agent(client, max_retries=5)
-r = Reflector(client, max_retries=7)
-s = SkillManager(client, max_retries=9)
+a = Agent(MODEL, max_retries=5)
+r = Reflector(MODEL, max_retries=7)
+s = SkillManager(MODEL, max_retries=9)
 assert a.max_retries == 5, f"Agent max_retries={a.max_retries}"
 assert r.max_retries == 7, f"Reflector max_retries={r.max_retries}"
 assert s.max_retries == 9, f"SkillManager max_retries={s.max_retries}"
 # Verify defaults
-a_default = Agent(client)
-r_default = Reflector(client)
-s_default = SkillManager(client)
+a_default = Agent(MODEL)
+r_default = Reflector(MODEL)
+s_default = SkillManager(MODEL)
 assert a_default.max_retries == 3, f"Agent default max_retries={a_default.max_retries}"
 assert (
     r_default.max_retries == 3

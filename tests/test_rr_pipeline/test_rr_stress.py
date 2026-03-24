@@ -1,7 +1,6 @@
 """Stress tests for RR components.
 
-Tests sandbox behavior, code extraction, FINAL parsing, and the new
-PydanticAI-based RRStep entry points.
+Tests sandbox behavior and the PydanticAI-based RRStep entry points.
 """
 
 import json
@@ -16,15 +15,6 @@ from ace.core.context import ACEStepContext, SkillbookView
 from ace.core.outputs import AgentOutput, ReflectorOutput
 from ace.core.skillbook import Skillbook
 from ace.rr import RRConfig, RRStep
-
-# Keep old imports for tests that still test unchanged modules
-from ace.rr.context import RRIterationContext
-from ace.rr.steps import (
-    ExtractCodeStep,
-    SandboxExecStep,
-    CheckResultStep,
-    _parse_final_value,
-)
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -160,110 +150,7 @@ class TestLoopLifecycle:
 
 
 # =========================================================================
-# 2. Code extraction edge cases (unchanged module)
-# =========================================================================
-
-
-@pytest.mark.unit
-class TestCodeExtractionEdgeCases:
-    def test_nested_backticks_in_code(self):
-        """Code containing triple backticks inside strings."""
-        step = ExtractCodeStep()
-        response = '```python\nx = "```hello```"\nprint(x)\n```'
-        ctx = RRIterationContext(llm_response=response)
-        result = step(ctx)
-        assert result.code is not None
-        assert 'x = "' in result.code
-
-    def test_bare_code_block_no_python_tag(self):
-        """Bare ``` without 'python' tag."""
-        step = ExtractCodeStep()
-        response = '```\nprint("bare block")\n```'
-        ctx = RRIterationContext(llm_response=response)
-        result = step(ctx)
-        assert result.code is not None
-        assert "bare block" in result.code
-
-    def test_final_call_without_code_block(self):
-        """FINAL() as plain text with no fences."""
-        step = ExtractCodeStep()
-        response = 'After analysis:\nFINAL({"reasoning": "done", "key_insight": "k", "correct_approach": "a"})'
-        ctx = RRIterationContext(llm_response=response)
-        result = step(ctx)
-        assert result.code is not None
-        assert "FINAL(" in result.code
-
-    def test_empty_code_block(self):
-        """Empty code block — no code extracted."""
-        step = ExtractCodeStep()
-        response = "```python\n```"
-        ctx = RRIterationContext(llm_response=response)
-        result = step(ctx)
-        if result.code is not None:
-            assert result.code.strip() == ""
-        else:
-            assert result.direct_response is not None
-
-
-# =========================================================================
-# 3. FINAL() parsing edge cases (unchanged module)
-# =========================================================================
-
-
-@pytest.mark.unit
-class TestFinalParsingEdgeCases:
-    def test_final_with_missing_fields(self):
-        """FINAL with only reasoning — other fields default."""
-        result = _parse_final_value({"reasoning": "only reasoning"})
-        assert result.reasoning == "only reasoning"
-        assert result.key_insight == ""
-        assert result.correct_approach == ""
-        assert result.extracted_learnings == []
-        assert result.skill_tags == []
-
-    def test_final_with_non_dict_value(self):
-        """FINAL("just a string") creates ReflectorOutput."""
-        result = _parse_final_value("just a string")
-        assert result.reasoning == "just a string"
-
-    def test_final_with_bad_atomicity_score(self):
-        """FINAL with atomicity_score='high' should not crash."""
-        value = {
-            "reasoning": "r",
-            "key_insight": "k",
-            "correct_approach": "a",
-            "extracted_learnings": [
-                {"learning": "l", "atomicity_score": "high", "evidence": "e"}
-            ],
-            "skill_tags": [],
-        }
-        result = _parse_final_value(value)
-        assert len(result.extracted_learnings) == 1
-        assert result.extracted_learnings[0].atomicity_score == 0.0
-
-    def test_final_after_execution_error_rejected(self):
-        """FINAL when sandbox code raised should be rejected."""
-        sandbox = TraceSandbox(trace=None)
-        config = RecursiveConfig()
-        step = CheckResultStep(sandbox, config)
-
-        code = 'x = 1/0\nFINAL({"reasoning": "error"})'
-        exec_result = sandbox.execute(code, timeout=5.0)
-
-        ctx = RRIterationContext(
-            messages=({"role": "user", "content": "analyze"},),
-            llm_response=f"```python\n{code}\n```",
-            code=code,
-            exec_result=exec_result,
-            iteration=1,
-        )
-        result = step(ctx)
-        assert not result.terminated
-        assert "error" in result.feedback_messages[1]["content"].lower()
-
-
-# =========================================================================
-# 4. Sandbox behavior (unchanged module)
+# 2. Sandbox behavior
 # =========================================================================
 
 
@@ -288,18 +175,14 @@ class TestSandboxBehavior:
     def test_sandbox_exception_produces_stderr(self):
         """Code that raises captures error in stderr."""
         sandbox = TraceSandbox(trace=None)
-        config = RecursiveConfig()
-        step = SandboxExecStep(sandbox, config)
-        ctx = RRIterationContext(code="raise RuntimeError('boom')")
-        result = step(ctx)
-        assert result.exec_result is not None
-        assert not result.exec_result.success
-        assert "RuntimeError" in result.exec_result.stderr
-        assert "boom" in result.exec_result.stderr
+        result = sandbox.execute("raise RuntimeError('boom')", timeout=5.0)
+        assert not result.success
+        assert "RuntimeError" in result.stderr
+        assert "boom" in result.stderr
 
 
 # =========================================================================
-# 5. Entry points (PydanticAI-based)
+# 3. Entry points (PydanticAI-based)
 # =========================================================================
 
 

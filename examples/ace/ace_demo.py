@@ -64,8 +64,6 @@ from ace import (
     Agent,
     Reflector,
     SkillManager,
-    # LLM providers
-    LiteLLMClient,
     # Core types
     Sample,
     Skillbook,
@@ -86,9 +84,8 @@ print("All imports OK")
 
 # %%
 MODEL = os.getenv("ACE_MODEL", "us.anthropic.claude-haiku-4-5-20251001-v1:0")
-client = LiteLLMClient(model=MODEL)
 
-print(f"LLM client ready: {MODEL}")
+print(f"Model: {MODEL}")
 
 # %% [markdown]
 # ## 4. Build Roles
@@ -97,9 +94,9 @@ print(f"LLM client ready: {MODEL}")
 # customisable (prompt templates, retries, etc.).
 
 # %%
-agent = Agent(client)
-reflector = Reflector(client)
-skill_manager = SkillManager(client)
+agent = Agent(MODEL)
+reflector = Reflector(MODEL)
+skill_manager = SkillManager(MODEL)
 
 print("Roles created: Agent, Reflector, SkillManager")
 
@@ -193,9 +190,9 @@ print("ExactMatchEnvironment defined")
 skillbook2 = Skillbook()
 
 ace2 = ACE.from_roles(
-    agent=Agent(client),
-    reflector=Reflector(client),
-    skill_manager=SkillManager(client),
+    agent=Agent(MODEL),
+    reflector=Reflector(MODEL),
+    skill_manager=SkillManager(MODEL),
     environment=ExactMatchEnvironment(),
     skillbook=skillbook2,
 )
@@ -221,9 +218,9 @@ for r in results2:
 skillbook3 = Skillbook()
 
 ace3 = ACE.from_roles(
-    agent=Agent(client),
-    reflector=Reflector(client),
-    skill_manager=SkillManager(client),
+    agent=Agent(MODEL),
+    reflector=Reflector(MODEL),
+    skill_manager=SkillManager(MODEL),
     skillbook=skillbook3,
     # No environment — EvaluateStep passes through
 )
@@ -242,9 +239,9 @@ print(f"Skills learned: {skillbook3.stats()}")
 skillbook4 = Skillbook()
 
 ace4 = ACE.from_roles(
-    agent=Agent(client),
-    reflector=Reflector(client),
-    skill_manager=SkillManager(client),
+    agent=Agent(MODEL),
+    reflector=Reflector(MODEL),
+    skill_manager=SkillManager(MODEL),
     environment=SimpleEnvironment(),
     skillbook=skillbook4,
 )
@@ -289,9 +286,9 @@ env = SimpleEnvironment()
 # Build the full pipeline manually
 pipe = Pipeline(
     [
-        AgentStep(Agent(client)),
+        AgentStep(Agent(MODEL)),
         EvaluateStep(env),
-        *learning_tail(Reflector(client), SkillManager(client), skillbook5),
+        *learning_tail(Reflector(MODEL), SkillManager(MODEL), skillbook5),
     ]
 )
 
@@ -350,8 +347,8 @@ for r in results_manual:
 skillbook6 = Skillbook()
 
 tail = learning_tail(
-    Reflector(client),
-    SkillManager(client),
+    Reflector(MODEL),
+    SkillManager(MODEL),
     skillbook6,
 )
 
@@ -371,9 +368,9 @@ skillbook7 = Skillbook()
 
 with tempfile.TemporaryDirectory() as tmpdir:
     ace7 = ACE.from_roles(
-        agent=Agent(client),
-        reflector=Reflector(client),
-        skill_manager=SkillManager(client),
+        agent=Agent(MODEL),
+        reflector=Reflector(MODEL),
+        skill_manager=SkillManager(MODEL),
         environment=SimpleEnvironment(),
         skillbook=skillbook7,
         checkpoint_dir=tmpdir,
@@ -403,9 +400,9 @@ skillbook8 = Skillbook()
 dedup = DeduplicationManager(DeduplicationConfig(similarity_threshold=0.85))
 
 ace8 = ACE.from_roles(
-    agent=Agent(client),
-    reflector=Reflector(client),
-    skill_manager=SkillManager(client),
+    agent=Agent(MODEL),
+    reflector=Reflector(MODEL),
+    skill_manager=SkillManager(MODEL),
     environment=SimpleEnvironment(),
     skillbook=skillbook8,
     dedup_manager=dedup,
@@ -444,9 +441,9 @@ if OPIK_AVAILABLE:
 
     pipe_with_opik = Pipeline(
         [
-            AgentStep(Agent(client)),
+            AgentStep(Agent(MODEL)),
             EvaluateStep(SimpleEnvironment()),
-            *learning_tail(Reflector(client), SkillManager(client), skillbook_opik),
+            *learning_tail(Reflector(MODEL), SkillManager(MODEL), skillbook_opik),
             OpikStep(project_name="ace-demo"),
         ]
     )
@@ -529,8 +526,8 @@ traces = [
 skillbook9 = Skillbook()
 
 analyser = TraceAnalyser.from_roles(
-    reflector=Reflector(client),
-    skill_manager=SkillManager(client),
+    reflector=Reflector(MODEL),
+    skill_manager=SkillManager(MODEL),
     skillbook=skillbook9,
 )
 
@@ -551,8 +548,8 @@ for skill in skillbook9.skills()[:5]:
 skillbook10 = Skillbook()
 
 analyser2 = TraceAnalyser.from_roles(
-    reflector=Reflector(client),
-    skill_manager=SkillManager(client),
+    reflector=Reflector(MODEL),
+    skill_manager=SkillManager(MODEL),
     skillbook=skillbook10,
 )
 
@@ -573,8 +570,8 @@ print(f"Skills after 2 epochs: {skillbook10.stats()}")
 shared_skillbook = Skillbook()
 
 analyser_phase1 = TraceAnalyser.from_roles(
-    reflector=Reflector(client),
-    skill_manager=SkillManager(client),
+    reflector=Reflector(MODEL),
+    skill_manager=SkillManager(MODEL),
     skillbook=shared_skillbook,
 )
 analyser_phase1.run(traces, epochs=1)
@@ -584,9 +581,9 @@ print(f"  Skills from traces: {shared_skillbook.stats()}")
 
 # Phase 2: Deploy with live ACE learning (reuse the evolved skillbook)
 ace_phase2 = ACE.from_roles(
-    agent=Agent(client),
-    reflector=Reflector(client),
-    skill_manager=SkillManager(client),
+    agent=Agent(MODEL),
+    reflector=Reflector(MODEL),
+    skill_manager=SkillManager(MODEL),
     environment=SimpleEnvironment(),
     skillbook=shared_skillbook,
 )
@@ -613,9 +610,9 @@ bad_samples = [
 
 skillbook11 = Skillbook()
 ace11 = ACE.from_roles(
-    agent=Agent(client),
-    reflector=Reflector(client),
-    skill_manager=SkillManager(client),
+    agent=Agent(MODEL),
+    reflector=Reflector(MODEL),
+    skill_manager=SkillManager(MODEL),
     environment=SimpleEnvironment(),
     skillbook=skillbook11,
 )

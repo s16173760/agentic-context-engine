@@ -71,9 +71,6 @@ class ACELiteLLM:
         checkpoint_dir: str | Path | None = None,
         checkpoint_interval: int = 10,
         is_learning: bool = True,
-        opik: bool = False,
-        opik_project: str = "ace-framework",
-        opik_tags: list[str] | None = None,
         logfire: bool = False,
     ) -> None:
         # Resolve skillbook
@@ -111,29 +108,6 @@ class ACELiteLLM:
         self._dedup_interval = dedup_interval
         self._checkpoint_dir = checkpoint_dir
         self._checkpoint_interval = checkpoint_interval
-
-        # Opik observability (explicit opt-in — fail loudly)
-        self._opik_step: Any = None
-        if opik:
-            from ..steps.opik import OPIK_AVAILABLE, OpikStep, register_opik_litellm_callback
-
-            if not OPIK_AVAILABLE:
-                raise ImportError(
-                    "opik=True requires the 'opik' package. "
-                    "Install it with: pip install ace-framework[observability]"
-                )
-
-            self._opik_step = OpikStep(
-                project_name=opik_project,
-                tags=opik_tags,
-            )
-            if not self._opik_step.enabled:
-                raise RuntimeError(
-                    "OpikStep failed to initialize. Check your Opik configuration "
-                    "(~/.opik.config, OPIK_API_KEY, OPIK_WORKSPACE env vars)."
-                )
-            # Register LiteLLM-level callback for per-call token/cost tracking
-            register_opik_litellm_callback(project_name=opik_project)
 
         # Logfire observability (explicit opt-in — fail loudly)
         if logfire:
@@ -176,7 +150,7 @@ class ACELiteLLM:
             validate: If True, run a test LLM call for each configured
                 model before building. Raises on failure.
             **kwargs: Extra kwargs forwarded to the constructor
-                (skillbook, environment, opik, etc.).
+                (skillbook, environment, etc.).
 
         Raises:
             FileNotFoundError: If no ace.toml is found.
@@ -223,7 +197,7 @@ class ACELiteLLM:
             config: An ``ACEModelConfig`` mapping roles to models.
             validate: If True, validate each model connection first.
             **kwargs: Extra kwargs forwarded to the constructor
-                (skillbook, environment, opik, etc.).
+                (skillbook, environment, etc.).
 
         Example::
 
@@ -292,9 +266,6 @@ class ACELiteLLM:
         checkpoint_dir: Optional[Union[str, Path]] = None,
         checkpoint_interval: int = 10,
         is_learning: bool = True,
-        opik: bool = False,
-        opik_project: str = "ace-framework",
-        opik_tags: Optional[list[str]] = None,
         logfire: bool = False,
     ) -> ACELiteLLM:
         """Build from a model string.
@@ -311,9 +282,6 @@ class ACELiteLLM:
             checkpoint_dir: Directory for checkpoint files.
             checkpoint_interval: Samples between checkpoint saves.
             is_learning: Whether learning is enabled.
-            opik: Enable Opik observability.
-            opik_project: Opik project name.
-            opik_tags: Tags applied to every Opik trace.
             logfire: Enable Logfire observability (auto-instruments PydanticAI).
         """
         model_settings = ModelSettings(
@@ -331,9 +299,6 @@ class ACELiteLLM:
             checkpoint_dir=checkpoint_dir,
             checkpoint_interval=checkpoint_interval,
             is_learning=is_learning,
-            opik=opik,
-            opik_project=opik_project,
-            opik_tags=opik_tags,
             logfire=logfire,
         )
 
@@ -342,9 +307,7 @@ class ACELiteLLM:
     # ------------------------------------------------------------------
 
     def _get_extra_steps(self) -> list[Any] | None:
-        """Return extra pipeline steps (e.g. OpikStep) or None."""
-        if self._opik_step is not None:
-            return [self._opik_step]
+        """Return extra pipeline steps or None."""
         return None
 
     def _get_ace(self, environment: TaskEnvironment | None = None) -> ACE:
@@ -508,9 +471,6 @@ class ACELiteLLM:
             self.skill_manager,
             self._skillbook,
         )
-        if self._opik_step is not None:
-            steps.append(self._opik_step)
-
         pipe = Pipeline(steps)
         results = pipe.run([ctx])
         pipe.wait_for_background()  # ReflectStep has async_boundary=True

@@ -11,9 +11,9 @@ Usage:
     # Custom model:
     ACE_MODEL=openai/gpt-4o-mini uv run python examples/ace/rr_demo.py
 
-    # With Opik tracing (requires ``pip install opik`` and OPIK_API_KEY):
-    #   from ace.rr import RROpikStep
-    #   pipe = Pipeline([rr, RROpikStep(project_name="my-project")])
+    # With Logfire tracing:
+    #   from ace.observability import configure_logfire
+    #   configure_logfire()
 """
 
 import logging
@@ -28,7 +28,6 @@ _root = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(_root))
 load_dotenv(_root / ".env")
 
-from ace.providers.litellm import LiteLLMClient
 from ace.rr import RRConfig, RRStep, TraceSandbox, TraceContext, TraceStep
 from ace.core.context import ACEStepContext, SkillbookView
 from ace.core.skillbook import Skillbook
@@ -60,9 +59,8 @@ def demo_wrong_answer():
     """RR analyzes a trace where the agent answered incorrectly."""
     section("Demo 1: RRStep — wrong answer")
 
-    llm = LiteLLMClient(model=MODEL, max_tokens=4096)
     rr = RRStep(
-        llm,
+        MODEL,
         config=RRConfig(max_iterations=8, enable_subagent=False),
     )
 
@@ -114,9 +112,8 @@ def demo_pipeline_step():
     """RR used as a pipeline step via __call__, analyzing a tool-use failure."""
     section("Demo 2: RRStep.__call__() — tool-use failure trace")
 
-    llm = LiteLLMClient(model=MODEL, max_tokens=4096)
     rr = RRStep(
-        llm,
+        MODEL,
         config=RRConfig(max_iterations=8, enable_subagent=False),
     )
 

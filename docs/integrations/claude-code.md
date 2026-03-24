@@ -5,7 +5,7 @@ The `ClaudeCode` runner wraps the [Claude Code CLI](https://docs.anthropic.com/e
 ## Quick Start
 
 ```python
-from ace_next import ClaudeCode
+from ace import ClaudeCode
 
 runner = ClaudeCode.from_model(working_dir="./my_project")
 

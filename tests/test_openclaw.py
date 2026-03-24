@@ -8,16 +8,16 @@ from typing import Any, Optional
 
 import pytest
 
-from ace_next.core.context import ACEStepContext, SkillbookView
-from ace_next.core.outputs import (
+from ace.core.context import ACEStepContext, SkillbookView
+from ace.core.outputs import (
     AgentOutput,
     ReflectorOutput,
     SkillManagerOutput,
 )
-from ace_next.core.skillbook import Skillbook, UpdateBatch, UpdateOperation
-from ace_next.integrations.openclaw import OpenClawToTraceStep
-from ace_next.steps import learning_tail
-from ace_next.steps.load_traces import LoadTracesStep
+from ace.core.skillbook import Skillbook, UpdateBatch, UpdateOperation
+from ace.integrations.openclaw import OpenClawToTraceStep
+from ace.steps import learning_tail
+from ace.steps.load_traces import LoadTracesStep
 
 from pipeline import Pipeline
 

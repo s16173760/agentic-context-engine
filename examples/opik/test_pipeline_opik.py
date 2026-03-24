@@ -21,7 +21,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-from ace_next import (
+from ace import (
     ACE,
     Agent,
     LiteLLMClient,

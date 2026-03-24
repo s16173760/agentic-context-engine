@@ -29,7 +29,7 @@ graph LR
 Pass `wait=False` to `run()`:
 
 ```python
-from ace_next import ACE
+from ace import ACE
 
 runner = ACE.from_roles(
     agent=agent,
@@ -60,7 +60,7 @@ stats = runner.learning_stats
 ## With ACELiteLLM
 
 ```python
-from ace_next import ACELiteLLM, Sample, SimpleEnvironment
+from ace import ACELiteLLM, Sample, SimpleEnvironment
 
 agent = ACELiteLLM.from_model("gpt-4o-mini")
 

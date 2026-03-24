@@ -9,17 +9,17 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from ace_next.rr.config import RecursiveConfig
-from ace_next.rr.sandbox import TraceSandbox
+from ace.rr.config import RecursiveConfig
+from ace.rr.sandbox import TraceSandbox
 
-from ace_next.core.context import ACEStepContext, SkillbookView
-from ace_next.core.outputs import AgentOutput, ReflectorOutput
-from ace_next.core.skillbook import Skillbook
-from ace_next.rr import RRConfig, RRStep
+from ace.core.context import ACEStepContext, SkillbookView
+from ace.core.outputs import AgentOutput, ReflectorOutput
+from ace.core.skillbook import Skillbook
+from ace.rr import RRConfig, RRStep
 
 # Keep old imports for tests that still test unchanged modules
-from ace_next.rr.context import RRIterationContext
-from ace_next.rr.steps import (
+from ace.rr.context import RRIterationContext
+from ace.rr.steps import (
     ExtractCodeStep,
     SandboxExecStep,
     CheckResultStep,

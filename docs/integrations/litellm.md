@@ -5,7 +5,7 @@
 ## Quick Start
 
 ```python
-from ace_next import ACELiteLLM
+from ace import ACELiteLLM
 
 agent = ACELiteLLM.from_model("gpt-4o-mini")
 
@@ -50,7 +50,7 @@ answer = agent.ask("Your question", context="Optional context")
 Run the full ACE learning pipeline over samples:
 
 ```python
-from ace_next import Sample, SimpleEnvironment
+from ace import Sample, SimpleEnvironment
 
 samples = [
     Sample(question="What is 2+2?", context="", ground_truth="4"),
@@ -93,7 +93,7 @@ agent.get_strategies()                # Formatted strategies
 Use a strong model for the Agent and a cheaper one for learning:
 
 ```python
-from ace_next import ACELiteLLM, Agent, Reflector, SkillManager, LiteLLMClient
+from ace import ACELiteLLM, Agent, Reflector, SkillManager, LiteLLMClient
 
 agent_llm = LiteLLMClient(model="gpt-4o")
 learning_llm = LiteLLMClient(model="gpt-4o-mini")
@@ -111,7 +111,7 @@ ace = ACELiteLLM(
 Prevent duplicate skills from accumulating:
 
 ```python
-from ace_next import DeduplicationConfig
+from ace import DeduplicationConfig
 
 agent = ACELiteLLM.from_model(
     "gpt-4o-mini",

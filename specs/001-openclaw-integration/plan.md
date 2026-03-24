@@ -5,12 +5,12 @@
 
 ## Summary
 
-Integrate ACE with OpenClaw to automatically learn from session transcripts (JSONL) and sync strategies back into the agent's workspace (AGENTS.md). Uses the existing `TraceAnalyser` pipeline to run Reflect → Tag → Update → Apply on parsed transcripts, with incremental processing and dry-run support. The implementation adds two new pipeline steps — a generic `LoadTracesStep` in `ace_next/steps/` and an OpenClaw-specific `OpenClawToTraceStep` in `ace_next/integrations/openclaw/` — composed with the learning tail in an example script (`examples/openclaw/learn_from_traces.py`).
+Integrate ACE with OpenClaw to automatically learn from session transcripts (JSONL) and sync strategies back into the agent's workspace (AGENTS.md). Uses the existing `TraceAnalyser` pipeline to run Reflect → Tag → Update → Apply on parsed transcripts, with incremental processing and dry-run support. The implementation adds two new pipeline steps — a generic `LoadTracesStep` in `ace/steps/` and an OpenClaw-specific `OpenClawToTraceStep` in `ace/integrations/openclaw/` — composed with the learning tail in an example script (`examples/openclaw/learn_from_traces.py`).
 
 ## Technical Context
 
 **Language/Version**: Python 3.12+
-**Primary Dependencies**: ace_next (Skillbook, Reflector, SkillManager, TraceAnalyser, LiteLLMClient, wrap_skillbook_context), pydantic >=2.0.0, litellm >=1.78.0
+**Primary Dependencies**: ace (Skillbook, Reflector, SkillManager, TraceAnalyser, LiteLLMClient, wrap_skillbook_context), pydantic >=2.0.0, litellm >=1.78.0
 **Storage**: JSON file (skillbook at `~/.openclaw/ace_skillbook.json`), plain text (processed log at `~/.openclaw/ace_processed.txt`), JSONL (OpenClaw session transcripts)
 **Testing**: pytest with pytest-cov (coverage enforced `--cov-fail-under=25`), MockLLMClient pattern from existing tests
 **Target Platform**: Linux/macOS (local development machines where OpenClaw runs)
@@ -49,10 +49,10 @@ specs/001-openclaw-integration/
 ### Source Code (repository root)
 
 ```text
-ace_next/steps/
+ace/steps/
 └── load_traces.py           # LoadTracesStep — generic file→ctx.trace loader
 
-ace_next/integrations/openclaw/
+ace/integrations/openclaw/
 ├── __init__.py              # Exports OpenClawToTraceStep
 └── to_trace.py              # OpenClawToTraceStep — JSONL events→trace dict
 
@@ -69,7 +69,7 @@ docs/integrations/
 └── openclaw.md              # Integration guide (new)
 ```
 
-**Structure Decision**: Two new pipeline steps following existing patterns. `LoadTracesStep` is generic (reads files, puts raw data on `ctx.trace`) and lives in `ace_next/steps/`. `OpenClawToTraceStep` is integration-specific (converts OpenClaw JSONL to trace dict) and lives in `ace_next/integrations/openclaw/`. The example script composes these steps with `learning_tail()`. No changes to existing core classes.
+**Structure Decision**: Two new pipeline steps following existing patterns. `LoadTracesStep` is generic (reads files, puts raw data on `ctx.trace`) and lives in `ace/steps/`. `OpenClawToTraceStep` is integration-specific (converts OpenClaw JSONL to trace dict) and lives in `ace/integrations/openclaw/`. The example script composes these steps with `learning_tail()`. No changes to existing core classes.
 
 ## Constitution Re-Check (Post-Design)
 

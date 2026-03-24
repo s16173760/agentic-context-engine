@@ -157,7 +157,7 @@ from pipeline import Pipeline, Branch, StepContext, MergeStrategy, PipelineHook,
 !!! tip "Using the Pipeline Engine with ACE"
     If you're building ACE pipelines, see [Composing Pipelines](../guides/composing-pipelines.md)
     for ACE-specific steps and patterns. All pipeline classes are also importable
-    from `ace_next` directly: `from ace_next import Pipeline, Branch, ...`
+    from `ace` directly: `from ace import Pipeline, Branch, ...`
 
 ---
 

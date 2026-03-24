@@ -166,7 +166,7 @@ Set `ACE_MCP_DEFAULT_MODEL` in the Inspector's environment variables panel befor
 ## File Layout
 
 ```
-ace_next/integrations/mcp/
+ace/integrations/mcp/
   __init__.py       ← Package marker
   server.py         ← Server creation and CLI entrypoint
   config.py         ← MCPServerConfig (pydantic-settings, env vars)

@@ -11,7 +11,7 @@ pip install ace-framework[langchain]
 ## Quick Start
 
 ```python
-from ace_next import LangChain
+from ace import LangChain
 
 runner = LangChain.from_model(your_chain, ace_model="gpt-4o-mini")
 

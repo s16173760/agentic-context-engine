@@ -2,7 +2,7 @@
 
 import pytest
 
-from ace_next.rr.context import RRIterationContext
+from ace.rr.context import RRIterationContext
 
 
 @pytest.mark.unit

@@ -25,7 +25,7 @@ graph LR
 Use when you have labeled data or a reliable evaluation function.
 
 ```python
-from ace_next import ACE, Sample, SimpleEnvironment
+from ace import ACE, Sample, SimpleEnvironment
 
 runner = ACE.from_roles(
     agent=agent,
@@ -53,7 +53,7 @@ graph LR
 Use when wrapping external agents where you don't have labeled answers.
 
 ```python
-from ace_next import BrowserUse
+from ace import BrowserUse
 
 # The browser-use agent produces a rich trace of actions
 runner = BrowserUse.from_model(

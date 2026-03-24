@@ -14,7 +14,7 @@ A full pipeline needs four things:
 ## Step 1: Create the LLM Client
 
 ```python
-from ace_next import LiteLLMClient
+from ace import LiteLLMClient
 
 llm = LiteLLMClient(model="gpt-4o-mini")
 ```
@@ -22,7 +22,7 @@ llm = LiteLLMClient(model="gpt-4o-mini")
 For robust JSON parsing with small models, wrap with Instructor (requires `pip install ace-framework[instructor]`):
 
 ```python
-from ace_next import LiteLLMClient, wrap_with_instructor
+from ace import LiteLLMClient, wrap_with_instructor
 
 llm = wrap_with_instructor(LiteLLMClient(model="ollama/gemma3:1b"))
 ```
@@ -30,7 +30,7 @@ llm = wrap_with_instructor(LiteLLMClient(model="ollama/gemma3:1b"))
 ## Step 2: Create the Roles
 
 ```python
-from ace_next import Agent, Reflector, SkillManager
+from ace import Agent, Reflector, SkillManager
 
 agent = Agent(llm)
 reflector = Reflector(llm)
@@ -53,7 +53,7 @@ skill_manager = SkillManager(learning_llm)
 The environment evaluates agent outputs. Extend `TaskEnvironment` and implement `evaluate()`:
 
 ```python
-from ace_next import TaskEnvironment, EnvironmentResult
+from ace import TaskEnvironment, EnvironmentResult
 
 class MathEnvironment(TaskEnvironment):
     def evaluate(self, sample, agent_output):
@@ -68,7 +68,7 @@ class MathEnvironment(TaskEnvironment):
 Or use the built-in `SimpleEnvironment` for basic ground-truth matching:
 
 ```python
-from ace_next import SimpleEnvironment
+from ace import SimpleEnvironment
 
 environment = SimpleEnvironment()
 ```
@@ -76,7 +76,7 @@ environment = SimpleEnvironment()
 ## Step 4: Prepare Samples
 
 ```python
-from ace_next import Sample
+from ace import Sample
 
 samples = [
     Sample(question="What is 2+2?", context="", ground_truth="4"),
@@ -88,7 +88,7 @@ samples = [
 ## Step 5: Build and Run the Pipeline
 
 ```python
-from ace_next import ACE
+from ace import ACE
 
 runner = ACE.from_roles(
     agent=agent,
@@ -110,7 +110,7 @@ print(f"Learned {len(runner.skillbook.skills())} strategies")
 ## Complete Example
 
 ```python
-from ace_next import (
+from ace import (
     ACE, Agent, Reflector, SkillManager,
     LiteLLMClient, Sample, SimpleEnvironment,
 )
@@ -165,7 +165,7 @@ This creates:
 Prevent duplicate skills from accumulating (requires `pip install ace-framework[deduplication]`):
 
 ```python
-from ace_next import DeduplicationConfig, DeduplicationManager
+from ace import DeduplicationConfig, DeduplicationManager
 
 dedup = DeduplicationManager(DeduplicationConfig(
     enabled=True,
@@ -212,7 +212,7 @@ skill_manager = SkillManager(mock_llm)
 Add Opik tracing to any pipeline via `extra_steps` (requires `pip install ace-framework[observability]`):
 
 ```python
-from ace_next import ACE, OpikStep, register_opik_litellm_callback
+from ace import ACE, OpikStep, register_opik_litellm_callback
 
 runner = ACE.from_roles(
     agent=agent,
@@ -235,7 +235,7 @@ same pipeline yourself for full control over step ordering, branching, and
 custom steps:
 
 ```python
-from ace_next import Pipeline, AgentStep, EvaluateStep, learning_tail
+from ace import Pipeline, AgentStep, EvaluateStep, learning_tail
 
 pipe = Pipeline([
     AgentStep(agent),

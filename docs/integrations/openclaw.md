@@ -407,10 +407,10 @@ modification, and casual follow-up
 
 ### `debugging-00005`
 
-Test litellm calls directly before debugging ace_next pipeline
+Test litellm calls directly before debugging ace pipeline
 
 **Justification:** Systematic debugging approach that isolated authentication issues
-**Evidence:** Direct litellm.completion() calls worked while ace_next failed
+**Evidence:** Direct litellm.completion() calls worked while ace failed
 
 *Tags: helpful=1, harmful=0, neutral=0*
 ```
@@ -493,8 +493,8 @@ Positional:
     docker run --rm openclaw:local which ace-learn
     ```
 
-??? question "Import errors for `ace_next` (host setup)"
-    The Docker image includes a cloned copy of the ACE repo at `/opt/ace` with all dependencies pre-installed — this is handled by `Dockerfile.ace`. For the host setup, make sure you run from the ACE repo root with `uv run` so that `ace_next` is importable:
+??? question "Import errors for `ace` (host setup)"
+    The Docker image includes a cloned copy of the ACE repo at `/opt/ace` with all dependencies pre-installed — this is handled by `Dockerfile.ace`. For the host setup, make sure you run from the ACE repo root with `uv run` so that `ace` is importable:
 
     ```bash
     cd /path/to/agentic-context-engine

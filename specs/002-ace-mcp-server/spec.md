@@ -7,7 +7,7 @@
 
 ## Summary
 
-Add an optional MCP server mode for ACE using the `ace_next` architecture. The server exposes ACE capabilities as MCP tools so external MCP clients (IDEs, copilots, orchestrators) can call ACE for inference and learning.
+Add an optional MCP server mode for ACE using the `ace` architecture. The server exposes ACE capabilities as MCP tools so external MCP clients (IDEs, copilots, orchestrators) can call ACE for inference and learning.
 
 The feature is **opt-in** via optional dependency extras and a dedicated CLI entrypoint. Existing ACE APIs and integrations remain unchanged when MCP is not enabled.
 
@@ -32,7 +32,7 @@ The feature is **opt-in** via optional dependency extras and a dedicated CLI ent
 
 ## Design Constraints
 
-- Implement in `ace_next` integration layer, not in `pipeline/` or `ace_next/core/` for MVP.
+- Implement in `ace` integration layer, not in `pipeline/` or `ace/core/` for MVP.
 - Preserve backward compatibility: no breaking changes to existing runners.
 - Keep MCP dependency optional (no mandatory install-time dependency).
 - Use existing ACE runner constructors (`from_model`, `from_roles`) and skillbook persistence APIs.
@@ -90,7 +90,7 @@ Canonical tool schemas are defined in: `specs/002-ace-mcp-server/contracts/tool-
 ## Exact Module Tree (Implementation)
 
 ```text
-ace_next/
+ace/
   integrations/
     mcp/
       __init__.py
@@ -103,17 +103,17 @@ ace_next/
       adapters.py               # maps handlers <-> MCP SDK tool registration
 
 tests/
-  test_ace_next_mcp_models.py      # schema validation and serialization
-  test_ace_next_mcp_registry.py    # session lifecycle and locking
-  test_ace_next_mcp_handlers.py    # tool behavior with mocked runner
-  test_ace_next_mcp_server.py      # server startup + tool registration smoke
+  test_ace_mcp_models.py      # schema validation and serialization
+  test_ace_mcp_registry.py    # session lifecycle and locking
+  test_ace_mcp_handlers.py    # tool behavior with mocked runner
+  test_ace_mcp_server.py      # server startup + tool registration smoke
 
 docs/
   integrations/
     mcp.md                      # install, run, tool catalog, examples
 
 examples/
-  ace_next/
+  ace/
     mcp_client_demo.py          # minimal MCP client invoking ace.ask
 ```
 
@@ -123,7 +123,7 @@ examples/
   - Add optional dependency group:
     - `mcp = ["mcp>=<pinned_version>"]` (or official Python MCP SDK package used by maintainers)
   - Add script entrypoint:
-    - `ace-mcp = "ace_next.integrations.mcp.server:main"`
+    - `ace-mcp = "ace.integrations.mcp.server:main"`
 
 ## Runtime Architecture
 
@@ -239,7 +239,7 @@ The per-tool fields included in the `max_prompt_chars` check:
 
 ### Regression
 
-- Run existing `ace_next` tests ensuring no MCP dependency required unless explicitly installed.
+- Run existing `ace` tests ensuring no MCP dependency required unless explicitly installed.
 
 ## Delivery Plan (PR Sequence)
 
@@ -258,13 +258,13 @@ The per-tool fields included in the `max_prompt_chars` check:
 
 ## Ready for Merge Checklist
 
-- [x] Module tree implemented under `ace_next/integrations/mcp/`
+- [x] Module tree implemented under `ace/integrations/mcp/`
 - [x] Tool schemas implemented and contract-aligned (`ace.ask`, `ace.learn.sample`, `ace.learn.feedback`, `ace.skillbook.get/save/load`)
 - [x] Optional dependency and CLI entrypoint wired (`mcp` extra, `ace-mcp`)
 - [x] Safe mode policy enforced for mutating tools
 - [x] Request-size limits enforced (`max_prompt_chars`, `max_samples_per_call`)
 - [x] Optional root-bound path validation enforced for save/load (`ACE_MCP_SKILLBOOK_ROOT`)
-- [x] MCP-focused tests passing (`test_ace_next_mcp_models/registry/handlers/server`)
+- [x] MCP-focused tests passing (`test_ace_mcp_models/registry/handlers/server`)
 - [x] Optional dependency boundary enforced with actionable install errors
-- [x] Docs + example client updated (`docs/integrations/mcp.md`, `examples/ace_next/mcp_client_demo.py`)
+- [x] Docs + example client updated (`docs/integrations/mcp.md`, `examples/ace/mcp_client_demo.py`)
 - [x] Changelog updated for this feature

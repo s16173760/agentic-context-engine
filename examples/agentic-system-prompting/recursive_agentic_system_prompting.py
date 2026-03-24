@@ -46,21 +46,21 @@ _handler = logging.StreamHandler()
 _handler.setFormatter(
     logging.Formatter("%(asctime)s [%(levelname)s] %(message)s", datefmt="%H:%M:%S")
 )
-_logger = logging.getLogger("ace_next.rr")
+_logger = logging.getLogger("ace.rr")
 _logger.setLevel(logging.DEBUG)
 _logger.addHandler(_handler)
 
 from pipeline import Pipeline
 
-from ace_next import TraceAnalyser, SkillManager, Skillbook
-from ace_next.rr import RRStep, RRConfig
-from ace_next.core.context import ACEStepContext
-from ace_next.deduplication import DeduplicationManager
-from ace_next.protocols.deduplication import DeduplicationConfig
-from ace_next.providers.litellm import LiteLLMClient, LiteLLMConfig
-from ace_next.implementations.prompts import wrap_skillbook_for_external_agent
-from ace_next.steps import TagStep, UpdateStep, ApplyStep, DeduplicateStep
-from ace_next.rr.prompts import REFLECTOR_RECURSIVE_PROMPT
+from ace import TraceAnalyser, SkillManager, Skillbook
+from ace.rr import RRStep, RRConfig
+from ace.core.context import ACEStepContext
+from ace.deduplication import DeduplicationManager
+from ace.protocols.deduplication import DeduplicationConfig
+from ace.providers.litellm import LiteLLMClient, LiteLLMConfig
+from ace.implementations.prompts import wrap_skillbook_for_external_agent
+from ace.steps import TagStep, UpdateStep, ApplyStep, DeduplicateStep
+from ace.rr.prompts import REFLECTOR_RECURSIVE_PROMPT
 
 
 # ---------------------------------------------------------------------------
@@ -221,7 +221,7 @@ def main():
     steps: list[Any] = [RRTraceStep(rr)]
 
     if args.opik:
-        from ace_next.rr import RROpikStep
+        from ace.rr import RROpikStep
 
         steps.append(RROpikStep(project_name="ace-rr"))
         print("Opik tracing enabled via RROpikStep")

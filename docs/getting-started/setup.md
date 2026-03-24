@@ -57,7 +57,7 @@ This creates two files:
 Then in your code:
 
 ```python
-from ace_next import ACELiteLLM
+from ace import ACELiteLLM
 
 ace = ACELiteLLM.from_setup()
 answer = ace.ask("What is 2+2?")
@@ -87,14 +87,14 @@ If you prefer not to use the CLI, set environment variables directly.
 ### 2. Use in code
 
 ```python
-from ace_next import ACELiteLLM
+from ace import ACELiteLLM
 
 # Single model for all roles
 ace = ACELiteLLM.from_model("gpt-4o-mini")
 ```
 
 ```python
-from ace_next import ACELiteLLM, ACEModelConfig, ModelConfig
+from ace import ACELiteLLM, ACEModelConfig, ModelConfig
 
 # Different models per role
 ace = ACELiteLLM.from_config(ACEModelConfig(

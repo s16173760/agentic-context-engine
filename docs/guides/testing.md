@@ -25,7 +25,7 @@ Use a mock LLM to test pipeline wiring without making real API calls. Any object
 
 ```python
 from unittest.mock import MagicMock
-from ace_next import Agent, Reflector, SkillManager
+from ace import Agent, Reflector, SkillManager
 
 mock_llm = MagicMock()
 mock_llm.complete.return_value = '{"reasoning": "test", "final_answer": "4", "skill_ids": []}'
@@ -40,7 +40,7 @@ skill_manager = SkillManager(mock_llm)
 ### Testing the Skillbook
 
 ```python
-from ace_next import Skillbook
+from ace import Skillbook
 
 def test_add_skill():
     skillbook = Skillbook()
@@ -67,7 +67,7 @@ def test_save_load(tmp_path):
 
 ```python
 from unittest.mock import MagicMock
-from ace_next import Agent, Skillbook
+from ace import Agent, Skillbook
 
 def test_agent_generate():
     mock_llm = MagicMock()
@@ -87,7 +87,7 @@ def test_agent_generate():
 
 ```python
 from unittest.mock import MagicMock
-from ace_next import Agent, Reflector, SkillManager, Skillbook
+from ace import Agent, Reflector, SkillManager, Skillbook
 
 def make_mock_llm():
     mock = MagicMock()
@@ -120,7 +120,7 @@ def test_skill_manager():
 
 ```python
 from unittest.mock import MagicMock
-from ace_next import (
+from ace import (
     ACE, Agent, Reflector, SkillManager,
     Sample, SimpleEnvironment,
 )
@@ -173,7 +173,7 @@ def test_checkpoints(tmp_path):
 ```python
 import pytest
 from unittest.mock import MagicMock
-from ace_next import Agent, Reflector, SkillManager, Skillbook
+from ace import Agent, Reflector, SkillManager, Skillbook
 
 @pytest.fixture
 def mock_llm():

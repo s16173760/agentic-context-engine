@@ -4,7 +4,7 @@ ACE uses specialized prompt templates for each role. The framework includes mult
 
 ## Default Prompts
 
-`ace_next` ships with v2.1 prompts built in. All three roles (`Agent`, `Reflector`, `SkillManager`) use them by default — no extra imports needed.
+`ace` ships with v2.1 prompts built in. All three roles (`Agent`, `Reflector`, `SkillManager`) use them by default — no extra imports needed.
 
 !!! tip "Recommendation"
     The built-in v2.1 prompts work well out of the box. Only provide custom prompts when you need domain-specific instructions.
@@ -14,7 +14,7 @@ ACE uses specialized prompt templates for each role. The framework includes mult
 Pass a `prompt_template` string to any role constructor:
 
 ```python
-from ace_next import Agent, Reflector, SkillManager, LiteLLMClient
+from ace import Agent, Reflector, SkillManager, LiteLLMClient
 
 llm = LiteLLMClient(model="gpt-4o-mini")
 
@@ -77,7 +77,7 @@ agent = Agent(llm, prompt_template=custom_agent_prompt)
 Integration runners inject the skillbook into external agent prompts using a wrapper function:
 
 ```python
-from ace_next import wrap_skillbook_context
+from ace import wrap_skillbook_context
 
 context = wrap_skillbook_context(skillbook)
 # Returns formatted strategies with usage instructions

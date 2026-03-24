@@ -17,7 +17,7 @@ graph LR
 The Agent receives a question, context, and the skillbook's strategies, then generates a reasoned answer citing which skills it used.
 
 ```python
-from ace_next import Agent, LiteLLMClient
+from ace import Agent, LiteLLMClient
 
 llm = LiteLLMClient(model="gpt-4o-mini")
 agent = Agent(llm)
@@ -46,7 +46,7 @@ output = agent.generate(
 The Reflector receives the agent's output, the environment's feedback, and the skillbook. It produces an analysis of the outcome and tags each cited skill as helpful, harmful, or neutral.
 
 ```python
-from ace_next import Reflector
+from ace import Reflector
 
 reflector = Reflector(llm)
 
@@ -84,7 +84,7 @@ reflection = reflector.reflect(
 The SkillManager takes the Reflector's analysis and decides which operations to apply to the skillbook — adding new strategies, updating existing ones, or removing harmful ones.
 
 ```python
-from ace_next import SkillManager
+from ace import SkillManager
 
 skill_manager = SkillManager(llm)
 
@@ -111,7 +111,7 @@ skillbook.apply_update(sm_output.update)
 All three roles share the same LLM instance. The intelligence comes from the specialized prompts, not from using different models:
 
 ```python
-from ace_next import Agent, Reflector, SkillManager, LiteLLMClient
+from ace import Agent, Reflector, SkillManager, LiteLLMClient
 
 llm = LiteLLMClient(model="gpt-4o-mini")
 

@@ -2,7 +2,7 @@
 """Compose a custom ACE pipeline from individual steps.
 
 Demonstrates:
-  1. Pipeline composition with a single import line from ace_next
+  1. Pipeline composition with a single import line from ace
   2. Adding a custom step to the pipeline
   3. Inspecting runner presets via build_steps()
   4. Running the pipeline directly via ACERunner
@@ -14,7 +14,7 @@ Requires:
 
 from __future__ import annotations
 
-from ace_next import (
+from ace import (
     # Pipeline engine
     Pipeline,
     StepProtocol,

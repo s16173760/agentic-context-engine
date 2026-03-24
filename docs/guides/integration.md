@@ -22,7 +22,7 @@ ACE provides runners for popular frameworks. Each uses `from_model()` for quick 
 === "Browser-Use"
 
     ```python
-    from ace_next import BrowserUse
+    from ace import BrowserUse
     from langchain_openai import ChatOpenAI
 
     runner = BrowserUse.from_model(
@@ -36,7 +36,7 @@ ACE provides runners for popular frameworks. Each uses `from_model()` for quick 
 === "LangChain"
 
     ```python
-    from ace_next import LangChain
+    from ace import LangChain
 
     runner = LangChain.from_model(your_chain, ace_model="gpt-4o-mini")
     results = runner.run([{"input": "Summarize this document"}])
@@ -46,7 +46,7 @@ ACE provides runners for popular frameworks. Each uses `from_model()` for quick 
 === "Claude Code"
 
     ```python
-    from ace_next import ClaudeCode
+    from ace import ClaudeCode
 
     runner = ClaudeCode.from_model(working_dir="./my_project")
     results = runner.run(["Add tests for utils.py", "Fix the login bug"])
@@ -74,7 +74,7 @@ runner = BrowserUse.from_model(
 Provide pre-built role instances:
 
 ```python
-from ace_next import Reflector, SkillManager, LiteLLMClient
+from ace import Reflector, SkillManager, LiteLLMClient
 
 learning_llm = LiteLLMClient(model="gpt-4o-mini")
 
@@ -121,9 +121,9 @@ The pattern: **Execute Step** (runs your agent) + **ToTrace Step** (extracts lea
 
 ```python
 from pipeline import Pipeline
-from ace_next import Skillbook, Reflector, SkillManager, LiteLLMClient
-from ace_next.steps import learning_tail
-from ace_next.runners import ACERunner
+from ace import Skillbook, Reflector, SkillManager, LiteLLMClient
+from ace.steps import learning_tail
+from ace.runners import ACERunner
 
 # Your custom execute step would implement the Step protocol
 # See the Pipeline Engine docs for details on building custom steps

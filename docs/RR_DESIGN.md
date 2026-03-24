@@ -1,6 +1,6 @@
 # Recursive Reflector (RR) Design
 
-Design document for the Recursive Reflector module (`ace_next/rr/`). The RR is a REPL-based trace analyser that iteratively calls an LLM to generate Python code, executes it in a sandbox, and builds structured reflections from agent execution traces.
+Design document for the Recursive Reflector module (`ace/rr/`). The RR is a REPL-based trace analyser that iteratively calls an LLM to generate Python code, executes it in a sandbox, and builds structured reflections from agent execution traces.
 
 ---
 
@@ -11,12 +11,12 @@ The Recursive Reflector replaces the single-pass `Reflector` with an iterative c
 **Key properties:**
 
 - Satisfies both `StepProtocol` and `ReflectorLike` — usable as a pipeline step or a drop-in reflector replacement.
-- Extends `SubRunner` (from `ace_next/core/sub_runner.py`) — runs an inner `Pipeline` in a loop.
+- Extends `SubRunner` (from `ace/core/sub_runner.py`) — runs an inner `Pipeline` in a loop.
 - Single shared `CallBudget` enforces combined LLM call limit across main calls and sub-agent calls.
 - Produces `ReflectorOutput` with an enriched `raw["rr_trace"]` dict for downstream observability.
 
 ```python
-from ace_next.rr import RRStep, RRConfig
+from ace.rr import RRStep, RRConfig
 
 # Drop-in replacement for Reflector
 ace = ACELiteLLM(llm, reflector=RRStep(llm, config=RRConfig(max_iterations=10)))
@@ -136,7 +136,7 @@ The `prompt_template` is formatted with these variables:
 Exported as `RRConfig` (aliased from `RecursiveConfig`).
 
 ```python
-from ace_next.rr import RRConfig
+from ace.rr import RRConfig
 
 config = RRConfig(
     max_iterations=20,           # Max REPL iterations before timeout
@@ -204,7 +204,7 @@ Each iteration creates a fresh context via `.replace()`. The `_accumulate` metho
 
 ## TraceSandbox
 
-Lightweight `exec()`-based sandbox for running LLM-generated Python code. Located in `ace_next/rr/sandbox.py`.
+Lightweight `exec()`-based sandbox for running LLM-generated Python code. Located in `ace/rr/sandbox.py`.
 
 **Not a security sandbox.** Restricts builtins as defence-in-depth but relies on trusting the LLM not to generate malicious code. Do not use for untrusted code.
 
@@ -404,7 +404,7 @@ When `budget` is provided, it takes precedence over `max_calls`. The returned ca
 
 ## TraceContext
 
-Structured trace wrapper for programmatic exploration in the sandbox. Located in `ace_next/rr/trace_context.py`.
+Structured trace wrapper for programmatic exploration in the sandbox. Located in `ace/rr/trace_context.py`.
 
 ### TraceStep
 
@@ -459,7 +459,7 @@ class TraceStep:
 
 ## Code Extraction
 
-Three-layer fallback chain for extracting Python code from LLM responses. Located in `ace_next/rr/code_extraction.py`.
+Three-layer fallback chain for extracting Python code from LLM responses. Located in `ace/rr/code_extraction.py`.
 
 | Layer | Function | Strategy |
 |-------|----------|----------|
@@ -491,7 +491,7 @@ When the first fenced block starts with `# BATCH`, all fenced blocks in the resp
 
 ## Message Trimming
 
-Semantic importance-based trimming of REPL message history. Located in `ace_next/rr/message_trimming.py`.
+Semantic importance-based trimming of REPL message history. Located in `ace/rr/message_trimming.py`.
 
 When message history exceeds `config.max_context_chars`, iterations are scored by importance and the lowest-value ones are dropped:
 
@@ -682,10 +682,10 @@ This structure is consumed by `RROpikStep` for observability and can be inspecte
 
 ## RROpikStep
 
-Side-effect step for logging RR traces to Opik. Located in `ace_next/rr/opik.py`.
+Side-effect step for logging RR traces to Opik. Located in `ace/rr/opik.py`.
 
 ```python
-from ace_next.rr import RROpikStep
+from ace.rr import RROpikStep
 
 # Place after RRStep in the pipeline
 steps = [..., rr_step, RROpikStep(project_name="my-project")]
@@ -744,10 +744,10 @@ Call `flush()` after the pipeline finishes to drain buffered traces before the p
 
 ## Public API
 
-All exports from `ace_next.rr`:
+All exports from `ace.rr`:
 
 ```python
-from ace_next.rr import (
+from ace.rr import (
     # Core
     RRStep,                  # Main entry point (SubRunner + StepProtocol + ReflectorLike)
     RRConfig,                # Configuration (alias for RecursiveConfig)

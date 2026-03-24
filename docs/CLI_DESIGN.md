@@ -8,16 +8,16 @@ Design document for the `ace` CLI, model configuration system, and provider regi
 
 | Component | Status | Location |
 |---|---|---|
-| `ModelConfig` / `ACEModelConfig` dataclasses | Done | `ace_next/providers/config.py` |
-| TOML persistence (`ace.toml`) | Done | `ace_next/providers/config.py` |
-| `.env` persistence (secrets) | Done | `ace_next/providers/config.py` |
-| Provider registry (LiteLLM delegation) | Done | `ace_next/providers/registry.py` |
-| Model search / discovery | Done | `ace_next/providers/registry.py` |
-| Connection validation | Done | `ace_next/providers/registry.py` |
-| `ace setup` interactive wizard | Done | `ace_next/cli/setup.py` |
-| `ace models` search command | Done | `ace_next/cli/setup.py` |
-| `ace validate` connection test | Done | `ace_next/cli/setup.py` |
-| Lazy imports (fast CLI startup) | Done | `ace_next/__init__.py`, `ace_next/providers/__init__.py`, `ace_next/providers/registry.py` |
+| `ModelConfig` / `ACEModelConfig` dataclasses | Done | `ace/providers/config.py` |
+| TOML persistence (`ace.toml`) | Done | `ace/providers/config.py` |
+| `.env` persistence (secrets) | Done | `ace/providers/config.py` |
+| Provider registry (LiteLLM delegation) | Done | `ace/providers/registry.py` |
+| Model search / discovery | Done | `ace/providers/registry.py` |
+| Connection validation | Done | `ace/providers/registry.py` |
+| `ace setup` interactive wizard | Done | `ace/cli/setup.py` |
+| `ace models` search command | Done | `ace/cli/setup.py` |
+| `ace validate` connection test | Done | `ace/cli/setup.py` |
+| Lazy imports (fast CLI startup) | Done | `ace/__init__.py`, `ace/providers/__init__.py`, `ace/providers/registry.py` |
 
 ---
 
@@ -36,13 +36,13 @@ Design document for the `ace` CLI, model configuration system, and provider regi
 ```
 pyproject.toml
   [project.scripts]
-  ace = "ace_next.cli.setup:main"        # entry point
+  ace = "ace.cli.setup:main"        # entry point
 
-ace_next/cli/
+ace/cli/
   __init__.py
   setup.py          # CLI commands + interactive wizard
 
-ace_next/providers/
+ace/providers/
   __init__.py        # lazy re-exports
   config.py          # ModelConfig, ACEModelConfig, TOML + .env I/O
   registry.py        # provider detection, model search, connection validation
@@ -50,9 +50,9 @@ ace_next/providers/
   instructor.py      # InstructorClient (structured outputs — not CLI)
 ```
 
-The CLI layer (`ace_next/cli/`) depends on:
-- `ace_next/providers/config.py` — always (lightweight, no heavy deps)
-- `ace_next/providers/registry.py` — only when validating or searching (imports LiteLLM lazily)
+The CLI layer (`ace/cli/`) depends on:
+- `ace/providers/config.py` — always (lightweight, no heavy deps)
+- `ace/providers/registry.py` — only when validating or searching (imports LiteLLM lazily)
 
 The config layer has **zero heavy dependencies** — it uses only `tomllib` (stdlib), `pathlib`, and `dataclasses`.
 
@@ -91,7 +91,7 @@ Roles without an explicit section inherit from `[default]`. Only non-default val
 ### Loading in code
 
 ```python
-from ace_next import ACELiteLLM
+from ace import ACELiteLLM
 
 # Option 1: Load from ace.toml + .env (created by `ace setup`)
 ace = ACELiteLLM.from_setup()
@@ -100,7 +100,7 @@ ace = ACELiteLLM.from_setup()
 ace = ACELiteLLM.from_model("gpt-4o-mini")
 
 # Option 3: Full config object
-from ace_next import ACEModelConfig, ModelConfig
+from ace import ACEModelConfig, ModelConfig
 ace = ACELiteLLM.from_config(ACEModelConfig(
     default=ModelConfig(model="gpt-4o-mini"),
     agent=ModelConfig(model="claude-sonnet-4-20250514"),
@@ -171,7 +171,7 @@ Returned by `search_models()`. Pricing is per million tokens (converted from Lit
 
 ## Provider Registry
 
-All provider logic is delegated to LiteLLM. The registry module (`ace_next/providers/registry.py`) wraps LiteLLM with a stable API:
+All provider logic is delegated to LiteLLM. The registry module (`ace/providers/registry.py`) wraps LiteLLM with a stable API:
 
 | Function | What it does | Makes API calls? |
 |----------|-------------|-----------------|
@@ -241,7 +241,7 @@ Defined in `pyproject.toml`:
 
 ```toml
 [project.scripts]
-ace = "ace_next.cli.setup:main"
+ace = "ace.cli.setup:main"
 ```
 
 `main()` uses `argparse` with subcommands:
@@ -425,7 +425,7 @@ Validation checks: min/max batch size, all traces assigned, no duplicates, no un
 
 ### Relationship to `ace setup`
 
-The `ace` entry point (`ace_next.cli.setup:main`) handles local model configuration.
+The `ace` entry point (`ace.cli.setup:main`) handles local model configuration.
 The `kayba` entry point (`ace.cli:main`) handles hosted API operations.
 They are independent — `kayba` does not require `ace.toml` or any local LLM setup.
 
@@ -435,17 +435,17 @@ They are independent — `kayba` does not require `ace.toml` or any local LLM se
 
 ### Problem
 
-`import ace_next` eagerly imported all submodules, including `litellm` (~1.5s). This made the CLI unusable (~2s startup for a simple `ace --help`).
+`import ace` eagerly imported all submodules, including `litellm` (~1.5s). This made the CLI unusable (~2s startup for a simple `ace --help`).
 
 ### Solution
 
 Three-layer lazy import:
 
-1. **`ace_next/__init__.py`** — `__getattr__`-based lazy loading. `TYPE_CHECKING` block for IDE support, `_LAZY_IMPORTS` dict for runtime.
+1. **`ace/__init__.py`** — `__getattr__`-based lazy loading. `TYPE_CHECKING` block for IDE support, `_LAZY_IMPORTS` dict for runtime.
 
-2. **`ace_next/providers/__init__.py`** — same pattern. Config imports are eager (lightweight), everything else is lazy.
+2. **`ace/providers/__init__.py`** — same pattern. Config imports are eager (lightweight), everything else is lazy.
 
-3. **`ace_next/providers/registry.py`** — `_litellm()` helper defers `import litellm` until first function call.
+3. **`ace/providers/registry.py`** — `_litellm()` helper defers `import litellm` until first function call.
 
 Result: `ace --help` runs in ~50ms. LiteLLM is only imported when the user actually searches, validates, or sets up.
 
@@ -482,8 +482,8 @@ ace/cli/
   client.py                     # KaybaClient HTTP client
   cloud.py                      # upload, insights, prompts, status, materialize, batch
 
-ace_next/
-  __init__.py                     # lazy re-exports for all ace_next symbols
+ace/
+  __init__.py                     # lazy re-exports for all ace symbols
   cli/
     __init__.py                   # "ACE CLI — setup and management commands."
     setup.py                      # main(), run_setup(), _cmd_models(), _cmd_validate(), _cmd_config()

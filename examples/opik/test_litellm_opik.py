@@ -17,7 +17,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-from ace_next import ACELiteLLM, Sample, SimpleEnvironment
+from ace import ACELiteLLM, Sample, SimpleEnvironment
 
 logging.basicConfig(level=logging.INFO, format="%(name)s | %(message)s")
 log = logging.getLogger(__name__)

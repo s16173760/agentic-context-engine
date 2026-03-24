@@ -1,4 +1,4 @@
-"""Tests that pipeline composition classes are importable from ace_next.
+"""Tests that pipeline composition classes are importable from ace.
 
 Verifies the public API surface for pipeline-first composition.
 """
@@ -10,12 +10,12 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from ace_next.core.outputs import (
+from ace.core.outputs import (
     AgentOutput,
     ReflectorOutput,
     SkillManagerOutput,
 )
-from ace_next.core.skillbook import Skillbook, UpdateBatch, UpdateOperation
+from ace.core.skillbook import Skillbook, UpdateBatch, UpdateOperation
 
 # ------------------------------------------------------------------ #
 # Mock roles for build_steps() tests
@@ -50,61 +50,61 @@ class MockSkillManager:
 
 
 # ------------------------------------------------------------------ #
-# Pipeline primitives are importable from ace_next
+# Pipeline primitives are importable from ace
 # ------------------------------------------------------------------ #
 
 
 class TestPipelineExports:
     def test_pipeline_class(self):
-        from ace_next import Pipeline
+        from ace import Pipeline
 
         assert Pipeline is not None
 
     def test_branch_class(self):
-        from ace_next import Branch
+        from ace import Branch
 
         assert Branch is not None
 
     def test_merge_strategy(self):
-        from ace_next import MergeStrategy
+        from ace import MergeStrategy
 
         assert MergeStrategy is not None
 
     def test_step_protocol(self):
-        from ace_next import StepProtocol
+        from ace import StepProtocol
 
         assert StepProtocol is not None
 
     def test_sample_result(self):
-        from ace_next import SampleResult
+        from ace import SampleResult
 
         assert SampleResult is not None
 
 
 # ------------------------------------------------------------------ #
-# ACE context types are importable from ace_next
+# ACE context types are importable from ace
 # ------------------------------------------------------------------ #
 
 
 class TestContextExports:
     def test_ace_step_context(self):
-        from ace_next import ACEStepContext
+        from ace import ACEStepContext
 
         assert ACEStepContext is not None
 
     def test_skillbook_view(self):
-        from ace_next import SkillbookView
+        from ace import SkillbookView
 
         assert SkillbookView is not None
 
     def test_ace_runner(self):
-        from ace_next import ACERunner
+        from ace import ACERunner
 
         assert ACERunner is not None
 
 
 # ------------------------------------------------------------------ #
-# All steps are importable from ace_next
+# All steps are importable from ace
 # ------------------------------------------------------------------ #
 
 
@@ -128,12 +128,12 @@ class TestStepExports:
         ],
     )
     def test_step_importable(self, name: str):
-        import ace_next
+        import ace
 
-        assert hasattr(ace_next, name), f"{name} not in ace_next"
+        assert hasattr(ace, name), f"{name} not in ace"
 
     def test_all_steps_in_dunder_all(self):
-        import ace_next
+        import ace
 
         step_names = [
             "AgentStep",
@@ -151,7 +151,7 @@ class TestStepExports:
             "learning_tail",
         ]
         for name in step_names:
-            assert name in ace_next.__all__, f"{name} not in __all__"
+            assert name in ace.__all__, f"{name} not in __all__"
 
 
 # ------------------------------------------------------------------ #
@@ -161,8 +161,8 @@ class TestStepExports:
 
 class TestBuildSteps:
     def test_ace_build_steps(self):
-        from ace_next import ACE
-        from ace_next.steps import AgentStep, EvaluateStep, ReflectStep
+        from ace import ACE
+        from ace.steps import AgentStep, EvaluateStep, ReflectStep
 
         steps = ACE.build_steps(
             agent=MockAgent(),
@@ -176,8 +176,8 @@ class TestBuildSteps:
         assert isinstance(steps[2], ReflectStep)
 
     def test_trace_analyser_build_steps(self):
-        from ace_next import TraceAnalyser
-        from ace_next.steps import ReflectStep
+        from ace import TraceAnalyser
+        from ace.steps import ReflectStep
 
         steps = TraceAnalyser.build_steps(
             reflector=MockReflector(),
@@ -189,7 +189,7 @@ class TestBuildSteps:
 
     def test_ace_from_roles_delegates_to_build_steps(self):
         """from_roles() should produce the same steps as build_steps()."""
-        from ace_next import ACE
+        from ace import ACE
 
         kwargs = dict(
             agent=MockAgent(),
@@ -206,7 +206,7 @@ class TestBuildSteps:
             assert type(pipe_step) is type(built_step)
 
     def test_build_steps_with_extra_steps(self):
-        from ace_next import ACE
+        from ace import ACE
 
         class DummyStep:
             requires = frozenset()
@@ -225,7 +225,7 @@ class TestBuildSteps:
 
     def test_pipeline_from_build_steps(self):
         """Pipeline constructed from build_steps() should be valid."""
-        from ace_next import ACE, Pipeline
+        from ace import ACE, Pipeline
 
         steps = ACE.build_steps(
             agent=MockAgent(),

@@ -71,7 +71,7 @@ OPENAI_API_KEY=sk-...
 ## Verify Installation
 
 ```python
-from ace_next import ACELiteLLM
+from ace import ACELiteLLM
 
 # Uses ace.toml + .env from `ace setup`
 agent = ACELiteLLM.from_setup()

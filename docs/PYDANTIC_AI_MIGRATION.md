@@ -1,10 +1,10 @@
 # PydanticAI Migration Plan
 
-> Migrating ace_next's LLM interaction layer to PydanticAI while preserving the pipeline engine and learning loop.
+> Migrating ace's LLM interaction layer to PydanticAI while preserving the pipeline engine and learning loop.
 
 ## Motivation
 
-ace_next currently has three hand-rolled LLM client implementations (LiteLLMClient, InstructorClient, ClaudeCodeLLMClient) with inconsistent retry/validation behavior, ~3,500 lines of custom agent-loop plumbing in the Recursive Reflector, and manual code extraction via regex. PydanticAI handles all of this as maintained infrastructure.
+ace currently has three hand-rolled LLM client implementations (LiteLLMClient, InstructorClient, ClaudeCodeLLMClient) with inconsistent retry/validation behavior, ~3,500 lines of custom agent-loop plumbing in the Recursive Reflector, and manual code extraction via regex. PydanticAI handles all of this as maintained infrastructure.
 
 ### What we keep (our competitive advantage)
 
@@ -108,12 +108,12 @@ The existing protocols (`AgentLike`, `ReflectorLike`, `SkillManagerLike`) stay u
 
 ### Files affected
 
-- `ace_next/implementations/agent.py` — rewrite internals, keep `generate()` signature
-- `ace_next/implementations/reflector.py` — rewrite internals, keep `reflect()` signature
-- `ace_next/implementations/skill_manager.py` — rewrite internals, keep `update_skills()` signature
-- `ace_next/providers/litellm.py` — deprecate (PydanticAI handles provider abstraction)
-- `ace_next/providers/instructor.py` — deprecate (PydanticAI handles structured output)
-- `ace_next/protocols/llm.py` — deprecate `LLMClientLike` (roles use PydanticAI agents directly)
+- `ace/implementations/agent.py` — rewrite internals, keep `generate()` signature
+- `ace/implementations/reflector.py` — rewrite internals, keep `reflect()` signature
+- `ace/implementations/skill_manager.py` — rewrite internals, keep `update_skills()` signature
+- `ace/providers/litellm.py` — deprecate (PydanticAI handles provider abstraction)
+- `ace/providers/instructor.py` — deprecate (PydanticAI handles structured output)
+- `ace/protocols/llm.py` — deprecate `LLMClientLike` (roles use PydanticAI agents directly)
 
 ### Migration path
 
@@ -483,7 +483,7 @@ No changes to `ace.toml` — Logfire config is purely env-based.
 2. ~~**Phase 1**: Implement PydanticAI-backed Agent, Reflector, SkillManager behind existing protocols. Run existing tests to verify.~~ **DONE** — 1098 tests passing
 3. ~~**Phase 2**: Implement PydanticAI-based RR agent. Run RR tests + integration tests.~~ **DONE** — RRStep now uses PydanticAI agent with `execute_code`, `analyze`, `batch_analyze` tools. Old inner pipeline (SubRunner, LLMCallStep, ExtractCodeStep, etc.) deprecated. 1093 tests passing.
 4. ~~**Phase 3**: Update runners and config. Deprecate old providers.~~ **DONE** — Deprecation warnings added to `LiteLLMClient`, `InstructorClient`, `ClaudeCodeLLMClient`, `LangChainLiteLLMClient`, and `LLMClientLike`.
-5. ~~**Phase 4**: Add Logfire observability (auto-instruments all PydanticAI agents).~~ **DONE** — `ace_next.observability.configure_logfire()` auto-instruments all PydanticAI agents. Opt-in via `ACELiteLLM(logfire=True)`.
+5. ~~**Phase 4**: Add Logfire observability (auto-instruments all PydanticAI agents).~~ **DONE** — `ace.observability.configure_logfire()` auto-instruments all PydanticAI agents. Opt-in via `ACELiteLLM(logfire=True)`.
 6. **Cleanup**: Remove deprecated code, update docs.
 
 ### Backward compatibility

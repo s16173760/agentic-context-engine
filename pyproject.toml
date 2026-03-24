@@ -111,8 +111,8 @@ mcp = [
 ]
 
 [project.scripts]
-ace = "ace_next.cli.setup:main"
-ace-mcp = "ace_next.integrations.mcp.server:main"
+ace = "ace.cli.setup:main"
+ace-mcp = "ace.integrations.mcp.server:main"
 
 [project.urls]
 Homepage = "https://kayba.ai"
@@ -146,10 +146,10 @@ demos = [
 ]
 
 [tool.setuptools.packages.find]
-include = ["ace_next", "ace_next.*", "pipeline", "pipeline.*"]
+include = ["ace", "ace.*", "pipeline", "pipeline.*"]
 
 [tool.setuptools.package-data]
-ace_next = ["py.typed"]
+ace = ["py.typed"]
 
 [tool.black]
 line-length = 88
@@ -170,7 +170,7 @@ warn_return_any = false
 warn_unused_configs = true
 disallow_untyped_defs = false
 ignore_missing_imports = true
-files = ["ace_next"]
+files = ["ace"]
 exclude = [
     "^tests/",
     "^examples/",
@@ -187,7 +187,7 @@ addopts = [
     "-v",
     "--strict-markers",
     "--tb=short",
-    "--cov=ace_next",
+    "--cov=ace",
     "--cov=pipeline",
     "--cov-report=term-missing",
     "--cov-report=html",

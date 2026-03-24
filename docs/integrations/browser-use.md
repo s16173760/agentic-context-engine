@@ -11,7 +11,7 @@ pip install ace-framework[browser-use]
 ## Quick Start
 
 ```python
-from ace_next import BrowserUse
+from ace import BrowserUse
 from langchain_openai import ChatOpenAI
 
 runner = BrowserUse.from_model(
@@ -83,7 +83,7 @@ results = runner.run([
 ## Example: Domain Checker
 
 ```python
-from ace_next import BrowserUse
+from ace import BrowserUse
 from langchain_openai import ChatOpenAI
 
 runner = BrowserUse.from_model(

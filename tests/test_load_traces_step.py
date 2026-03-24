@@ -7,8 +7,8 @@ from pathlib import Path
 
 import pytest
 
-from ace_next.core.context import ACEStepContext
-from ace_next.steps.load_traces import LoadTracesStep
+from ace.core.context import ACEStepContext
+from ace.steps.load_traces import LoadTracesStep
 
 
 @pytest.fixture

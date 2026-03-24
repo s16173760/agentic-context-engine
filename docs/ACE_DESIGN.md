@@ -6,28 +6,28 @@ Specification for rewriting the legacy `ace/` module to use the pipeline engine.
 
 ## Implementation Status
 
-Implemented in `ace_next/` (parallel to `ace/` for easy rollback). The package is fully self-contained — all types are copied locally, zero imports from `ace/`.
+Implemented in `ace/` (parallel to `ace/` for easy rollback). The package is fully self-contained — all types are copied locally, zero imports from `ace/`.
 
 | Component | Status | Location |
 |---|---|---|
-| Core types (`ACEStepContext`, `SkillbookView`, `ACESample`) | Done | `ace_next/context.py` |
-| Data types (`Skill`, `Skillbook`, `UpdateBatch`, outputs) | Done | `ace_next/skill.py`, `skillbook.py`, `updates.py`, `outputs.py` |
-| Environments (`Sample`, `TaskEnvironment`, etc.) | Done | `ace_next/environments.py` |
-| Protocols (`AgentLike`, `ReflectorLike`, etc.) | Done | `ace_next/protocols/` |
-| Steps (all 10) | Done | `ace_next/steps/` |
-| `learning_tail()` helper | Done | `ace_next/steps/__init__.py` |
-| `ACERunner` base class | Done | `ace_next/runners/base.py` |
-| `TraceAnalyser` | Done | `ace_next/runners/trace_analyser.py` |
-| `ACE` runner | Done | `ace_next/runners/ace.py` |
-| Implementations (`Agent`, `Reflector`, `SkillManager`) | Done | `ace_next/implementations/` |
-| Deduplication (`DeduplicationManager`, `SimilarityDetector`) | Done | `ace_next/deduplication/` |
-| Integration steps (`BrowserExecuteStep`, `LangChainExecuteStep`, `ClaudeCodeExecuteStep`) | Done | `ace_next/integrations/` |
-| Integration runners (`BrowserUse`, `LangChain`, `ClaudeCode`) | Done | `ace_next/runners/` |
-| Convenience `from_model()` on integration runners | Done | `ace_next/runners/browser_use.py`, `langchain.py`, `claude_code.py` |
-| `ACELiteLLM` convenience wrapper | Done | `ace_next/runners/litellm.py` |
-| LLM providers (`LiteLLMClient`, `InstructorClient`, `LangChainLiteLLMClient`, `ClaudeCodeLLMClient`) | Done | `ace_next/providers/` |
-| Recursive Reflector | Done | `ace_next/rr/` (SubRunner base in `ace_next/core/`) |
-| MCP Server (optional) | Done | `ace_next/integrations/mcp/` |
+| Core types (`ACEStepContext`, `SkillbookView`, `ACESample`) | Done | `ace/context.py` |
+| Data types (`Skill`, `Skillbook`, `UpdateBatch`, outputs) | Done | `ace/skill.py`, `skillbook.py`, `updates.py`, `outputs.py` |
+| Environments (`Sample`, `TaskEnvironment`, etc.) | Done | `ace/environments.py` |
+| Protocols (`AgentLike`, `ReflectorLike`, etc.) | Done | `ace/protocols/` |
+| Steps (all 10) | Done | `ace/steps/` |
+| `learning_tail()` helper | Done | `ace/steps/__init__.py` |
+| `ACERunner` base class | Done | `ace/runners/base.py` |
+| `TraceAnalyser` | Done | `ace/runners/trace_analyser.py` |
+| `ACE` runner | Done | `ace/runners/ace.py` |
+| Implementations (`Agent`, `Reflector`, `SkillManager`) | Done | `ace/implementations/` |
+| Deduplication (`DeduplicationManager`, `SimilarityDetector`) | Done | `ace/deduplication/` |
+| Integration steps (`BrowserExecuteStep`, `LangChainExecuteStep`, `ClaudeCodeExecuteStep`) | Done | `ace/integrations/` |
+| Integration runners (`BrowserUse`, `LangChain`, `ClaudeCode`) | Done | `ace/runners/` |
+| Convenience `from_model()` on integration runners | Done | `ace/runners/browser_use.py`, `langchain.py`, `claude_code.py` |
+| `ACELiteLLM` convenience wrapper | Done | `ace/runners/litellm.py` |
+| LLM providers (`LiteLLMClient`, `InstructorClient`, `LangChainLiteLLMClient`, `ClaudeCodeLLMClient`) | Done | `ace/providers/` |
+| Recursive Reflector | Done | `ace/rr/` (SubRunner base in `ace/core/`) |
+| MCP Server (optional) | Done | `ace/integrations/mcp/` |
 | Hosted API CLI (`kayba`) | Done | `ace/cli/` (docs: `docs/integrations/hosted-api.md`) |
 
 ---
@@ -184,7 +184,7 @@ The `trace` field holds the raw execution record from any external system — a 
 
 Steps depend on protocols, not concrete classes. Each protocol defines the minimal interface a step needs. Concrete implementations satisfy them structurally — no inheritance required.
 
-All protocols live in `ace_next/protocols/` (one file per protocol, re-exported from `__init__.py`).
+All protocols live in `ace/protocols/` (one file per protocol, re-exported from `__init__.py`).
 
 | Protocol | Method | Used by | Satisfied by |
 |---|---|---|---|
@@ -207,7 +207,7 @@ class LLMClientLike(Protocol):
 
 `complete_structured` returns a validated Pydantic model instance. This is the key capability — implementations call `llm.complete_structured(prompt, AgentOutput)` and get back a typed, validated object. Any LLM client that provides both methods satisfies the protocol: `LiteLLMClient` wrapped with Instructor, a custom OpenAI wrapper, or a mock for testing.
 
-**Design decision:** The old `ace/roles.py` auto-wrapped LLM clients with Instructor if `complete_structured` was missing. In `ace_next`, this auto-wrapping is removed — callers must pass a pre-wrapped client (e.g. `wrap_with_instructor(LiteLLMClient(...))` from `ace_next.providers`). This makes the requirement explicit.
+**Design decision:** The old `ace/roles.py` auto-wrapped LLM clients with Instructor if `complete_structured` was missing. In `ace`, this auto-wrapping is removed — callers must pass a pre-wrapped client (e.g. `wrap_with_instructor(LiteLLMClient(...))` from `ace.providers`). This makes the requirement explicit.
 
 ### Why protocols, not ABC
 
@@ -222,10 +222,10 @@ The framework separates concerns into four layers:
 
 | Layer | Location | Responsibility | Example |
 |-------|----------|----------------|---------|
-| **Protocols** | `ace_next/protocols/` | Interface contracts | `ReflectorLike.reflect()` |
-| **Roles** | `ace_next/implementations/` | Business logic (LLM calls) | `Reflector`, `RRStep` |
-| **Steps** | `ace_next/steps/` | Context plumbing (extract → call role → put back) | `ReflectStep` |
-| **Runners** | `ace_next/runners/` | Orchestration (sample loop, epoch management) | `ACELiteLLM` |
+| **Protocols** | `ace/protocols/` | Interface contracts | `ReflectorLike.reflect()` |
+| **Roles** | `ace/implementations/` | Business logic (LLM calls) | `Reflector`, `RRStep` |
+| **Steps** | `ace/steps/` | Context plumbing (extract → call role → put back) | `ReflectStep` |
+| **Runners** | `ace/runners/` | Orchestration (sample loop, epoch management) | `ACELiteLLM` |
 
 **Protocols** define what a role must look like. **Roles** implement the logic. **Steps** adapt between the pipeline's context-based data flow and the role's parameter-based API. **Runners** compose steps into pipelines and iterate over inputs.
 
@@ -275,7 +275,7 @@ class ACEModelConfig:
     def for_role(self, role: str) -> ModelConfig: ...
 ```
 
-Both live in `ace_next/providers/config.py`. `ACEModelConfig` serialises to/from `ace.toml` (committable, no secrets).
+Both live in `ace/providers/config.py`. `ACEModelConfig` serialises to/from `ace.toml` (committable, no secrets).
 
 ### Construction paths
 
@@ -292,7 +292,7 @@ Both live in `ace_next/providers/config.py`. `ACEModelConfig` serialises to/from
 
 ### CLI
 
-The `ace` CLI (`ace_next/cli/setup.py`) provides four commands:
+The `ace` CLI (`ace/cli/setup.py`) provides four commands:
 
 | Command | What it does |
 |---|---|
@@ -308,7 +308,7 @@ The `ace` CLI (`ace_next/cli/setup.py`) provides four commands:
 | `.env` | Yes | No (gitignored) | API keys only |
 | `ace.toml` | No | Yes | Model names + parameters per role |
 
-### Registry (`ace_next/providers/registry.py`)
+### Registry (`ace/providers/registry.py`)
 
 - `validate_connection(model, api_key?)` — makes a 3-token LLM call to verify auth + model + network
 - `get_required_key(model)` — returns `(provider, env_var)` using LiteLLM's provider detection
@@ -364,7 +364,7 @@ RRStep (SubRunner[ACEStepContext] — composable iterative step)
 └── run_loop()          — SubRunner loop driver; inner Pipeline([LLMCall, ExtractCode, SandboxExec, CheckResult])
 ```
 
-All runners compose a `Pipeline` rather than extending it. `RRStep` extends `SubRunner[ACEStepContext]` (from `ace_next/core/sub_runner.py`) and can be used as a step in any runner's pipeline — it is a black box that satisfies `StepProtocol[ACEStepContext]`. The pipeline is an implementation detail, not part of the public interface. Each subclass only overrides `run()` (public signature) and `_build_context()` (input mapping).
+All runners compose a `Pipeline` rather than extending it. `RRStep` extends `SubRunner[ACEStepContext]` (from `ace/core/sub_runner.py`) and can be used as a step in any runner's pipeline — it is a black box that satisfies `StepProtocol[ACEStepContext]`. The pipeline is an implementation detail, not part of the public interface. Each subclass only overrides `run()` (public signature) and `_build_context()` (input mapping).
 
 Integration runners (`BrowserUse`, `LangChain`, `ClaudeCode`) each provide two construction paths: `from_roles()` for pre-built role instances, and `from_model()` for auto-building roles from a model string. `ACELiteLLM` is a standalone class (not an `ACERunner` subclass) because it wraps two different runners and exposes a different API (`ask`, `learn`, `learn_from_traces`).
 
@@ -711,39 +711,39 @@ Read-only steps (ReflectStep, UpdateStep) access the skillbook via `ctx.skillboo
 
 ## Steps
 
-Reusable step implementations live in `ace_next/steps/`. Each is a single class in a single file. All satisfy `StepProtocol[ACEStepContext]` from the pipeline engine. Each step does exactly one thing.
+Reusable step implementations live in `ace/steps/`. Each is a single class in a single file. All satisfy `StepProtocol[ACEStepContext]` from the pipeline engine. Each step does exactly one thing.
 
 **Design principle: steps are stateless.** A step's `__call__` is a pure function of its constructor arguments and the incoming `ACEStepContext`. No internal counters, no accumulated state between invocations. If a step needs run-scoped information (like a global sample index for interval logic), the runner computes it and places it on the context. This keeps steps predictable across multiple `run()` calls — behaviour depends only on what's in the context, not on invocation history.
 
 ### Public API
 
-All pipeline primitives, ACE steps, and context types are importable from `ace_next`:
+All pipeline primitives, ACE steps, and context types are importable from `ace`:
 
 ```python
 # Pipeline engine
-from ace_next import Pipeline, Branch, MergeStrategy, StepProtocol, SampleResult
+from ace import Pipeline, Branch, MergeStrategy, StepProtocol, SampleResult
 
 # ACE context
-from ace_next import ACEStepContext, SkillbookView
+from ace import ACEStepContext, SkillbookView
 
 # Runner base class (for custom runners)
-from ace_next import ACERunner
+from ace import ACERunner
 
 # Core steps
-from ace_next import (
+from ace import (
     AgentStep, EvaluateStep, ReflectStep, TagStep, UpdateStep, ApplyStep,
     DeduplicateStep, CheckpointStep, LoadTracesStep, ExportSkillbookMarkdownStep,
     ObservabilityStep, PersistStep, learning_tail,
 )
 ```
 
-Integration steps live in `ace_next.integrations` (they have framework-specific dependencies):
+Integration steps live in `ace.integrations` (they have framework-specific dependencies):
 
 ```python
-from ace_next.integrations.browser_use import BrowserExecuteStep, BrowserToTrace
-from ace_next.integrations.langchain import LangChainExecuteStep, LangChainToTrace
-from ace_next.integrations.claude_code import ClaudeCodeExecuteStep, ClaudeCodeToTrace
-from ace_next.integrations.openclaw import OpenClawToTraceStep
+from ace.integrations.browser_use import BrowserExecuteStep, BrowserToTrace
+from ace.integrations.langchain import LangChainExecuteStep, LangChainToTrace
+from ace.integrations.claude_code import ClaudeCodeExecuteStep, ClaudeCodeToTrace
+from ace.integrations.openclaw import OpenClawToTraceStep
 ```
 
 Every runner also exposes a `build_steps()` classmethod that returns the step list it would compose internally, enabling users to inspect, modify, and recompose pipelines. See the [Composing Pipelines](guides/composing-pipelines.md) guide.
@@ -965,7 +965,7 @@ class DeduplicateStep:
         return ctx
 ```
 
-Optional side-effect step — consolidates similar skills in `self.skillbook` (injected). Appended to the pipeline by factory methods when a `DeduplicationManagerLike` is provided. The step takes a protocol, not the concrete `DeduplicationManager` — this keeps `ace_next` decoupled from the deduplication implementation in `ace/`. Stateless — uses `ctx.global_sample_index` (computed by the runner) with a configurable `interval` (default 10) to skip most invocations. Deduplication involves O(n²) similarity comparisons across all skills, so running it on every sample would be expensive as the skillbook grows.
+Optional side-effect step — consolidates similar skills in `self.skillbook` (injected). Appended to the pipeline by factory methods when a `DeduplicationManagerLike` is provided. The step takes a protocol, not the concrete `DeduplicationManager` — this keeps `ace` decoupled from the deduplication implementation in `ace/`. Stateless — uses `ctx.global_sample_index` (computed by the runner) with a configurable `interval` (default 10) to skip most invocations. Deduplication involves O(n²) similarity comparisons across all skills, so running it on every sample would be expensive as the skillbook grows.
 
 ### CheckpointStep
 
@@ -1023,7 +1023,7 @@ Call `flush()` after the pipeline finishes to drain buffered traces before the p
 **Not wired into `learning_tail()`.** Users append it via `extra_steps` on `from_roles()`, or manually after calling `learning_tail()`:
 
 ```python
-from ace_next.steps import OpikStep, learning_tail
+from ace.steps import OpikStep, learning_tail
 
 # Append to a custom pipeline
 steps = [
@@ -1041,7 +1041,7 @@ ace = ACE.from_roles(agent=a, reflector=r, skill_manager=sm,
 ace = ACELiteLLM.from_model("gpt-4o-mini", opik=True, opik_project="my-project")
 
 # LLM-level token tracking only (no pipeline traces)
-from ace_next import register_opik_litellm_callback
+from ace import register_opik_litellm_callback
 register_opik_litellm_callback()
 ```
 
@@ -1061,7 +1061,7 @@ class RROpikStep:
 
 Dedicated observability step for the Recursive Reflector. Iterates over `ctx.reflections` and reads `reflection.raw["rr_trace"]` from each — a dict populated by `RRStep` containing per-iteration REPL data and sub-agent call history — and creates a hierarchical Opik trace with child spans per iteration.
 
-Follows the same patterns as `OpikStep`: explicit opt-in only, soft-imports `opik`, respects `OPIK_DISABLED` env var, gracefully degrades to a no-op. Located in `ace_next/rr/opik.py` (co-located with the RR module, not in `ace_next/steps/`).
+Follows the same patterns as `OpikStep`: explicit opt-in only, soft-imports `opik`, respects `OPIK_DISABLED` env var, gracefully degrades to a no-op. Located in `ace/rr/opik.py` (co-located with the RR module, not in `ace/steps/`).
 
 **Trace hierarchy:**
 
@@ -1077,7 +1077,7 @@ Sub-agent call history is attached to the parent trace metadata. Each iteration 
 **Data flow:** `RRStep` collects iteration data during `run_loop()` and enriches `ReflectorOutput.raw["rr_trace"]` after the loop completes. `RROpikStep` reads this data — observability is fully decoupled from business logic, matching the `OpikStep` philosophy.
 
 ```python
-from ace_next.rr import RRStep, RRConfig, RROpikStep
+from ace.rr import RRStep, RRConfig, RROpikStep
 
 # Place RROpikStep after RRStep in your pipeline
 steps = [
@@ -1133,7 +1133,7 @@ class OpenClawToTraceStep:
         return ctx.replace(trace=trace_dict)
 ```
 
-OpenClaw-specific trace converter — transforms raw JSONL events (loaded by `LoadTracesStep`) into the structured trace format expected by `ReflectStep`. Extracts user messages into `question`, assistant thinking/tool calls/responses into `reasoning`, last assistant text into `answer`, and a session summary into `feedback`. Follows the same pattern as `BrowserToTrace`, `LangChainToTrace`, and `ClaudeCodeToTrace`. Lives in `ace_next/integrations/openclaw/to_trace.py`.
+OpenClaw-specific trace converter — transforms raw JSONL events (loaded by `LoadTracesStep`) into the structured trace format expected by `ReflectStep`. Extracts user messages into `question`, assistant thinking/tool calls/responses into `reasoning`, last assistant text into `answer`, and a session summary into `feedback`. Follows the same pattern as `BrowserToTrace`, `LangChainToTrace`, and `ClaudeCodeToTrace`. Lives in `ace/integrations/openclaw/to_trace.py`.
 
 **Placement:** Used after `LoadTracesStep` in OpenClaw pipelines. The `examples/openclaw/kayba-ace/learn_from_traces.py` script uses both steps standalone (not in a full Pipeline) and feeds results to `TraceAnalyser.from_roles()`.
 
@@ -1178,7 +1178,7 @@ Exports the skillbook as a human-readable markdown file, grouped by section. The
 
 ## Implementations
 
-Concrete LLM-based implementations of the role protocols. Live in `ace_next/implementations/` — fully self-contained with no imports from `ace/`.
+Concrete LLM-based implementations of the role protocols. Live in `ace/implementations/` — fully self-contained with no imports from `ace/`.
 
 ### Overview
 
@@ -1236,7 +1236,7 @@ reflection = reflector.reflect(
 
 Transforms reflections into actionable skillbook updates. Serializes each `ReflectorOutput` in the tuple into a JSON dict, formats the prompt with progress and skillbook stats, and calls `llm.complete_structured(prompt, SkillManagerOutput)`.
 
-**No dedup integration** — in `ace_next`, deduplication is handled by a separate `DeduplicateStep` in the pipeline. The SkillManager only produces `SkillManagerOutput`; it does not call a dedup manager itself.
+**No dedup integration** — in `ace`, deduplication is handled by a separate `DeduplicateStep` in the pipeline. The SkillManager only produces `SkillManagerOutput`; it does not call a dedup manager itself.
 
 ```python
 sm = SkillManager(llm)
@@ -1274,7 +1274,7 @@ Also exports `wrap_skillbook_for_external_agent(skillbook)` — the canonical fu
 
 ## Deduplication
 
-Skill deduplication subsystem. Lives in `ace_next/deduplication/` — fully self-contained with no imports from `ace/`.
+Skill deduplication subsystem. Lives in `ace/deduplication/` — fully self-contained with no imports from `ace/`.
 
 ### Overview
 
@@ -1337,13 +1337,13 @@ ace = ACE.from_roles(
 
 ## Integration Pattern
 
-External frameworks (browser-use, LangChain, Claude Code) integrate via composable pipeline steps in `ace_next/integrations/`. Each integration provides three things:
+External frameworks (browser-use, LangChain, Claude Code) integrate via composable pipeline steps in `ace/integrations/`. Each integration provides three things:
 
 1. **Result type** — an integration-specific dataclass (e.g. `BrowserResult`, `ClaudeCodeResult`)
 2. **Execute step** — INJECT skillbook context + EXECUTE the framework, writes the result to `ctx.trace`
 3. **ToTrace step** — converts the integration-specific result into the standardised trace dict that `ReflectStep` expects
 
-Runners in `ace_next/runners/` compose these steps with `learning_tail()`.
+Runners in `ace/runners/` compose these steps with `learning_tail()`.
 
 ### Core idea: execute → convert → learn
 
@@ -1499,7 +1499,7 @@ The pattern is the same for every integration: subclass `ACERunner`, compose `[E
 Every integration assembles the same `[Reflect → Tag → Update → Apply]` suffix with optional dedup and checkpoint steps. Rather than duplicating this wiring in every factory method, `learning_tail()` returns the standard step list:
 
 ```python
-# ace_next/steps/__init__.py
+# ace/steps/__init__.py
 
 def learning_tail(
     reflector: ReflectorLike,
@@ -1547,7 +1547,7 @@ class BrowserUse(ACERunner):
 Power users building fully custom pipelines can also use it:
 
 ```python
-from ace_next.steps import learning_tail
+from ace.steps import learning_tail
 
 skillbook = Skillbook.load_from_file("expert.json")
 steps = [
@@ -1748,7 +1748,7 @@ The exception is `ACELiteLLM`, which is genuinely different: it wraps two runner
 ## Directory Structure
 
 ```
-ace_next/
+ace/
   __init__.py               ← Public API re-exports
   context.py                ← ACEStepContext, SkillbookView, ACESample
   skill.py                  ← Skill, SimilarityDecision
@@ -1825,37 +1825,37 @@ ace_next/
     claude_code.py            ← ClaudeCodeLLMClient, ClaudeCodeLLMConfig (optional: claude CLI)
 ```
 
-Each integration provides: (1) an execute step, (2) a result type, and (3) a ToTrace converter step. Runners in `ace_next/runners/` compose these with `learning_tail()`. For offline analysis, raw trace objects are passed directly to TraceAnalyser.
+Each integration provides: (1) an execute step, (2) a result type, and (3) a ToTrace converter step. Runners in `ace/runners/` compose these with `learning_tail()`. For offline analysis, raw trace objects are passed directly to TraceAnalyser.
 
 ### What moves where
 
 | Old location | New location | Notes |
 |---|---|---|
-| `ace/adaptation.py` | Deleted | Replaced by `ace_next/runners/` |
+| `ace/adaptation.py` | Deleted | Replaced by `ace/runners/` |
 | `ace/async_learning.py` | Deleted | Replaced by pipeline engine `async_boundary` |
-| `ace/environments.py` | `ace_next/environments.py` | `Sample`, `EnvironmentResult`, `TaskEnvironment`, `SimpleEnvironment` (copied) |
-| `ace/roles.py` (protocols) | `ace_next/protocols/` | Protocols extracted from role classes |
-| `ace/roles.py` (implementations) | `ace_next/implementations/` | Concrete `Agent`, `Reflector`, `SkillManager` classes |
-| `ace/llm.py` (interface) | `ace_next/protocols/llm.py` | `LLMClientLike` protocol |
-| `ace/prompts_v2_1.py` | `ace_next/implementations/prompts.py` | v2.1 prompt templates (self-contained copy) |
-| `ace/deduplication/` | `ace_next/deduplication/` | Full dedup subsystem (detector, manager, operations, prompts) |
+| `ace/environments.py` | `ace/environments.py` | `Sample`, `EnvironmentResult`, `TaskEnvironment`, `SimpleEnvironment` (copied) |
+| `ace/roles.py` (protocols) | `ace/protocols/` | Protocols extracted from role classes |
+| `ace/roles.py` (implementations) | `ace/implementations/` | Concrete `Agent`, `Reflector`, `SkillManager` classes |
+| `ace/llm.py` (interface) | `ace/protocols/llm.py` | `LLMClientLike` protocol |
+| `ace/prompts_v2_1.py` | `ace/implementations/prompts.py` | v2.1 prompt templates (self-contained copy) |
+| `ace/deduplication/` | `ace/deduplication/` | Full dedup subsystem (detector, manager, operations, prompts) |
 | `ace2/` | Deleted | Superseded by this design |
-| New | `ace_next/steps/tag.py` | TagStep (split from ReflectStep) |
-| New | `ace_next/steps/apply.py` | ApplyStep (split from UpdateStep) |
-| New | `ace_next/steps/deduplicate.py` | DeduplicateStep (extracted from SkillManager) |
-| New | `ace_next/steps/checkpoint.py` | CheckpointStep |
-| New | `ace_next/steps/observability.py` | ObservabilityStep (logger.info) |
-| New | `ace_next/steps/opik.py` | OpikStep (Opik trace logging) |
-| New | `ace_next/rr/opik.py` | RROpikStep (hierarchical RR trace logging to Opik) |
-| New | `ace_next/steps/persist.py` | PersistStep |
-| New | `ace_next/runners/` | ACERunner, TraceAnalyser, ACE, BrowserUse, LangChain, ClaudeCode |
-| `ace/integrations/browser_use.py` | `ace_next/integrations/browser_use.py` + `ace_next/runners/browser_use.py` | Split into execute step + result type + ToTrace converter + runner |
-| `ace/integrations/langchain.py` | `ace_next/integrations/langchain.py` + `ace_next/runners/langchain.py` | Split into execute step + result type + ToTrace converter + runner |
-| `ace/integrations/claude_code.py` | `ace_next/integrations/claude_code.py` + `ace_next/runners/claude_code.py` | Split into execute step + result type + ToTrace converter + runner |
-| `ace/llm_providers/litellm_client.py` | `ace_next/providers/litellm.py` | Self-contained: `LiteLLMClient`, `LiteLLMConfig`, `LLMResponse` (no ABC) |
-| `ace/llm_providers/instructor_client.py` | `ace_next/providers/instructor.py` | Self-contained: `InstructorClient`, `wrap_with_instructor` |
-| `ace/llm_providers/langchain_client.py` | `ace_next/providers/langchain.py` | Self-contained: `LangChainLiteLLMClient` (no ABC) |
-| `ace/llm_providers/claude_code_client.py` | `ace_next/providers/claude_code.py` | Self-contained: `ClaudeCodeLLMClient`, `ClaudeCodeLLMConfig` (no ABC) |
+| New | `ace/steps/tag.py` | TagStep (split from ReflectStep) |
+| New | `ace/steps/apply.py` | ApplyStep (split from UpdateStep) |
+| New | `ace/steps/deduplicate.py` | DeduplicateStep (extracted from SkillManager) |
+| New | `ace/steps/checkpoint.py` | CheckpointStep |
+| New | `ace/steps/observability.py` | ObservabilityStep (logger.info) |
+| New | `ace/steps/opik.py` | OpikStep (Opik trace logging) |
+| New | `ace/rr/opik.py` | RROpikStep (hierarchical RR trace logging to Opik) |
+| New | `ace/steps/persist.py` | PersistStep |
+| New | `ace/runners/` | ACERunner, TraceAnalyser, ACE, BrowserUse, LangChain, ClaudeCode |
+| `ace/integrations/browser_use.py` | `ace/integrations/browser_use.py` + `ace/runners/browser_use.py` | Split into execute step + result type + ToTrace converter + runner |
+| `ace/integrations/langchain.py` | `ace/integrations/langchain.py` + `ace/runners/langchain.py` | Split into execute step + result type + ToTrace converter + runner |
+| `ace/integrations/claude_code.py` | `ace/integrations/claude_code.py` + `ace/runners/claude_code.py` | Split into execute step + result type + ToTrace converter + runner |
+| `ace/llm_providers/litellm_client.py` | `ace/providers/litellm.py` | Self-contained: `LiteLLMClient`, `LiteLLMConfig`, `LLMResponse` (no ABC) |
+| `ace/llm_providers/instructor_client.py` | `ace/providers/instructor.py` | Self-contained: `InstructorClient`, `wrap_with_instructor` |
+| `ace/llm_providers/langchain_client.py` | `ace/providers/langchain.py` | Self-contained: `LangChainLiteLLMClient` (no ABC) |
+| `ace/llm_providers/claude_code_client.py` | `ace/providers/claude_code.py` | Self-contained: `ClaudeCodeLLMClient`, `ClaudeCodeLLMConfig` (no ABC) |
 
 ---
 
@@ -1975,7 +1975,7 @@ Follows the pipeline engine's error model without additions.
 ### TraceAnalyser — learn from browser-use history
 
 ```python
-from ace_next import TraceAnalyser, Reflector, SkillManager, LiteLLMClient, wrap_with_instructor
+from ace import TraceAnalyser, Reflector, SkillManager, LiteLLMClient, wrap_with_instructor
 
 llm = wrap_with_instructor(LiteLLMClient(model="gpt-4o-mini"))
 
@@ -2004,8 +2004,8 @@ analyser.save("travel_agent.json")
 ### ACE — live Q&A training
 
 ```python
-from ace_next import ACE, Sample, SimpleEnvironment, Agent, Reflector, SkillManager
-from ace_next import LiteLLMClient, wrap_with_instructor
+from ace import ACE, Sample, SimpleEnvironment, Agent, Reflector, SkillManager
+from ace import LiteLLMClient, wrap_with_instructor
 
 llm = wrap_with_instructor(LiteLLMClient(model="gpt-4o-mini"))
 
@@ -2051,9 +2051,9 @@ results = ace.run(samples, epochs=1)
 ### ACE — with checkpoints and deduplication
 
 ```python
-from ace_next import ACE, Agent, Reflector, SkillManager, SimpleEnvironment
-from ace_next.deduplication import DeduplicationManager
-from ace_next.protocols.deduplication import DeduplicationConfig
+from ace import ACE, Agent, Reflector, SkillManager, SimpleEnvironment
+from ace.deduplication import DeduplicationManager
+from ace.protocols.deduplication import DeduplicationConfig
 
 ace = ACE.from_roles(
     agent=Agent(llm),
@@ -2071,7 +2071,7 @@ results = ace.run(samples, epochs=3)
 ### Integration — browser-use runner
 
 ```python
-from ace_next import BrowserUse, Reflector, SkillManager, LiteLLMClient
+from ace import BrowserUse, Reflector, SkillManager, LiteLLMClient
 from langchain_openai import ChatOpenAI
 
 llm = LiteLLMClient(model="gpt-4o-mini")
@@ -2095,7 +2095,7 @@ runner.save("browser_expert.json")
 ### Integration — LangChain runner (from_model)
 
 ```python
-from ace_next import LangChain
+from ace import LangChain
 from langchain_openai import ChatOpenAI
 from langchain_core.prompts import ChatPromptTemplate
 
@@ -2110,7 +2110,7 @@ runner.save("chain_expert.json")
 ### Integration — Claude Code runner (from_model)
 
 ```python
-from ace_next import ClaudeCode
+from ace import ClaudeCode
 
 runner = ClaudeCode.from_model(working_dir="./my_project", ace_model="gpt-4o-mini")
 results = runner.run(["Add unit tests for utils.py", "Refactor the auth module"])
@@ -2120,7 +2120,7 @@ runner.save("code_expert.json")
 ### ACELiteLLM — conversational agent with learning
 
 ```python
-from ace_next import ACELiteLLM, SimpleEnvironment, Sample
+from ace import ACELiteLLM, SimpleEnvironment, Sample
 
 ace = ACELiteLLM.from_model("gpt-4o-mini")
 
@@ -2144,7 +2144,7 @@ ace.save("learned.json")
 ace = ACELiteLLM.from_model("gpt-4o-mini", opik=True, opik_project="my-project")
 
 # With Recursive Reflector + Opik
-from ace_next import RRStep, RRConfig, LiteLLMClient
+from ace import RRStep, RRConfig, LiteLLMClient
 llm = LiteLLMClient(model="gpt-4o-mini")
 rr = RRStep(llm, config=RRConfig(max_iterations=10))
 ace = ACELiteLLM(llm, reflector=rr, opik=True)
@@ -2179,8 +2179,8 @@ ace.save("learned.json")
 ### Mixed workflow — batch then live
 
 ```python
-from ace_next import TraceAnalyser, ACE, Skillbook
-from ace_next.implementations import Agent, Reflector, SkillManager
+from ace import TraceAnalyser, ACE, Skillbook
+from ace.implementations import Agent, Reflector, SkillManager
 
 reflector = Reflector(llm)
 skill_manager = SkillManager(llm)
@@ -2289,18 +2289,18 @@ Storing the real `Skillbook` as a field on `ACEStepContext` was the initial desi
 Keeping ReflectStep as both reflection and tagging, and UpdateStep as both generation and application was considered. Rejected — each combination mixes a pure function (LLM call producing output) with a side effect (skillbook mutation). Splitting them means pure steps can be tested without a skillbook, side-effect steps can be tested without an LLM, and concerns are cleanly separated.
 
 **Instructor auto-wrapping in implementations:**
-The old `ace/roles.py` auto-wrapped LLM clients with Instructor if `complete_structured` was missing (duck-typing check + fallback). This has since been updated: `ace/roles.py` now checks `INSTRUCTOR_AVAILABLE` and gracefully falls back to the raw LLM if the `instructor` package is not installed (it is an optional dependency via `pip install ace-framework[instructor]`). Rejected for `ace_next` — auto-wrapping masks what the implementation actually requires. In `ace_next`, `LLMClientLike` explicitly requires both `complete()` and `complete_structured()`. Callers wrap their LLM clients before passing them in (e.g. `wrap_with_instructor(LiteLLMClient(...))` from `ace_next.providers`). This makes the requirement visible at the call site and keeps implementations dependency-free.
+The old `ace/roles.py` auto-wrapped LLM clients with Instructor if `complete_structured` was missing (duck-typing check + fallback). This has since been updated: `ace/roles.py` now checks `INSTRUCTOR_AVAILABLE` and gracefully falls back to the raw LLM if the `instructor` package is not installed (it is an optional dependency via `pip install ace-framework[instructor]`). Rejected for `ace` — auto-wrapping masks what the implementation actually requires. In `ace`, `LLMClientLike` explicitly requires both `complete()` and `complete_structured()`. Callers wrap their LLM clients before passing them in (e.g. `wrap_with_instructor(LiteLLMClient(...))` from `ace.providers`). This makes the requirement visible at the call site and keeps implementations dependency-free.
 
 **Recursive Reflector (initial rejection, now implemented):**
-The old `ace/reflector/` subsystem supports recursive mode where the Reflector iterates multiple times to deepen analysis. Initially rejected for `ace_next` due to complexity. Now implemented as `RRStep` in `ace_next/rr/` — a `SubRunner[ACEStepContext]`-based step that runs an iterative REPL loop (LLM call → extract code → sandbox exec → check result). `RRStep` satisfies both `StepProtocol[ACEStepContext]` (composable in any pipeline) and `ReflectorLike` (usable as a drop-in reflector, e.g. `ACELiteLLM(llm, reflector=rr)`). Exported from `ace_next` as `RRStep` and `RRConfig`.
+The old `ace/reflector/` subsystem supports recursive mode where the Reflector iterates multiple times to deepen analysis. Initially rejected for `ace` due to complexity. Now implemented as `RRStep` in `ace/rr/` — a `SubRunner[ACEStepContext]`-based step that runs an iterative REPL loop (LLM call → extract code → sandbox exec → check result). `RRStep` satisfies both `StepProtocol[ACEStepContext]` (composable in any pipeline) and `ReflectorLike` (usable as a drop-in reflector, e.g. `ACELiteLLM(llm, reflector=rr)`). Exported from `ace` as `RRStep` and `RRConfig`.
 
 **Observability decorator on implementations:**
 The old `ace/roles.py` uses `@maybe_track()` decorators for Opik tracing on every role method. Rejected — `OpikStep` handles metrics at the pipeline level with full visibility into all context fields. Adding per-method decorators would double-count and create coupling between implementations and the observability system.
 
 **Deduplication inside SkillManager:**
-The old `ace/roles.py` SkillManager integrates with `DeduplicationManager` directly — calling `get_similarity_report()` before the LLM call and `apply_operations_from_response()` after. Rejected for `ace_next` — deduplication is now a separate `DeduplicateStep` in the pipeline. This is cleaner separation: the SkillManager role only produces `SkillManagerOutput`, and deduplication runs at a configurable interval as an independent pipeline step. The step takes a `DeduplicationManagerLike` protocol, keeping it decoupled from the concrete implementation.
+The old `ace/roles.py` SkillManager integrates with `DeduplicationManager` directly — calling `get_similarity_report()` before the LLM call and `apply_operations_from_response()` after. Rejected for `ace` — deduplication is now a separate `DeduplicateStep` in the pipeline. This is cleaner separation: the SkillManager role only produces `SkillManagerOutput`, and deduplication runs at a configurable interval as an independent pipeline step. The step takes a `DeduplicationManagerLike` protocol, keeping it decoupled from the concrete implementation.
 
-**Shared `ace_next/features.py` module:**
+**Shared `ace/features.py` module:**
 Creating a centralized feature detection module (like `ace/features.py`) for optional dependency checks was considered. Rejected — the only code that needs feature detection is `deduplication/detector.py`, which uses a local `_has(module)` helper with `importlib.import_module`. A shared module would add a file for a single 4-line function. If more code needs feature detection in the future, the helper can be promoted to a shared location.
 
 **Separate wrapper classes for integration runners:**

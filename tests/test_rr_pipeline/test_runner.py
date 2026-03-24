@@ -6,13 +6,13 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from ace_next.rr.config import RecursiveConfig
-from ace_next.core.context import ACEStepContext, SkillbookView
-from ace_next.core.outputs import AgentOutput, ReflectorOutput
-from ace_next.core.skillbook import Skillbook
+from ace.rr.config import RecursiveConfig
+from ace.core.context import ACEStepContext, SkillbookView
+from ace.core.outputs import AgentOutput, ReflectorOutput
+from ace.core.skillbook import Skillbook
 
-from ace_next.rr import RRStep, RRConfig
-from ace_next.rr.agent import RRDeps
+from ace.rr import RRStep, RRConfig
+from ace.rr.agent import RRDeps
 
 
 # ---------------------------------------------------------------------------
@@ -183,7 +183,7 @@ class TestRRStepProtocol:
 
     def test_satisfies_reflector_like(self):
         """RRStep satisfies ReflectorLike protocol."""
-        from ace_next.protocols import ReflectorLike
+        from ace.protocols import ReflectorLike
 
         rr = RRStep("test-model", config=RRConfig(enable_subagent=False))
         assert isinstance(rr, ReflectorLike)
@@ -300,7 +300,7 @@ class TestRROpikStep:
 
     def test_noop_when_opik_unavailable(self):
         """RROpikStep is a no-op when Opik is not installed."""
-        from ace_next.rr.opik import RROpikStep, OPIK_AVAILABLE
+        from ace.rr.opik import RROpikStep, OPIK_AVAILABLE
 
         step = RROpikStep(project_name="test")
         if not OPIK_AVAILABLE:
@@ -308,7 +308,7 @@ class TestRROpikStep:
 
     def test_noop_when_no_reflection(self):
         """RROpikStep returns ctx unchanged when reflections is empty."""
-        from ace_next.rr.opik import RROpikStep
+        from ace.rr.opik import RROpikStep
 
         step = RROpikStep(project_name="test")
         step.enabled = False
@@ -319,7 +319,7 @@ class TestRROpikStep:
 
     def test_step_protocol_attributes(self):
         """RROpikStep has correct requires/provides."""
-        from ace_next.rr.opik import RROpikStep
+        from ace.rr.opik import RROpikStep
 
         step = RROpikStep(project_name="test")
         assert "reflections" in step.requires

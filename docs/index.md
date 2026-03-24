@@ -21,7 +21,7 @@ Each pass through the loop discovers new strategies, reinforces what works, and 
 ## Get Started in 30 Seconds
 
 ```python
-from ace_next import ACELiteLLM
+from ace import ACELiteLLM
 
 agent = ACELiteLLM.from_model("gpt-4o-mini")
 

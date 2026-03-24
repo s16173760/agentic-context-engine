@@ -4,7 +4,7 @@
 
 ## Pipeline Steps
 
-### LoadTracesStep (`ace_next/steps/load_traces.py`)
+### LoadTracesStep (`ace/steps/load_traces.py`)
 
 Generic step that reads a trace file from disk and puts raw content on `ctx.trace`.
 
@@ -15,7 +15,7 @@ Generic step that reads a trace file from disk and puts raw content on `ctx.trac
 
 **Behaviour**: Reads the file at `ctx.sample`, parses JSONL lines into `list[dict]`, places on `ctx.trace`. Skips unparseable lines gracefully.
 
-### OpenClawToTraceStep (`ace_next/integrations/openclaw/to_trace.py`)
+### OpenClawToTraceStep (`ace/integrations/openclaw/to_trace.py`)
 
 OpenClaw-specific step that converts raw JSONL events into a structured trace dict, preserving chronological order of queries, thinking, and tool uses.
 
@@ -89,7 +89,7 @@ The structured representation placed on `ctx.trace` by `OpenClawToTraceStep`. Th
 
 ### Skillbook (existing)
 
-Reused from `ace_next.core.skillbook.Skillbook`. No changes needed.
+Reused from `ace.core.skillbook.Skillbook`. No changes needed.
 
 | Field | Type | Description |
 |-------|------|-------------|
@@ -100,7 +100,7 @@ Reused from `ace_next.core.skillbook.Skillbook`. No changes needed.
 
 ### Skill (existing)
 
-Reused from `ace_next.core.skillbook.Skill`. No changes needed.
+Reused from `ace.core.skillbook.Skill`. No changes needed.
 
 | Field | Type | Description |
 |-------|------|-------------|

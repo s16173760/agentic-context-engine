@@ -20,20 +20,20 @@ HAS_API = bool(os.environ.get("OPENAI_API_KEY"))
 if not HAS_API:
     pytest.skip("OPENAI_API_KEY not set", allow_module_level=True)
 
-from ace_next.core.outputs import (
+from ace.core.outputs import (
     AgentOutput,
     ExtractedLearning,
     ReflectorOutput,
     SkillManagerOutput,
     SkillTag,
 )
-from ace_next.core.skillbook import Skillbook, UpdateBatch
-from ace_next.implementations import Agent, Reflector, SkillManager
-from ace_next.runners.litellm import ACELiteLLM
-from ace_next.core.environments import Sample, SimpleEnvironment
+from ace.core.skillbook import Skillbook, UpdateBatch
+from ace.implementations import Agent, Reflector, SkillManager
+from ace.runners.litellm import ACELiteLLM
+from ace.core.environments import Sample, SimpleEnvironment
 
 
-MODEL = "openai:gpt-4o-mini"
+MODEL = "bedrock/us.anthropic.claude-haiku-4-5-20251001-v1:0"
 
 
 class TestAgentRole:
@@ -351,13 +351,13 @@ class TestRetryAndConsistency:
 class TestRRStepIntegration:
     """Test the PydanticAI-based Recursive Reflector (RRStep) with real API calls."""
 
-    RR_MODEL = "openai:gpt-4o-mini"
+    RR_MODEL = "bedrock/us.anthropic.claude-haiku-4-5-20251001-v1:0"
 
     @pytest.mark.integration
     def test_rr_basic_reflection(self):
         """RRStep.reflect returns a valid ReflectorOutput with non-empty fields."""
-        from ace_next.rr.runner import RRStep
-        from ace_next.rr.config import RecursiveConfig
+        from ace.rr.runner import RRStep
+        from ace.rr.config import RecursiveConfig
 
         config = RecursiveConfig(
             max_llm_calls=15,
@@ -399,8 +399,8 @@ class TestRRStepIntegration:
     @pytest.mark.integration
     def test_rr_with_skillbook(self):
         """RRStep.reflect with a populated skillbook references or tags skills."""
-        from ace_next.rr.runner import RRStep
-        from ace_next.rr.config import RecursiveConfig
+        from ace.rr.runner import RRStep
+        from ace.rr.config import RecursiveConfig
 
         config = RecursiveConfig(
             max_llm_calls=25,
@@ -457,9 +457,9 @@ class TestRRStepIntegration:
     @pytest.mark.integration
     def test_rr_step_protocol(self):
         """RRStep used as a StepProtocol: __call__(ctx) populates reflections."""
-        from ace_next.rr.runner import RRStep
-        from ace_next.rr.config import RecursiveConfig
-        from ace_next.core.context import ACEStepContext, SkillbookView
+        from ace.rr.runner import RRStep
+        from ace.rr.config import RecursiveConfig
+        from ace.core.context import ACEStepContext, SkillbookView
 
         config = RecursiveConfig(
             max_llm_calls=15,
@@ -504,8 +504,8 @@ class TestRRStepIntegration:
     @pytest.mark.integration
     def test_rr_execute_code_tool_used(self):
         """Verify the agent uses execute_code (total_iterations > 0 in rr_trace)."""
-        from ace_next.rr.runner import RRStep
-        from ace_next.rr.config import RecursiveConfig
+        from ace.rr.runner import RRStep
+        from ace.rr.config import RecursiveConfig
 
         config = RecursiveConfig(
             max_llm_calls=15,

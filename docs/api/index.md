@@ -1,6 +1,6 @@
 # API Reference
 
-Quick reference for the most-used classes and functions in `ace_next`.
+Quick reference for the most-used classes and functions in `ace`.
 
 ## Runners
 
@@ -9,7 +9,7 @@ Quick reference for the most-used classes and functions in `ace_next`.
 Simple self-improving conversational agent.
 
 ```python
-from ace_next import ACELiteLLM
+from ace import ACELiteLLM
 
 agent = ACELiteLLM.from_model("gpt-4o-mini")
 ```
@@ -34,7 +34,7 @@ See [LiteLLM Integration](../integrations/litellm.md) for full details.
 Full adaptive pipeline (Agent + Reflector + SkillManager + Environment).
 
 ```python
-from ace_next import ACE, Agent, Reflector, SkillManager, Skillbook, LiteLLMClient, SimpleEnvironment
+from ace import ACE, Agent, Reflector, SkillManager, Skillbook, LiteLLMClient, SimpleEnvironment
 
 client = LiteLLMClient(model="gpt-4o-mini")
 runner = ACE.from_roles(
@@ -62,7 +62,7 @@ See [Full Pipeline Guide](../guides/full-pipeline.md).
 Browser automation with learning.
 
 ```python
-from ace_next import BrowserUse
+from ace import BrowserUse
 
 runner = BrowserUse.from_model(browser_llm=my_llm, ace_model="gpt-4o-mini")
 results = runner.run("Find the top post on Hacker News")
@@ -75,7 +75,7 @@ See [Browser-Use Integration](../integrations/browser-use.md).
 Wrap LangChain Runnables with learning.
 
 ```python
-from ace_next import LangChain
+from ace import LangChain
 
 runner = LangChain.from_model(my_chain, ace_model="gpt-4o-mini")
 results = runner.run([{"input": "Summarize this document"}])
@@ -88,7 +88,7 @@ See [LangChain Integration](../integrations/langchain.md).
 Claude Code CLI with learning.
 
 ```python
-from ace_next import ClaudeCode
+from ace import ClaudeCode
 
 runner = ClaudeCode.from_model(working_dir="./project", ace_model="gpt-4o-mini")
 results = runner.run("Add unit tests for utils.py")
@@ -105,7 +105,7 @@ See [Claude Code Integration](../integrations/claude-code.md).
 Produces answers using the current skillbook.
 
 ```python
-from ace_next import Agent
+from ace import Agent
 
 agent = Agent(llm)
 output = agent.generate(
@@ -130,7 +130,7 @@ output = agent.generate(
 Analyzes what worked and what failed.
 
 ```python
-from ace_next import Reflector
+from ace import Reflector
 
 reflector = Reflector(llm)
 reflection = reflector.reflect(
@@ -160,7 +160,7 @@ reflection = reflector.reflect(
 Transforms reflections into skillbook updates.
 
 ```python
-from ace_next import SkillManager
+from ace import SkillManager
 
 skill_manager = SkillManager(llm)
 sm_output = skill_manager.update_skills(
@@ -182,7 +182,7 @@ See [Roles](../concepts/roles.md) for full details.
 ## Skillbook
 
 ```python
-from ace_next import Skillbook
+from ace import Skillbook
 
 skillbook = Skillbook()
 ```
@@ -206,7 +206,7 @@ See [The Skillbook](../concepts/skillbook.md).
 ### Sample
 
 ```python
-from ace_next import Sample
+from ace import Sample
 
 sample = Sample(
     question="What is 2+2?",
@@ -218,7 +218,7 @@ sample = Sample(
 ### EnvironmentResult
 
 ```python
-from ace_next import EnvironmentResult
+from ace import EnvironmentResult
 
 result = EnvironmentResult(
     feedback="Correct!",
@@ -230,7 +230,7 @@ result = EnvironmentResult(
 ### UpdateOperation
 
 ```python
-from ace_next import UpdateOperation
+from ace import UpdateOperation
 
 op = UpdateOperation(
     type="ADD",
@@ -247,7 +247,7 @@ Operations: `ADD`, `UPDATE`, `TAG`, `REMOVE`. See [Update Operations](../concept
 **Requires:** `pip install ace-framework[deduplication]`
 
 ```python
-from ace_next import DeduplicationConfig
+from ace import DeduplicationConfig
 
 config = DeduplicationConfig(
     enabled=True,
@@ -263,7 +263,7 @@ config = DeduplicationConfig(
 Extend `TaskEnvironment` to provide evaluation feedback:
 
 ```python
-from ace_next import TaskEnvironment, EnvironmentResult
+from ace import TaskEnvironment, EnvironmentResult
 
 class MyEnvironment(TaskEnvironment):
     def evaluate(self, sample, agent_output):
@@ -283,7 +283,7 @@ A built-in `SimpleEnvironment` uses substring matching and is included for quick
 ### LiteLLMClient
 
 ```python
-from ace_next import LiteLLMClient
+from ace import LiteLLMClient
 
 client = LiteLLMClient(model="gpt-4o-mini", temperature=0.0, max_tokens=2048)
 response = client.complete("Hello")
@@ -300,7 +300,7 @@ Wraps any LLM client with Pydantic validation for more reliable structured outpu
 **Requires:** `pip install ace-framework[instructor]`
 
 ```python
-from ace_next import InstructorClient, LiteLLMClient
+from ace import InstructorClient, LiteLLMClient
 
 client = InstructorClient(LiteLLMClient(model="ollama/gemma3:1b"))
 ```
@@ -314,7 +314,7 @@ client = InstructorClient(LiteLLMClient(model="ollama/gemma3:1b"))
 Abstract base class for steps that run an internal `Pipeline` in a loop. Satisfies `StepProtocol` — can be placed directly in any pipeline.
 
 ```python
-from ace_next.core import SubRunner
+from ace.core import SubRunner
 ```
 
 Subclasses implement five template methods plus `__call__`:
@@ -337,7 +337,7 @@ Subclasses implement five template methods plus `__call__`:
 **Example:**
 
 ```python
-from ace_next.core import SubRunner
+from ace.core import SubRunner
 from pipeline import Pipeline, StepContext
 
 class RefineRunner(SubRunner):
@@ -373,7 +373,7 @@ class RefineRunner(SubRunner):
         return ctx.replace(metadata=MappingProxyType({**ctx.metadata, "refined": result}))
 ```
 
-**Canonical implementation:** `RRStep` in `ace_next/rr/` — the Recursive Reflector's REPL loop.
+**Canonical implementation:** `RRStep` in `ace/rr/` — the Recursive Reflector's REPL loop.
 
 See [Building Custom Steps](../pipeline/custom-steps.md) for the full guide.
 
@@ -386,7 +386,7 @@ See [Building Custom Steps](../pipeline/custom-steps.md) for the full guide.
 Append to any pipeline for automatic tracing and cost tracking:
 
 ```python
-from ace_next import OpikStep
+from ace import OpikStep
 
 OpikStep(project_name="my-experiment", tags=["training"])
 ```
@@ -396,7 +396,7 @@ OpikStep(project_name="my-experiment", tags=["training"])
 Standalone LLM cost tracking without pipeline traces:
 
 ```python
-from ace_next import register_opik_litellm_callback
+from ace import register_opik_litellm_callback
 
 register_opik_litellm_callback(project_name="my-experiment")
 ```
@@ -414,7 +414,7 @@ REPL-based trace analyser that iteratively generates and executes Python code in
 Drop-in replacement for `Reflector` — satisfies both `StepProtocol` and `ReflectorLike`.
 
 ```python
-from ace_next.rr import RRStep, RRConfig
+from ace.rr import RRStep, RRConfig
 
 rr = RRStep(
     llm,                                    # LLM client (must have complete_messages)
@@ -475,7 +475,7 @@ Structured trace wrapper with factory methods:
 ### RROpikStep
 
 ```python
-from ace_next.rr import RROpikStep
+from ace.rr import RROpikStep
 
 # Place after RRStep for Opik observability
 steps = [..., rr_step, RROpikStep(project_name="my-project")]
@@ -487,7 +487,7 @@ See [RR_DESIGN.md](../RR_DESIGN.md) for the full architecture reference.
 
 ## Prompts
 
-The default prompts are v2.1 (built into `ace_next`). Pass a custom template via `prompt_template`:
+The default prompts are v2.1 (built into `ace`). Pass a custom template via `prompt_template`:
 
 ```python
 agent = Agent(llm, prompt_template="Custom prompt with {skillbook}, {question}, {context}")

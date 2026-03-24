@@ -32,13 +32,13 @@ SCRIPT_DIR = Path(__file__).resolve().parent
 # Override with OPENCLAW_HOME env var if the script lives elsewhere.
 OPENCLAW_HOME = Path(os.getenv("OPENCLAW_HOME") or SCRIPT_DIR.parents[2]).expanduser()
 
-# Ensure ace_next is importable (dev: repo root; prod: pip install)
+# Ensure ace is importable (dev: repo root; prod: pip install)
 try:
-    import ace_next  # noqa: F401
+    import ace  # noqa: F401
 except ImportError:
     # Fallback for running from the repo checkout
     _repo_root = Path(__file__).resolve().parents[2]
-    if (_repo_root / "ace_next").is_dir():
+    if (_repo_root / "ace").is_dir():
         sys.path.insert(0, str(_repo_root))
 
 from dotenv import load_dotenv
@@ -46,7 +46,7 @@ from dotenv import load_dotenv
 load_dotenv(OPENCLAW_HOME / ".env")
 load_dotenv(Path.home() / ".env")
 
-from ace_next import (
+from ace import (
     LiteLLMClient,
     OpikStep,
     Reflector,
@@ -55,10 +55,10 @@ from ace_next import (
     TraceAnalyser,
     register_opik_litellm_callback,
 )
-from ace_next.core.context import ACEStepContext
-from ace_next.steps.load_traces import LoadTracesStep
-from ace_next.integrations.openclaw import OpenClawToTraceStep
-from ace_next.steps.export_markdown import ExportSkillbookMarkdownStep
+from ace.core.context import ACEStepContext
+from ace.steps.load_traces import LoadTracesStep
+from ace.integrations.openclaw import OpenClawToTraceStep
+from ace.steps.export_markdown import ExportSkillbookMarkdownStep
 
 # ---------------------------------------------------------------------------
 # Configuration

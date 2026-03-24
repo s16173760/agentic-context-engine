@@ -19,7 +19,7 @@
 
 **Purpose**: Create package structure for the new OpenClaw integration
 
-- [X] T001 Create `ace_next/integrations/openclaw/` package directory with `__init__.py`
+- [X] T001 Create `ace/integrations/openclaw/` package directory with `__init__.py`
 
 ---
 
@@ -29,9 +29,9 @@
 
 **CRITICAL**: No user story work can begin until this phase is complete
 
-- [X] T002 [P] Implement `LoadTracesStep` in `ace_next/steps/load_traces.py` — generic step that reads JSONL file at `ctx.sample`, parses lines into `list[dict]`, places on `ctx.trace`; `requires={"sample"}`, `provides={"trace"}`; skip unparseable lines gracefully per FR-010 and data-model.md validation rules
-- [X] T003 [P] Implement `OpenClawToTraceStep` (pass-through) in `ace_next/integrations/openclaw/to_trace.py` — `requires={"trace"}`, `provides={"trace"}`; for now returns `ctx` unchanged (transformation logic deferred per user decision); follow existing ToTrace step pattern from `ClaudeCodeToTrace`/`BrowserToTrace`
-- [X] T004 Export `OpenClawToTraceStep` from `ace_next/integrations/openclaw/__init__.py` and add to `ace_next/integrations/__init__.py` exports; export `LoadTracesStep` from `ace_next/steps/__init__.py`
+- [X] T002 [P] Implement `LoadTracesStep` in `ace/steps/load_traces.py` — generic step that reads JSONL file at `ctx.sample`, parses lines into `list[dict]`, places on `ctx.trace`; `requires={"sample"}`, `provides={"trace"}`; skip unparseable lines gracefully per FR-010 and data-model.md validation rules
+- [X] T003 [P] Implement `OpenClawToTraceStep` (pass-through) in `ace/integrations/openclaw/to_trace.py` — `requires={"trace"}`, `provides={"trace"}`; for now returns `ctx` unchanged (transformation logic deferred per user decision); follow existing ToTrace step pattern from `ClaudeCodeToTrace`/`BrowserToTrace`
+- [X] T004 Export `OpenClawToTraceStep` from `ace/integrations/openclaw/__init__.py` and add to `ace/integrations/__init__.py` exports; export `LoadTracesStep` from `ace/steps/__init__.py`
 
 **Checkpoint**: Pipeline steps ready — user story implementation can now begin
 
@@ -158,8 +158,8 @@
 
 ```bash
 # Launch both pipeline steps in parallel (different files):
-Task: "Implement LoadTracesStep in ace_next/steps/load_traces.py"
-Task: "Implement OpenClawToTraceStep in ace_next/integrations/openclaw/to_trace.py"
+Task: "Implement LoadTracesStep in ace/steps/load_traces.py"
+Task: "Implement OpenClawToTraceStep in ace/integrations/openclaw/to_trace.py"
 ```
 
 ## Parallel Example: Testing Phase
@@ -198,5 +198,5 @@ Task: "Unit tests for OpenClawToTraceStep in tests/test_openclaw.py"
 - T003 (OpenClawToTraceStep) is a **pass-through** for now — transformation logic deferred per user decision
 - The existing `learn_from_traces.py` (345 lines) will be **rewritten** starting at T005, not patched incrementally
 - Sample JSONL fixture: `examples/openclaw/b3db607f-7ae8-4089-b806-44800e961672.jsonl`
-- MockLLMClient, MockReflector, MockSkillManager patterns from `tests/conftest.py` and `tests/test_ace_next_steps.py`
+- MockLLMClient, MockReflector, MockSkillManager patterns from `tests/conftest.py` and `tests/test_ace_steps.py`
 - All env var defaults per contracts/cli.md: `OPENCLAW_HOME=~/.openclaw`, `OPENCLAW_AGENT_ID=main`, `ACE_MODEL=anthropic/claude-sonnet-4-20250514`

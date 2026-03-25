@@ -24,30 +24,75 @@ Every command reads `KAYBA_API_KEY` from the environment. You can also pass it e
 
 ```bash
 export KAYBA_API_KEY=your-key-here
-kayba upload traces/
+kayba traces list
 ```
 
 The default API endpoint is `https://use.kayba.ai/api`. Override it with `KAYBA_API_URL` or `--base-url`.
 
 ## CLI Reference
 
-### Upload traces
+### Trace management
 
 ```bash
-# Single file
-kayba upload trace.md
+# List uploaded traces
+kayba traces list
+kayba traces list --json          # machine-parseable output
 
-# Directory (recursive)
-kayba upload traces/
+# View a trace
+kayba traces show TRACE_ID
+kayba traces show TRACE_ID --meta  # metadata only, no content
+kayba traces show TRACE_ID --json
 
-# Pipe from stdin
-cat trace.md | kayba upload -
+# Upload traces
+kayba traces upload trace.md
+kayba traces upload traces/       # directory (recursive)
+kayba traces upload --type json traces/  # force file type
+cat trace.md | kayba upload -     # pipe from stdin (top-level alias)
 
-# Force file type
-kayba upload traces/ --type json
+# Delete traces
+kayba traces delete ID1 ID2
+kayba traces delete ID1 --force   # skip confirmation
 ```
 
 Files larger than 350k characters trigger a warning. Supported types: `md`, `json`, `txt` (auto-detected from extension).
+
+### Run the pipeline
+
+The `run` command combines trace selection and pipeline execution:
+
+```bash
+# Interactive mode (visual checkbox selector)
+kayba run
+
+# Select all traces
+kayba run --all --wait
+
+# Explicit trace IDs
+kayba run --traces ID1 --traces ID2
+
+# Custom model, epochs, and reflector mode
+kayba run --all --model claude-opus-4-6 --epochs 3 --reflector-mode recursive --wait
+
+# Machine-parseable output (for agents/scripts)
+kayba run --all --json
+```
+
+In interactive mode (`kayba run` with no flags), a visual checkbox selector lets you pick traces with arrow keys, space to toggle, and enter to confirm. Requires the `questionary` package (included in the `cloud` extra).
+
+In programmatic mode (`--traces`, `--all`, or `--json`), no prompts are shown — suitable for agents and scripts.
+
+Options:
+
+| Flag | Description |
+|------|-------------|
+| `--traces ID` | Trace IDs to analyse (repeatable) |
+| `--all` | Select all uploaded traces |
+| `--model` | `claude-sonnet-4-6` or `claude-opus-4-6` |
+| `--epochs N` | Number of analysis epochs |
+| `--reflector-mode` | `recursive` or `standard` |
+| `--anthropic-key` | Anthropic API key for server-side LLM calls |
+| `--wait` | Poll until the job completes |
+| `--json` | Machine-parseable JSON output |
 
 ### Generate insights
 
@@ -61,17 +106,6 @@ kayba insights generate --traces ID1 --traces ID2
 # Custom model and epochs
 kayba insights generate --model claude-opus-4-6 --epochs 3 --wait
 ```
-
-Options:
-
-| Flag | Description |
-|------|-------------|
-| `--traces ID` | Trace IDs to analyse (repeatable) |
-| `--model` | `claude-sonnet-4-6` or `claude-opus-4-6` |
-| `--epochs N` | Number of analysis epochs |
-| `--reflector-mode` | `recursive` or `standard` |
-| `--anthropic-key` | Anthropic API key for server-side LLM calls |
-| `--wait` | Poll until the job completes |
 
 ### List and triage insights
 
@@ -116,6 +150,31 @@ kayba prompts pull --id PROMPT_ID -o skillbook-prompt.md
 # Pretty-print full JSON
 kayba prompts pull --pretty
 ```
+
+### Integrations
+
+Manage connections to external trace platforms (MLflow, LangSmith).
+
+```bash
+# List configured integrations
+kayba integrations list
+kayba integrations list --json
+
+# Interactively configure an integration
+kayba integrations configure mlflow
+kayba integrations configure langsmith
+
+# Test a connection
+kayba integrations test langsmith
+kayba integrations test mlflow
+```
+
+The `configure` command prompts for each field interactively:
+
+- **MLflow**: tracking URI, auth type (none/basic/bearer/databricks), token, username, experiment name
+- **LangSmith**: API URL (defaults to `https://api.smith.langchain.com`, use `https://eu.api.smith.langchain.com` for EU), API key, project name
+
+After saving, the connection is automatically tested. Credentials are stored in your Kayba account settings (DynamoDB), accessible from both the CLI and the web dashboard.
 
 ### Job status and materialisation
 
@@ -189,26 +248,43 @@ Options:
 
 By default `kayba setup` copies the **kayba-pipeline** skill into `.claude/skills/`. This skill orchestrates a 7-stage evaluation pipeline (analyze traces → compute metrics → build rubric → plan fixes → HITL review → apply fixes → verify). See [Claude Code](claude-code.md#pipeline-skill) for details.
 
-## End-to-end workflow
+## End-to-end workflows
+
+### Interactive (human at terminal)
 
 ```bash
 # 1. Upload traces
-kayba upload traces/
+kayba traces upload traces/
 
-# 2. Generate insights (waits for completion)
-kayba insights generate --wait
+# 2. Run the pipeline (interactive trace selector)
+kayba run
 
 # 3. Review insights
 kayba insights list --status pending
-
-# 4. Accept the good ones
 kayba insights triage --accept-all
 
-# 5. Generate a prompt
+# 4. Generate a prompt
 kayba prompts generate -o prompt.md
+```
 
-# 6. Use the prompt in your agent
-cat prompt.md
+### Programmatic (agent or script)
+
+```bash
+# 1. Upload traces
+kayba traces upload traces/
+
+# 2. List what was uploaded
+TRACES=$(kayba traces list --json | jq -r '.[].id')
+
+# 3. Run the pipeline on all traces
+JOB_ID=$(kayba run --all --json | jq -r '.jobId')
+
+# 4. Wait for completion
+kayba status $JOB_ID --wait
+
+# 5. Accept all insights and generate prompt
+kayba insights triage --accept-all
+kayba prompts generate -o prompt.md
 ```
 
 ## Python client
@@ -220,13 +296,19 @@ from ace.cli.client import KaybaClient
 
 client = KaybaClient(api_key="your-key")
 
-# Upload traces
+# Trace management
+traces = client.list_traces()
+trace = client.get_trace("conv-123")
+client.delete_trace("conv-123")
 result = client.upload_traces([
     {"filename": "trace.md", "content": "...", "fileType": "md"},
 ])
 
-# Generate insights
-job = client.generate_insights(model="claude-sonnet-4-6")
+# Run pipeline
+job = client.generate_insights(
+    trace_ids=["conv-123", "conv-456"],
+    model="claude-sonnet-4-6",
+)
 
 # Check status
 status = client.get_job(job["jobId"])
@@ -239,13 +321,26 @@ client.triage_insight(insights["insights"][0]["id"], "accepted")
 client.generate_prompt()
 prompts = client.list_prompts()
 prompt = client.get_prompt(prompts[0]["id"])
+
+# Integrations
+integrations = client.get_integrations()
+client.update_integration("langsmith", {
+    "enabled": True,
+    "apiUrl": "https://eu.api.smith.langchain.com",
+    "apiKey": "lsv2_pt_...",
+})
+result = client.test_integration("langsmith")
 ```
 
 ## API endpoints
 
 | Method | Path | Client method |
 |--------|------|---------------|
+| `GET` | `/traces` | `list_traces()` |
 | `POST` | `/traces` | `upload_traces()` |
+| `GET` | `/traces/:id` | `get_trace()` |
+| `DELETE` | `/traces/:id` | `delete_trace()` |
+| `POST` | `/traces/batch` | `get_traces()` |
 | `POST` | `/insights/generate` | `generate_insights()` |
 | `GET` | `/insights` | `list_insights()` |
 | `PATCH` | `/insights/:id` | `triage_insight()` |
@@ -254,6 +349,9 @@ prompt = client.get_prompt(prompts[0]["id"])
 | `POST` | `/prompts/generate` | `generate_prompt()` |
 | `GET` | `/prompts` | `list_prompts()` |
 | `GET` | `/prompts/:id` | `get_prompt()` |
+| `GET` | `/integrations` | `get_integrations()` |
+| `PUT` | `/integrations/:name` | `update_integration()` |
+| `POST` | `/integrations/:name/test` | `test_integration()` |
 
 ## Coding agent setup
 

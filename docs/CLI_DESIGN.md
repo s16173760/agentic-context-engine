@@ -352,15 +352,18 @@ Examples:
 
 ---
 
-## Kayba CLI (removed)
+## Kayba CLI
 
-The `kayba` entry point (`ace.cli:main`) and its supporting modules (`ace/cli/__init__.py`, `ace/cli/client.py`, `ace/cli/cloud.py`) have been removed. The only CLI entry points are now:
+The `kayba` entry point (`ace.cli:main`) provides the hosted API client. It wraps trace management, pipeline execution, insight triage, prompt generation, and integration management. See [Hosted API docs](../integrations/hosted-api.md) for the full reference.
 
 ```toml
 [project.scripts]
 ace = "ace.cli.setup:main"
+kayba = "ace.cli:main"
 ace-mcp = "ace.integrations.mcp.server:main"
 ```
+
+Key command groups: `traces`, `run`, `insights`, `prompts`, `integrations`, `status`, `materialize`, `batch`, `setup`.
 
 ---
 

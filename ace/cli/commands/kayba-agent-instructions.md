@@ -6,8 +6,16 @@ Auth: set `KAYBA_API_KEY` env var or pass `--api-key` to every command.
 ### Commands
 
 ```
-kayba upload <paths...>                  Upload trace files/dirs (or - for stdin)
+kayba traces list [--json]               List uploaded traces
+kayba traces show <id> [--meta] [--json] View a trace
+kayba traces upload <paths...>           Upload trace files/dirs (or - for stdin)
   --type [md|json|txt]                   Force file type (auto-detected by default)
+kayba traces delete <ids...> [--force]   Delete traces
+
+kayba run                                Run pipeline (interactive trace selector)
+  --traces ID  --all  --model MODEL  --epochs N
+  --reflector-mode [recursive|standard]  --anthropic-key KEY
+  --wait  --json
 
 kayba insights generate                  Trigger insight generation
   --traces ID  --model MODEL  --epochs N  --reflector-mode [recursive|standard]
@@ -32,6 +40,10 @@ kayba status <job-id>                    Check job status
 
 kayba materialize <job-id>               Materialize results into skillbook
 
+kayba integrations list [--json]         Show configured integrations
+kayba integrations configure <name>      Configure mlflow or langsmith
+kayba integrations test <name>           Test integration connection
+
 kayba batch <paths...>                   Pre-batch traces for Recursive Reflector
   --apply FILE  --upload  --min-batch-size N  --max-batch-size N
 ```
@@ -39,8 +51,17 @@ kayba batch <paths...>                   Pre-batch traces for Recursive Reflecto
 ### Typical workflow
 
 ```
-kayba upload traces/
-kayba insights generate --wait
+kayba traces upload traces/
+kayba run --all --wait
+kayba insights triage --accept-all
+kayba prompts generate -o prompt.md
+```
+
+### Programmatic workflow (for agents)
+
+```
+kayba traces list --json
+kayba run --traces ID1 --traces ID2 --json --wait
 kayba insights triage --accept-all
 kayba prompts generate -o prompt.md
 ```

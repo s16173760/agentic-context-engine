@@ -109,6 +109,7 @@ mcp = [
 
 [project.scripts]
 ace = "ace.cli.setup:main"
+kayba = "ace.cli:main"
 ace-mcp = "ace.integrations.mcp.server:main"
 
 [project.urls]

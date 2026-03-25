@@ -8,12 +8,14 @@ from __future__ import annotations
 
 import json
 import logging
-from typing import Any
+from typing import Any, Union
 
 from pydantic_ai import Agent as PydanticAgent
 from pydantic_ai.settings import ModelSettings
 
+from ..core.context import SkillbookView
 from ..core.outputs import ReflectorOutput, SkillManagerOutput
+from ..core.skillbook import Skillbook
 from ..providers.pydantic_ai import resolve_model
 from .prompts import SKILL_MANAGER_PROMPT
 
@@ -75,7 +77,7 @@ class SkillManager:
         self,
         *,
         reflections: tuple[ReflectorOutput, ...],
-        skillbook: Any,
+        skillbook: Union[SkillbookView, Skillbook],
         question_context: str,
         progress: str,
         **kwargs: Any,
@@ -87,8 +89,7 @@ class SkillManager:
         Args:
             reflections: Tuple of Reflector analyses (1-tuple for single,
                 N-tuple for batch).
-            skillbook: Current skillbook (duck-typed, needs
-                ``as_prompt``, ``stats``).
+            skillbook: Current skillbook (needs ``as_prompt``, ``stats``).
             question_context: Description of the task domain.
             progress: Current progress summary (e.g. ``"5/10 correct"``).
             **kwargs: Accepted for protocol compatibility but not forwarded.

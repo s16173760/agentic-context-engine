@@ -9,6 +9,7 @@ from ..protocols.deduplication import DeduplicationConfig
 from .detector import SimilarityDetector
 from .operations import (
     ConsolidationOperation,
+    ConsolidationOpType,
     DeleteOp,
     KeepOp,
     MergeOp,
@@ -91,10 +92,16 @@ class DeduplicationManager:
         for raw_op in raw_ops:
             if not isinstance(raw_op, dict):
                 continue
-            op_type = raw_op.get("type", "").upper()
+            raw_type = raw_op.get("type", "").upper()
 
             try:
-                if op_type == "MERGE":
+                op_type = ConsolidationOpType(raw_type)
+            except ValueError:
+                logger.warning("Unknown consolidation operation type: %r", raw_type)
+                continue
+
+            try:
+                if op_type is ConsolidationOpType.MERGE:
                     operations.append(
                         MergeOp(
                             source_ids=raw_op.get("source_ids", []),
@@ -103,14 +110,14 @@ class DeduplicationManager:
                             reasoning=raw_op.get("reasoning", ""),
                         )
                     )
-                elif op_type == "DELETE":
+                elif op_type is ConsolidationOpType.DELETE:
                     operations.append(
                         DeleteOp(
                             skill_id=raw_op.get("skill_id", ""),
                             reasoning=raw_op.get("reasoning", ""),
                         )
                     )
-                elif op_type == "KEEP":
+                elif op_type is ConsolidationOpType.KEEP:
                     operations.append(
                         KeepOp(
                             skill_ids=raw_op.get("skill_ids", []),
@@ -118,7 +125,7 @@ class DeduplicationManager:
                             reasoning=raw_op.get("reasoning", ""),
                         )
                     )
-                elif op_type == "UPDATE":
+                elif op_type is ConsolidationOpType.UPDATE:
                     operations.append(
                         UpdateOp(
                             skill_id=raw_op.get("skill_id", ""),
@@ -126,10 +133,8 @@ class DeduplicationManager:
                             reasoning=raw_op.get("reasoning", ""),
                         )
                     )
-                else:
-                    logger.warning("Unknown consolidation operation type: %s", op_type)
             except Exception as e:
-                logger.warning("Failed to parse consolidation operation: %s", e)
+                logger.warning("Failed to parse consolidation operation (%s): %s", type(e).__name__, e)
 
         logger.info("Parsed %d consolidation operations", len(operations))
         return operations

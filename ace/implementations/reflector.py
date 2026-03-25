@@ -7,12 +7,14 @@ and error feedback.
 from __future__ import annotations
 
 import logging
-from typing import Any, Optional
+from typing import Any, Optional, Union
 
 from pydantic_ai import Agent as PydanticAgent
 from pydantic_ai.settings import ModelSettings
 
+from ..core.context import SkillbookView
 from ..core.outputs import AgentOutput, ReflectorOutput
+from ..core.skillbook import Skillbook
 from ..providers.pydantic_ai import resolve_model
 from .helpers import format_optional, make_skillbook_excerpt
 from .prompts import REFLECTOR_PROMPT
@@ -73,7 +75,7 @@ class Reflector:
         *,
         question: str,
         agent_output: AgentOutput,
-        skillbook: Any,
+        skillbook: Union[SkillbookView, Skillbook],
         ground_truth: Optional[str] = None,
         feedback: Optional[str] = None,
         **kwargs: Any,
@@ -85,8 +87,7 @@ class Reflector:
         Args:
             question: The original question.
             agent_output: The agent's output to analyze.
-            skillbook: Current skillbook (duck-typed, needs
-                ``get_skill``).
+            skillbook: Current skillbook (needs ``get_skill``).
             ground_truth: Expected correct answer (if available).
             feedback: Environment feedback text.
             **kwargs: Accepted for protocol compatibility but not forwarded.

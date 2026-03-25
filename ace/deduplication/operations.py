@@ -5,12 +5,22 @@ from __future__ import annotations
 import logging
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
+from enum import Enum
 from typing import TYPE_CHECKING, List, Literal, Union
 
 if TYPE_CHECKING:
     from ..core.skillbook import Skillbook
 
 logger = logging.getLogger(__name__)
+
+
+class ConsolidationOpType(str, Enum):
+    """Valid consolidation operation types from SkillManager responses."""
+
+    MERGE = "MERGE"
+    DELETE = "DELETE"
+    KEEP = "KEEP"
+    UPDATE = "UPDATE"
 
 
 @dataclass

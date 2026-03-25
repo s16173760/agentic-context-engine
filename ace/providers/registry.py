@@ -88,7 +88,8 @@ def get_provider(model: str) -> str:
 
     try:
         _, provider, _, _ = ll.get_llm_provider(model)
-    except Exception:
+    except Exception as e:
+        logger.debug("Could not detect provider for %r (%s): %s", model, type(e).__name__, e)
         provider = "unknown"
 
     return provider
@@ -103,7 +104,8 @@ def get_missing_keys(model: str) -> list[str]:
     try:
         result = ll.validate_environment(model=model)
         return result.get("missing_keys", [])
-    except Exception:
+    except Exception as e:
+        logger.debug("Could not validate environment for %r (%s): %s", model, type(e).__name__, e)
         return []
 
 

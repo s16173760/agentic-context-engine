@@ -7,12 +7,14 @@ and error feedback.
 from __future__ import annotations
 
 import logging
-from typing import Any, Optional
+from typing import Any, Optional, Union
 
 from pydantic_ai import Agent as PydanticAgent
 from pydantic_ai.settings import ModelSettings
 
+from ..core.context import SkillbookView
 from ..core.outputs import AgentOutput
+from ..core.skillbook import Skillbook
 from ..providers.pydantic_ai import resolve_model
 from .helpers import extract_cited_skill_ids, format_optional
 from .prompts import AGENT_PROMPT
@@ -71,7 +73,7 @@ class Agent:
         *,
         question: str,
         context: Optional[str],
-        skillbook: Any,
+        skillbook: Union[SkillbookView, Skillbook],
         reflection: Optional[str] = None,
         **kwargs: Any,
     ) -> AgentOutput:
@@ -82,7 +84,7 @@ class Agent:
         Args:
             question: The question to answer.
             context: Additional context or requirements.
-            skillbook: Current skillbook (duck-typed, needs ``as_prompt``).
+            skillbook: Current skillbook (needs ``as_prompt``).
             reflection: Optional reflection from a previous attempt.
             **kwargs: Accepted for protocol compatibility but not forwarded.
 

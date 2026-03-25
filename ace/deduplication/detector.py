@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import importlib
 import logging
+import threading
 from typing import TYPE_CHECKING, List, Optional, Tuple
 
 from ..protocols.deduplication import DeduplicationConfig
@@ -30,6 +31,7 @@ class SimilarityDetector:
     def __init__(self, config: DeduplicationConfig | None = None) -> None:
         self.config = config or DeduplicationConfig()
         self._model: object | None = None  # lazy sentence-transformers model
+        self._model_lock = threading.Lock()
 
     # ------------------------------------------------------------------
     # Single / batch embedding computation
@@ -65,7 +67,7 @@ class SimilarityDetector:
             )
             return response.data[0]["embedding"]
         except Exception as e:
-            logger.warning("Failed to compute embedding via LiteLLM: %s", e)
+            logger.warning("Failed to compute embedding via LiteLLM (%s): %s", type(e).__name__, e)
             return None
 
     def _embed_batch_litellm(self, texts: List[str]) -> List[Optional[List[float]]]:
@@ -78,7 +80,7 @@ class SimilarityDetector:
             response = litellm.embedding(model=self.config.embedding_model, input=texts)
             return [item["embedding"] for item in response.data]
         except Exception as e:
-            logger.warning("Failed to compute batch embeddings via LiteLLM: %s", e)
+            logger.warning("Failed to compute batch embeddings via LiteLLM (%s): %s", type(e).__name__, e)
             return [None] * len(texts)
 
     # ------------------------------------------------------------------
@@ -95,7 +97,8 @@ class SimilarityDetector:
             return embedding.tolist()
         except Exception as e:
             logger.warning(
-                "Failed to compute embedding via sentence-transformers: %s", e
+                "Failed to compute embedding via sentence-transformers (%s): %s",
+                type(e).__name__, e,
             )
             return None
 
@@ -109,17 +112,19 @@ class SimilarityDetector:
             return [emb.tolist() for emb in embeddings]
         except Exception as e:
             logger.warning(
-                "Failed to compute batch embeddings via " "sentence-transformers: %s",
-                e,
+                "Failed to compute batch embeddings via sentence-transformers (%s): %s",
+                type(e).__name__, e,
             )
             return [None] * len(texts)
 
     def _get_st_model(self):
-        """Lazy-load the sentence-transformers model."""
+        """Lazy-load the sentence-transformers model (thread-safe)."""
         if self._model is None:
-            from sentence_transformers import SentenceTransformer
+            with self._model_lock:
+                if self._model is None:  # double-check after acquiring lock
+                    from sentence_transformers import SentenceTransformer
 
-            self._model = SentenceTransformer(self.config.local_model_name)
+                    self._model = SentenceTransformer(self.config.local_model_name)
         return self._model
 
     # ------------------------------------------------------------------

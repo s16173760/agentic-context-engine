@@ -14,13 +14,11 @@ ACE uses specialized prompt templates for each role. The framework includes mult
 Pass a `prompt_template` string to any role constructor:
 
 ```python
-from ace import Agent, Reflector, SkillManager, LiteLLMClient
+from ace import Agent, Reflector, SkillManager
 
-llm = LiteLLMClient(model="gpt-4o-mini")
-
-agent = Agent(llm, prompt_template="Your custom agent prompt ...")
-reflector = Reflector(llm, prompt_template="Your custom reflector prompt ...")
-skill_manager = SkillManager(llm, prompt_template="Your custom skill manager prompt ...")
+agent = Agent("gpt-4o-mini", prompt_template="Your custom agent prompt ...")
+reflector = Reflector("gpt-4o-mini", prompt_template="Your custom reflector prompt ...")
+skill_manager = SkillManager("gpt-4o-mini", prompt_template="Your custom skill manager prompt ...")
 ```
 
 ## Template Variables

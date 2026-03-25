@@ -11,41 +11,24 @@ A full pipeline needs four things:
 3. **Environment** — evaluates agent outputs
 4. **Samples** — training data with questions and ground truth
 
-## Step 1: Create the LLM Client
+## Step 1: Create the Roles
 
-```python
-from ace import LiteLLMClient
-
-llm = LiteLLMClient(model="gpt-4o-mini")
-```
-
-For robust JSON parsing with small models, wrap with Instructor (requires `pip install ace-framework[instructor]`):
-
-```python
-from ace import LiteLLMClient, wrap_with_instructor
-
-llm = wrap_with_instructor(LiteLLMClient(model="ollama/gemma3:1b"))
-```
-
-## Step 2: Create the Roles
+Each role takes a model string directly. Supports any [LiteLLM model](https://docs.litellm.ai/) or PydanticAI-native identifier:
 
 ```python
 from ace import Agent, Reflector, SkillManager
 
-agent = Agent(llm)
-reflector = Reflector(llm)
-skill_manager = SkillManager(llm)
+agent = Agent("gpt-4o-mini")
+reflector = Reflector("gpt-4o-mini")
+skill_manager = SkillManager("gpt-4o-mini")
 ```
 
 Optionally use a cheaper model for learning:
 
 ```python
-agent_llm = LiteLLMClient(model="gpt-4o")
-learning_llm = LiteLLMClient(model="gpt-4o-mini")
-
-agent = Agent(agent_llm)
-reflector = Reflector(learning_llm)
-skill_manager = SkillManager(learning_llm)
+agent = Agent("gpt-4o")
+reflector = Reflector("gpt-4o-mini")
+skill_manager = SkillManager("gpt-4o-mini")
 ```
 
 ## Step 3: Define an Environment
@@ -112,14 +95,13 @@ print(f"Learned {len(runner.skillbook.skills())} strategies")
 ```python
 from ace import (
     ACE, Agent, Reflector, SkillManager,
-    LiteLLMClient, Sample, SimpleEnvironment,
+    Sample, SimpleEnvironment,
 )
 
-# LLM and roles
-llm = LiteLLMClient(model="gpt-4o-mini")
-agent = Agent(llm)
-reflector = Reflector(llm)
-skill_manager = SkillManager(llm)
+# Roles (each takes a model string directly)
+agent = Agent("gpt-4o-mini")
+reflector = Reflector("gpt-4o-mini")
+skill_manager = SkillManager("gpt-4o-mini")
 
 # Pipeline
 runner = ACE.from_roles(
@@ -194,17 +176,12 @@ See [Prompt Engineering](prompts.md) for template variables and more examples.
 
 ## Testing Without API Calls
 
-Use a mock to test pipeline wiring without making real LLM calls. Any object satisfying the `LLMClientLike` protocol (with `complete()` and `complete_structured()` methods) works:
+Use `test` as the model to get PydanticAI's built-in test model, or use `unittest.mock` to patch the agent's `run_sync` method:
 
 ```python
-from unittest.mock import MagicMock
-
-mock_llm = MagicMock()
-mock_llm.complete.return_value = '{"reasoning": "test", "final_answer": "4", "skill_ids": []}'
-
-agent = Agent(mock_llm)
-reflector = Reflector(mock_llm)
-skill_manager = SkillManager(mock_llm)
+agent = Agent("test")
+reflector = Reflector("test")
+skill_manager = SkillManager("test")
 ```
 
 ## Observability

@@ -93,16 +93,12 @@ agent.get_strategies()                # Formatted strategies
 Use a strong model for the Agent and a cheaper one for learning:
 
 ```python
-from ace import ACELiteLLM, Agent, Reflector, SkillManager, LiteLLMClient
-
-agent_llm = LiteLLMClient(model="gpt-4o")
-learning_llm = LiteLLMClient(model="gpt-4o-mini")
+from ace import ACELiteLLM, Agent, Reflector, SkillManager
 
 ace = ACELiteLLM(
-    llm=agent_llm,
-    agent=Agent(agent_llm),
-    reflector=Reflector(learning_llm),
-    skill_manager=SkillManager(learning_llm),
+    agent=Agent("gpt-4o"),
+    reflector=Reflector("gpt-4o-mini"),
+    skill_manager=SkillManager("gpt-4o-mini"),
 )
 ```
 

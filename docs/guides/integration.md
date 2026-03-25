@@ -74,14 +74,12 @@ runner = BrowserUse.from_model(
 Provide pre-built role instances:
 
 ```python
-from ace import Reflector, SkillManager, LiteLLMClient
-
-learning_llm = LiteLLMClient(model="gpt-4o-mini")
+from ace import Reflector, SkillManager
 
 runner = BrowserUse.from_roles(
     browser_llm=ChatOpenAI(model="gpt-4o"),
-    reflector=Reflector(learning_llm),
-    skill_manager=SkillManager(learning_llm),
+    reflector=Reflector("gpt-4o-mini"),
+    skill_manager=SkillManager("gpt-4o-mini"),
     skillbook_path="saved.json",
     dedup_config=my_dedup_config,
     checkpoint_dir="./checkpoints",
@@ -121,22 +119,21 @@ The pattern: **Execute Step** (runs your agent) + **ToTrace Step** (extracts lea
 
 ```python
 from pipeline import Pipeline
-from ace import Skillbook, Reflector, SkillManager, LiteLLMClient
+from ace import Skillbook, Reflector, SkillManager
 from ace.steps import learning_tail
 from ace.runners import ACERunner
 
 # Your custom execute step would implement the Step protocol
 # See the Pipeline Engine docs for details on building custom steps
 
-learning_llm = LiteLLMClient(model="gpt-4o-mini")
 skillbook = Skillbook()
 
 steps = [
     MyCustomExecuteStep(...),
     MyCustomToTraceStep(),
     *learning_tail(
-        Reflector(learning_llm),
-        SkillManager(learning_llm),
+        Reflector("gpt-4o-mini"),
+        SkillManager("gpt-4o-mini"),
         skillbook,
     ),
 ]

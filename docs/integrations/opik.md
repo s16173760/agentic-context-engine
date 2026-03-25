@@ -26,16 +26,14 @@ ace = ACELiteLLM.from_model("gpt-4o-mini", opik=True, opik_project="my-experimen
 from ace import (
     ACE, OpikStep,
     Agent, Reflector, SkillManager,
-    LiteLLMClient, SimpleEnvironment,
+    SimpleEnvironment,
 )
 
 # Manual: Add OpikStep via extra_steps
-client = LiteLLMClient(model="gpt-4o-mini")
-
 runner = ACE.from_roles(
-    agent=Agent(client),
-    reflector=Reflector(client),
-    skill_manager=SkillManager(client),
+    agent=Agent("gpt-4o-mini"),
+    reflector=Reflector("gpt-4o-mini"),
+    skill_manager=SkillManager("gpt-4o-mini"),
     environment=SimpleEnvironment(),
     extra_steps=[OpikStep(project_name="my-experiment")],
 )
@@ -210,16 +208,14 @@ OPIK_ENABLED=false python my_script.py
     ```python
     from ace import (
         ACE, Agent, Reflector, SkillManager, Skillbook,
-        LiteLLMClient, SimpleEnvironment, Sample, OpikStep,
+        SimpleEnvironment, Sample, OpikStep,
         register_opik_litellm_callback,
     )
 
-    client = LiteLLMClient(model="gpt-4o-mini")
-
     runner = ACE.from_roles(
-        agent=Agent(client),
-        reflector=Reflector(client),
-        skill_manager=SkillManager(client),
+        agent=Agent("gpt-4o-mini"),
+        reflector=Reflector("gpt-4o-mini"),
+        skill_manager=SkillManager("gpt-4o-mini"),
         environment=SimpleEnvironment(),
         extra_steps=[OpikStep(project_name="ace-training")],
     )

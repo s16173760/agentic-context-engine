@@ -45,16 +45,15 @@ from ace import (
     # Steps
     AgentStep, EvaluateStep, learning_tail,
     # Types
-    LiteLLMClient, Sample, Skillbook, SimpleEnvironment,
+    Sample, Skillbook, SimpleEnvironment,
 )
 
-llm = LiteLLMClient(model="gpt-4o-mini")
 skillbook = Skillbook()
 
 pipe = Pipeline([
-    AgentStep(Agent(llm)),
+    AgentStep(Agent("gpt-4o-mini")),
     EvaluateStep(SimpleEnvironment()),
-    *learning_tail(Reflector(llm), SkillManager(llm), skillbook),
+    *learning_tail(Reflector("gpt-4o-mini"), SkillManager("gpt-4o-mini"), skillbook),
 ])
 ```
 
@@ -215,11 +214,10 @@ in two ways:
 Pass it anywhere a `Reflector` is expected:
 
 ```python
-from ace import ACELiteLLM, LiteLLMClient
+from ace import ACELiteLLM
 from ace.rr import RRStep, RRConfig
 
-llm = LiteLLMClient(model="gpt-4o-mini")
-ace = ACELiteLLM(llm, reflector=RRStep(llm, config=RRConfig(max_iterations=10)))
+ace = ACELiteLLM.from_model("gpt-4o-mini", reflector=RRStep("gpt-4o-mini", config=RRConfig(max_llm_calls=10)))
 ```
 
 ### As a pipeline step
@@ -227,19 +225,17 @@ ace = ACELiteLLM(llm, reflector=RRStep(llm, config=RRConfig(max_iterations=10)))
 Place it directly in a pipeline (it provides `reflections`):
 
 ```python
-from ace import Pipeline, learning_tail, SkillManager, Skillbook, LiteLLMClient
-from ace.rr import RRStep, RRConfig, RROpikStep
+from ace import Pipeline, learning_tail, SkillManager, Skillbook
+from ace.rr import RRStep, RRConfig
 
-llm = LiteLLMClient(model="gpt-4o-mini")
 skillbook = Skillbook()
-rr = RRStep(llm, config=RRConfig(max_iterations=15))
+rr = RRStep("gpt-4o-mini", config=RRConfig(max_llm_calls=15))
 
 pipe = Pipeline([
     MyExecuteStep(),
     MyToTrace(),
     rr,  # replaces ReflectStep — provides "reflections"
-    *learning_tail(None, SkillManager(llm), skillbook)[1:],  # skip ReflectStep
-    RROpikStep(project_name="my-project"),  # optional observability
+    *learning_tail(None, SkillManager("gpt-4o-mini"), skillbook)[1:],  # skip ReflectStep
 ])
 ```
 
@@ -250,13 +246,9 @@ Route sub-agent calls to a smaller/faster model:
 ```python
 from ace.rr import RRStep, RRConfig
 
-main_llm = LiteLLMClient(model="gpt-4o")
-fast_llm = LiteLLMClient(model="gpt-4o-mini")
-
 rr = RRStep(
-    main_llm,
-    config=RRConfig(max_iterations=20, max_llm_calls=40),
-    subagent_llm=fast_llm,
+    "gpt-4o",
+    config=RRConfig(max_llm_calls=40, subagent_model="gpt-4o-mini"),
 )
 ```
 

@@ -484,7 +484,7 @@ No changes to `ace.toml` — Logfire config is purely env-based.
 3. ~~**Phase 2**: Implement PydanticAI-based RR agent. Run RR tests + integration tests.~~ **DONE** — RRStep now uses PydanticAI agent with `execute_code`, `analyze`, `batch_analyze` tools. Old inner pipeline (SubRunner, LLMCallStep, ExtractCodeStep, etc.) deprecated. 1093 tests passing.
 4. ~~**Phase 3**: Update runners and config. Deprecate old providers.~~ **DONE** — Deprecation warnings added to `LiteLLMClient`, `InstructorClient`, `ClaudeCodeLLMClient`, `LangChainLiteLLMClient`, and `LLMClientLike`.
 5. ~~**Phase 4**: Add Logfire observability (auto-instruments all PydanticAI agents).~~ **DONE** — `ace.observability.configure_logfire()` auto-instruments all PydanticAI agents. Opt-in via `ACELiteLLM(logfire=True)`.
-6. **Cleanup**: Remove deprecated code, update docs.
+6. ~~**Cleanup**: Remove deprecated code, update docs.~~ **DONE** — Deleted old `ace/` v1 codebase, deprecated providers (`LiteLLMClient`, `InstructorClient`, `ClaudeCodeLLMClient`, `LangChainLiteLLMClient`), old RR internals (`SubRunner`, `RRIterationContext`, inner pipeline steps, `code_extraction.py`, `subagent.py`), `RROpikStep`, `OpikStep`, `LLMClientLike` protocol, `sub_runner.py`. Updated all docs.
 
 ### Backward compatibility
 

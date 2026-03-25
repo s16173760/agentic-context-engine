@@ -43,6 +43,7 @@ dependencies = [
     "pydantic>=2.0.0",
     "pydantic-ai-slim[litellm]>=0.0.36",
     "python-toon>=0.1.0",
+    "tau2",
     "tenacity>=9.1.4",
 ]
 
@@ -195,3 +196,6 @@ markers = [
     "unit: marks tests as unit tests",
     "requires_api: marks tests that need live API credentials",
 ]
+
+[tool.uv.sources]
+tau2 = { git = "https://github.com/sierra-research/tau2-bench.git" }

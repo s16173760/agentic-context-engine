@@ -17,10 +17,9 @@ graph LR
 The Agent receives a question, context, and the skillbook's strategies, then generates a reasoned answer citing which skills it used.
 
 ```python
-from ace import Agent, LiteLLMClient
+from ace import Agent
 
-llm = LiteLLMClient(model="gpt-4o-mini")
-agent = Agent(llm)
+agent = Agent("gpt-4o-mini")
 
 output = agent.generate(
     question="What is 2+2?",
@@ -108,27 +107,22 @@ skillbook.apply_update(sm_output.update)
 
 ## Shared LLM
 
-All three roles share the same LLM instance. The intelligence comes from the specialized prompts, not from using different models:
+All three roles use the same model string. The intelligence comes from the specialized prompts, not from using different models:
 
 ```python
-from ace import Agent, Reflector, SkillManager, LiteLLMClient
+from ace import Agent, Reflector, SkillManager
 
-llm = LiteLLMClient(model="gpt-4o-mini")
-
-agent = Agent(llm)              # Same LLM
-reflector = Reflector(llm)      # Same LLM
-skill_manager = SkillManager(llm)  # Same LLM
+agent = Agent("gpt-4o-mini")
+reflector = Reflector("gpt-4o-mini")
+skill_manager = SkillManager("gpt-4o-mini")
 ```
 
 You can optionally use a cheaper model for the learning roles (Reflector + SkillManager) while keeping a stronger model for the Agent:
 
 ```python
-agent_llm = LiteLLMClient(model="gpt-4o")
-learning_llm = LiteLLMClient(model="gpt-4o-mini")
-
-agent = Agent(agent_llm)
-reflector = Reflector(learning_llm)
-skill_manager = SkillManager(learning_llm)
+agent = Agent("gpt-4o")
+reflector = Reflector("gpt-4o-mini")
+skill_manager = SkillManager("gpt-4o-mini")
 ```
 
 ## What to Read Next

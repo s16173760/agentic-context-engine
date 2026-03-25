@@ -88,14 +88,13 @@ For full control, use the three ACE roles directly:
 ```python
 from ace import (
     ACE, Agent, Reflector, SkillManager,
-    LiteLLMClient, Sample, SimpleEnvironment,
+    Sample, SimpleEnvironment,
 )
 
-# Create LLM and roles
-llm = LiteLLMClient(model="gpt-4o-mini")
-agent = Agent(llm)
-reflector = Reflector(llm)
-skill_manager = SkillManager(llm)
+# Create roles (each takes a model string directly)
+agent = Agent("gpt-4o-mini")
+reflector = Reflector("gpt-4o-mini")
+skill_manager = SkillManager("gpt-4o-mini")
 
 # Build the adaptive pipeline
 runner = ACE.from_roles(

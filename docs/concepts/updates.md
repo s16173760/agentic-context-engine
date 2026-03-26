@@ -67,7 +67,7 @@ Prunes a strategy that is consistently harmful:
 The SkillManager emits operations as an `UpdateBatch` — one or more operations applied atomically:
 
 ```python
-from ace_next import UpdateOperation, UpdateBatch
+from ace import UpdateOperation, UpdateBatch
 
 batch = UpdateBatch(operations=[
     UpdateOperation(type="ADD", section="Debugging", content="Log inputs before errors"),

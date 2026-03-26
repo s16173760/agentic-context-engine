@@ -7,7 +7,7 @@ Get a self-learning agent running in under a minute.
 If you've run `ace setup` (see [Setup](setup.md)), you can load your config automatically:
 
 ```python
-from ace_next import ACELiteLLM
+from ace import ACELiteLLM
 
 agent = ACELiteLLM.from_setup()
 
@@ -34,7 +34,7 @@ agent = ACELiteLLM.from_model("gpt-4o-mini")
     The simplest path. Supports 100+ LLM providers.
 
     ```python
-    from ace_next import ACELiteLLM
+    from ace import ACELiteLLM
 
     agent = ACELiteLLM.from_model("gpt-4o-mini")
     answer = agent.ask("Your question")
@@ -46,7 +46,7 @@ agent = ACELiteLLM.from_model("gpt-4o-mini")
     Wrap any LangChain Runnable (chains, agents, graphs) with learning.
 
     ```python
-    from ace_next import LangChain
+    from ace import LangChain
 
     runner = LangChain.from_model(your_chain, ace_model="gpt-4o-mini")
     results = runner.run([{"input": "Your task"}])
@@ -58,7 +58,7 @@ agent = ACELiteLLM.from_model("gpt-4o-mini")
     Browser automation that learns navigation patterns.
 
     ```python
-    from ace_next import BrowserUse
+    from ace import BrowserUse
     from langchain_openai import ChatOpenAI
 
     runner = BrowserUse.from_model(
@@ -74,7 +74,7 @@ agent = ACELiteLLM.from_model("gpt-4o-mini")
     Self-improving coding agent using the Claude Code CLI.
 
     ```python
-    from ace_next import ClaudeCode
+    from ace import ClaudeCode
 
     runner = ClaudeCode.from_model(working_dir="./my_project")
     results = runner.run("Add unit tests for utils.py")
@@ -86,16 +86,15 @@ agent = ACELiteLLM.from_model("gpt-4o-mini")
 For full control, use the three ACE roles directly:
 
 ```python
-from ace_next import (
+from ace import (
     ACE, Agent, Reflector, SkillManager,
-    LiteLLMClient, Sample, SimpleEnvironment,
+    Sample, SimpleEnvironment,
 )
 
-# Create LLM and roles
-llm = LiteLLMClient(model="gpt-4o-mini")
-agent = Agent(llm)
-reflector = Reflector(llm)
-skill_manager = SkillManager(llm)
+# Create roles (each takes a model string directly)
+agent = Agent("gpt-4o-mini")
+reflector = Reflector("gpt-4o-mini")
+skill_manager = SkillManager("gpt-4o-mini")
 
 # Build the adaptive pipeline
 runner = ACE.from_roles(
@@ -119,7 +118,7 @@ runner.save("trained.json")
 ## Loading Saved Agents
 
 ```python
-from ace_next import ACELiteLLM
+from ace import ACELiteLLM
 
 # Resume from a saved skillbook
 agent = ACELiteLLM.from_model("gpt-4o-mini", skillbook_path="my_agent.json")
@@ -129,7 +128,7 @@ answer = agent.ask("New question")  # Uses previously learned strategies
 ## Trying Different Models
 
 ```python
-from ace_next import ACELiteLLM
+from ace import ACELiteLLM
 
 # OpenAI
 agent = ACELiteLLM.from_model("gpt-4o-mini")

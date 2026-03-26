@@ -63,12 +63,18 @@ class KaybaClient:
             try:
                 body = resp.json()
                 err = body.get("error", {})
+                if isinstance(err, str):
+                    raise KaybaAPIError(
+                        code="API_ERROR",
+                        message=err,
+                        status_code=resp.status_code,
+                    )
                 raise KaybaAPIError(
                     code=err.get("code", "UNKNOWN"),
                     message=err.get("message", resp.text),
                     status_code=resp.status_code,
                 )
-            except (ValueError, KeyError):
+            except (ValueError, KeyError, AttributeError):
                 raise KaybaAPIError(
                     code="HTTP_ERROR",
                     message=resp.text,
@@ -88,6 +94,34 @@ class KaybaClient:
             traces: List of dicts with keys: filename, content, fileType.
         """
         return self._request("POST", "/traces", json={"traces": traces})
+
+    def list_traces(self) -> Dict[str, Any]:
+        """List all traces (metadata only, no content)."""
+        return self._request("GET", "/traces")
+
+    def get_trace(self, trace_id: str) -> Dict[str, Any]:
+        """Get a single trace with full content."""
+        return self._request("GET", f"/traces/{trace_id}")
+
+    def get_traces(self, trace_ids: List[str]) -> Dict[str, Any]:
+        """Batch get traces by IDs (with content)."""
+        return self._request("POST", "/traces/batch", json={"ids": trace_ids})
+
+    def delete_trace(self, trace_id: str) -> Dict[str, Any]:
+        """Delete a single trace."""
+        return self._request("DELETE", f"/traces/{trace_id}")
+
+    def delete_traces(self, trace_ids: List[str]) -> Dict[str, Any]:
+        """Delete multiple traces."""
+        results = []
+        errors = []
+        for tid in trace_ids:
+            try:
+                self.delete_trace(tid)
+                results.append(tid)
+            except KaybaAPIError as e:
+                errors.append({"id": tid, "error": str(e)})
+        return {"deleted": results, "errors": errors}
 
     # -- Insights --
 
@@ -173,3 +207,17 @@ class KaybaClient:
     def get_prompt(self, prompt_id: str) -> Dict[str, Any]:
         """Get a specific prompt by ID."""
         return self._request("GET", f"/prompts/{prompt_id}")
+
+    # -- Integrations --
+
+    def get_integrations(self) -> Dict[str, Any]:
+        """Get current integration settings."""
+        return self._request("GET", "/integrations")
+
+    def update_integration(self, name: str, config: Dict[str, Any]) -> Dict[str, Any]:
+        """Update an integration's config."""
+        return self._request("PUT", f"/integrations/{name}", json=config)
+
+    def test_integration(self, name: str) -> Dict[str, Any]:
+        """Test an integration connection."""
+        return self._request("POST", f"/integrations/{name}/test")

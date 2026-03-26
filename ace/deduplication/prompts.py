@@ -5,8 +5,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, List, Tuple
 
 if TYPE_CHECKING:
-    from ..skillbook import Skill
-
+    from ..core.skillbook import Skill
 
 SIMILARITY_REPORT_HEADER = """
 ## Similar Skills Detected
@@ -36,10 +35,10 @@ def generate_similarity_report(
     """Generate a human-readable similarity report for the SkillManager.
 
     Args:
-        similar_pairs: List of (skill_a, skill_b, similarity_score) tuples
+        similar_pairs: List of (skill_a, skill_b, similarity_score) tuples.
 
     Returns:
-        Formatted report string to include in SkillManager prompt
+        Formatted report string to include in SkillManager prompt.
     """
     if not similar_pairs:
         return ""
@@ -119,6 +118,6 @@ def format_pair_for_logging(
     """Format a single pair for logging output."""
     return (
         f"[{skill_a.id}] '{skill_a.content[:50]}...' "
-        f"↔ [{skill_b.id}] '{skill_b.content[:50]}...' "
+        f"<-> [{skill_b.id}] '{skill_b.content[:50]}...' "
         f"({similarity:.0%} similar)"
     )

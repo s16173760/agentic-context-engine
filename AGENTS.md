@@ -23,15 +23,15 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 If a task seems like it cannot fit the pipeline model, explain why to the user before proceeding — do not silently circumvent it.
 
 ### Core Code Protection
-**Do NOT modify core modules (`ace/`, `ace_next/core/`, `pipeline/`) without explicit user approval.** Before proposing any change to these directories:
+**Do NOT modify core modules (`ace/`, `ace/core/`, `pipeline/`) without explicit user approval.** Before proposing any change to these directories:
 1. Read the relevant design docs (`docs/ACE_DESIGN.md`, `docs/PIPELINE_DESIGN.md`) thoroughly.
 2. Evaluate whether the change is truly required or if it can be achieved outside the core (e.g., in an integration, step, or example).
 3. Clearly explain the proposed change and its justification to the user **before** making any edits.
 4. Wait for the user to explicitly accept before proceeding.
 
 ### Documentation Maintenance
-Before working on code in `ace/` or `ace_next/`, read `docs/ACE_DESIGN.md` to understand the current architecture.
-Before working on code in `pipeline/` or `ace_next/core/`, read `docs/PIPELINE_DESIGN.md` to understand the pipeline engine.
+Before working on code in `ace/` or `ace/`, read `docs/ACE_DESIGN.md` to understand the current architecture.
+Before working on code in `pipeline/` or `ace/core/`, read `docs/PIPELINE_DESIGN.md` to understand the pipeline engine.
 
 **Docs MUST be kept in sync with code.** Any change that alters a public API, renames a concept, adds/removes a module, or changes execution flow **requires** a corresponding update to the relevant docs. Do not merge code changes that make the documentation inaccurate.
 
@@ -41,8 +41,8 @@ Key design docs:
 
 ### Project Structure
 - `ace/` — core library (skillbook, roles, adapters, integrations, observability)
-- `ace_next/` — pipeline-based rewrite built on top of `pipeline/` (see `docs/ACE_DESIGN.md`)
-- `pipeline/` — generic pipeline engine that `ace_next` is built on (see `docs/PIPELINE_DESIGN.md`)
+- `ace/` — pipeline-based rewrite built on top of `pipeline/` (see `docs/ACE_DESIGN.md`)
+- `pipeline/` — generic pipeline engine that `ace` is built on (see `docs/PIPELINE_DESIGN.md`)
 - `tests/` — unit/integration tests (pytest + unittest)
 - `examples/` — runnable demos grouped by integration
 - `benchmarks/`, `scripts/` — research/evaluation tooling (not shipped to PyPI)

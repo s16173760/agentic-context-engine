@@ -3,14 +3,24 @@
 from __future__ import annotations
 
 import logging
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime, timezone
+from enum import Enum
 from typing import TYPE_CHECKING, List, Literal, Union
 
 if TYPE_CHECKING:
-    from ..skillbook import Skillbook, SimilarityDecision
+    from ..core.skillbook import Skillbook
 
 logger = logging.getLogger(__name__)
+
+
+class ConsolidationOpType(str, Enum):
+    """Valid consolidation operation types from SkillManager responses."""
+
+    MERGE = "MERGE"
+    DELETE = "DELETE"
+    KEEP = "KEEP"
+    UPDATE = "UPDATE"
 
 
 @dataclass
@@ -22,14 +32,10 @@ class MergeOp:
     """
 
     type: Literal["MERGE"] = "MERGE"
-    source_ids: List[str] = None  # type: ignore  # All skills being merged
-    merged_content: str = ""  # New combined content
-    keep_id: str = ""  # Which ID to keep (others deleted)
+    source_ids: List[str] = field(default_factory=list)
+    merged_content: str = ""
+    keep_id: str = ""
     reasoning: str = ""
-
-    def __post_init__(self):
-        if self.source_ids is None:
-            self.source_ids = []
 
 
 @dataclass
@@ -46,13 +52,9 @@ class KeepOp:
     """Keep both skills separate (they serve different purposes)."""
 
     type: Literal["KEEP"] = "KEEP"
-    skill_ids: List[str] = None  # type: ignore
-    differentiation: str = ""  # How they differ
+    skill_ids: List[str] = field(default_factory=list)
+    differentiation: str = ""
     reasoning: str = ""
-
-    def __post_init__(self):
-        if self.skill_ids is None:
-            self.skill_ids = []
 
 
 @dataclass
@@ -65,20 +67,19 @@ class UpdateOp:
     reasoning: str = ""
 
 
-# Type alias for any consolidation operation
 ConsolidationOperation = Union[MergeOp, DeleteOp, KeepOp, UpdateOp]
+
+
+# ---------------------------------------------------------------------------
+# Apply helpers
+# ---------------------------------------------------------------------------
 
 
 def apply_consolidation_operations(
     operations: List[ConsolidationOperation],
     skillbook: "Skillbook",
 ) -> None:
-    """Apply a list of consolidation operations to a skillbook.
-
-    Args:
-        operations: List of operations to apply
-        skillbook: Skillbook to modify
-    """
+    """Apply a list of consolidation operations to a skillbook."""
     for op in operations:
         if isinstance(op, MergeOp):
             _apply_merge(op, skillbook)
@@ -89,86 +90,70 @@ def apply_consolidation_operations(
         elif isinstance(op, UpdateOp):
             _apply_update(op, skillbook)
         else:
-            logger.warning(f"Unknown operation type: {type(op)}")
+            logger.warning("Unknown operation type: %s", type(op))
 
 
 def _apply_merge(op: MergeOp, skillbook: "Skillbook") -> None:
-    """Apply a MERGE operation."""
     keep_skill = skillbook.get_skill(op.keep_id)
     if keep_skill is None:
-        logger.warning(f"MERGE: Keep skill {op.keep_id} not found")
+        logger.warning("MERGE: Keep skill %s not found", op.keep_id)
         return
 
-    # Combine metadata from all source skills
     for source_id in op.source_ids:
         if source_id == op.keep_id:
             continue
-
         source = skillbook.get_skill(source_id)
         if source is None:
-            logger.warning(f"MERGE: Source skill {source_id} not found")
+            logger.warning("MERGE: Source skill %s not found", source_id)
             continue
-
-        # Combine counters
         keep_skill.helpful += source.helpful
         keep_skill.harmful += source.harmful
         keep_skill.neutral += source.neutral
-
-        # Soft delete source
         skillbook.remove_skill(source_id, soft=True)
-        logger.info(f"MERGE: Soft-deleted {source_id} into {op.keep_id}")
+        logger.info("MERGE: Soft-deleted %s into %s", source_id, op.keep_id)
 
-    # Update content to merged version
     if op.merged_content:
         keep_skill.content = op.merged_content
 
-    # Invalidate embedding (needs recomputation)
     keep_skill.embedding = None
     keep_skill.updated_at = datetime.now(timezone.utc).isoformat()
-
-    logger.info(f"MERGE: Completed merge into {op.keep_id}")
+    logger.info("MERGE: Completed merge into %s", op.keep_id)
 
 
 def _apply_delete(op: DeleteOp, skillbook: "Skillbook") -> None:
-    """Apply a DELETE operation (soft delete)."""
     skill = skillbook.get_skill(op.skill_id)
     if skill is None:
-        logger.warning(f"DELETE: Skill {op.skill_id} not found")
+        logger.warning("DELETE: Skill %s not found", op.skill_id)
         return
-
     skillbook.remove_skill(op.skill_id, soft=True)
-    logger.info(f"DELETE: Soft-deleted {op.skill_id}")
+    logger.info("DELETE: Soft-deleted %s", op.skill_id)
 
 
 def _apply_keep(op: KeepOp, skillbook: "Skillbook") -> None:
-    """Apply a KEEP operation (store decision)."""
     if len(op.skill_ids) < 2:
         logger.warning("KEEP: Need at least 2 skill IDs")
         return
 
-    from ..skillbook import SimilarityDecision
+    from ..core.skillbook import SimilarityDecision
 
-    # Store decision for each pair
     for i, id_a in enumerate(op.skill_ids):
         for id_b in op.skill_ids[i + 1 :]:
             decision = SimilarityDecision(
                 decision="KEEP",
                 reasoning=op.reasoning or op.differentiation,
                 decided_at=datetime.now(timezone.utc).isoformat(),
-                similarity_at_decision=0.0,  # We don't have the score here
+                similarity_at_decision=0.0,
             )
             skillbook.set_similarity_decision(id_a, id_b, decision)
-            logger.info(f"KEEP: Stored decision for ({id_a}, {id_b})")
+            logger.info("KEEP: Stored decision for (%s, %s)", id_a, id_b)
 
 
 def _apply_update(op: UpdateOp, skillbook: "Skillbook") -> None:
-    """Apply an UPDATE operation."""
     skill = skillbook.get_skill(op.skill_id)
     if skill is None:
-        logger.warning(f"UPDATE: Skill {op.skill_id} not found")
+        logger.warning("UPDATE: Skill %s not found", op.skill_id)
         return
-
     skill.content = op.new_content
-    skill.embedding = None  # Needs recomputation
+    skill.embedding = None
     skill.updated_at = datetime.now(timezone.utc).isoformat()
-    logger.info(f"UPDATE: Updated content of {op.skill_id}")
+    logger.info("UPDATE: Updated content of %s", op.skill_id)

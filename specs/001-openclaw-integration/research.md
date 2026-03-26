@@ -69,7 +69,7 @@
 
 ## R-007: AGENTS.md Sync Format
 
-**Decision**: Use `wrap_skillbook_context()` from `ace_next.integrations` to format the skillbook content between HTML comment markers `<!-- ACE:SKILLBOOK:START/END -->`.
+**Decision**: Use `wrap_skillbook_context()` from `ace.integrations` to format the skillbook content between HTML comment markers `<!-- ACE:SKILLBOOK:START/END -->`.
 
 **Rationale**: `wrap_skillbook_context()` already produces a formatted string with skillbook strategies and usage instructions. The marker-based replacement pattern in `sync_to_agents_md()` is correct — preserves content outside markers, handles create/update cases.
 

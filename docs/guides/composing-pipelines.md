@@ -32,10 +32,10 @@ a field that no earlier step provides, you'll get an error immediately.
 
 ## Composing from Steps
 
-All pipeline classes and ACE steps are importable from `ace_next`:
+All pipeline classes and ACE steps are importable from `ace`:
 
 ```python
-from ace_next import (
+from ace import (
     # Pipeline engine
     Pipeline, Branch, MergeStrategy, StepProtocol, SampleResult,
     # ACE context
@@ -45,16 +45,15 @@ from ace_next import (
     # Steps
     AgentStep, EvaluateStep, learning_tail,
     # Types
-    LiteLLMClient, Sample, Skillbook, SimpleEnvironment,
+    Sample, Skillbook, SimpleEnvironment,
 )
 
-llm = LiteLLMClient(model="gpt-4o-mini")
 skillbook = Skillbook()
 
 pipe = Pipeline([
-    AgentStep(Agent(llm)),
+    AgentStep(Agent("gpt-4o-mini")),
     EvaluateStep(SimpleEnvironment()),
-    *learning_tail(Reflector(llm), SkillManager(llm), skillbook),
+    *learning_tail(Reflector("gpt-4o-mini"), SkillManager("gpt-4o-mini"), skillbook),
 ])
 ```
 
@@ -63,7 +62,7 @@ pipe = Pipeline([
 The `learning_tail()` helper returns the standard learning step sequence:
 
 ```python
-from ace_next import learning_tail, Reflector, SkillManager, Skillbook
+from ace import learning_tail, Reflector, SkillManager, Skillbook
 
 steps = learning_tail(
     Reflector(llm),
@@ -85,7 +84,7 @@ Every runner has a `build_steps()` classmethod that returns the step list it
 would use internally. This lets you inspect, modify, and recompose:
 
 ```python
-from ace_next import ACE, Pipeline, ACERunner, Skillbook
+from ace import ACE, Pipeline, ACERunner, Skillbook
 
 # Get the default steps
 steps = ACE.build_steps(
@@ -113,7 +112,7 @@ All runners support `build_steps()`: `ACE`, `BrowserUse`, `ClaudeCode`,
 A step is any object satisfying `StepProtocol` — no base class needed:
 
 ```python
-from ace_next import ACEStepContext
+from ace import ACEStepContext
 
 class MyLoggingStep:
     requires = frozenset({"agent_output"})
@@ -137,8 +136,8 @@ You can compose steps from different integrations into one pipeline. For example
 combining a browser-use execute step with custom learning:
 
 ```python
-from ace_next import Pipeline, learning_tail, Reflector, SkillManager, Skillbook
-from ace_next.integrations.browser_use import BrowserExecuteStep, BrowserToTrace
+from ace import Pipeline, learning_tail, Reflector, SkillManager, Skillbook
+from ace.integrations.browser_use import BrowserExecuteStep, BrowserToTrace
 
 skillbook = Skillbook()
 pipe = Pipeline([
@@ -149,7 +148,7 @@ pipe = Pipeline([
 ])
 ```
 
-Integration steps live in `ace_next.integrations` since they have
+Integration steps live in `ace.integrations` since they have
 framework-specific dependencies.
 
 ## Running the Pipeline
@@ -159,7 +158,7 @@ framework-specific dependencies.
 The simplest way to run a custom pipeline is through `ACERunner`:
 
 ```python
-from ace_next import ACERunner, Sample, Skillbook
+from ace import ACERunner, Sample, Skillbook
 
 runner = ACERunner(pipeline=pipe, skillbook=skillbook)
 results = runner.run(
@@ -173,7 +172,7 @@ results = runner.run(
 You can also run the pipeline directly by constructing contexts yourself:
 
 ```python
-from ace_next import Pipeline, ACEStepContext, SkillbookView, Sample, Skillbook
+from ace import Pipeline, ACEStepContext, SkillbookView, Sample, Skillbook
 
 ctx = ACEStepContext(
     sample=Sample(question="What is 2+2?", ground_truth="4"),
@@ -190,7 +189,7 @@ The pipeline engine supports parallel branches for steps that can run
 concurrently:
 
 ```python
-from ace_next import Pipeline, Branch, MergeStrategy
+from ace import Pipeline, Branch, MergeStrategy
 
 pipe = Pipeline([
     AgentStep(agent),
@@ -215,11 +214,10 @@ in two ways:
 Pass it anywhere a `Reflector` is expected:
 
 ```python
-from ace_next import ACELiteLLM, LiteLLMClient
-from ace_next.rr import RRStep, RRConfig
+from ace import ACELiteLLM
+from ace.rr import RRStep, RRConfig
 
-llm = LiteLLMClient(model="gpt-4o-mini")
-ace = ACELiteLLM(llm, reflector=RRStep(llm, config=RRConfig(max_iterations=10)))
+ace = ACELiteLLM.from_model("gpt-4o-mini", reflector=RRStep("gpt-4o-mini", config=RRConfig(max_llm_calls=10)))
 ```
 
 ### As a pipeline step
@@ -227,19 +225,17 @@ ace = ACELiteLLM(llm, reflector=RRStep(llm, config=RRConfig(max_iterations=10)))
 Place it directly in a pipeline (it provides `reflections`):
 
 ```python
-from ace_next import Pipeline, learning_tail, SkillManager, Skillbook, LiteLLMClient
-from ace_next.rr import RRStep, RRConfig, RROpikStep
+from ace import Pipeline, learning_tail, SkillManager, Skillbook
+from ace.rr import RRStep, RRConfig
 
-llm = LiteLLMClient(model="gpt-4o-mini")
 skillbook = Skillbook()
-rr = RRStep(llm, config=RRConfig(max_iterations=15))
+rr = RRStep("gpt-4o-mini", config=RRConfig(max_llm_calls=15))
 
 pipe = Pipeline([
     MyExecuteStep(),
     MyToTrace(),
     rr,  # replaces ReflectStep — provides "reflections"
-    *learning_tail(None, SkillManager(llm), skillbook)[1:],  # skip ReflectStep
-    RROpikStep(project_name="my-project"),  # optional observability
+    *learning_tail(None, SkillManager("gpt-4o-mini"), skillbook)[1:],  # skip ReflectStep
 ])
 ```
 
@@ -248,15 +244,11 @@ pipe = Pipeline([
 Route sub-agent calls to a smaller/faster model:
 
 ```python
-from ace_next.rr import RRStep, RRConfig
-
-main_llm = LiteLLMClient(model="gpt-4o")
-fast_llm = LiteLLMClient(model="gpt-4o-mini")
+from ace.rr import RRStep, RRConfig
 
 rr = RRStep(
-    main_llm,
-    config=RRConfig(max_iterations=20, max_llm_calls=40),
-    subagent_llm=fast_llm,
+    "gpt-4o",
+    config=RRConfig(max_llm_calls=40, subagent_model="gpt-4o-mini"),
 )
 ```
 
@@ -265,7 +257,7 @@ configuration reference, and trace schema.
 
 ## Available Steps
 
-All steps are importable from `ace_next`:
+All steps are importable from `ace`:
 
 | Step | Purpose |
 |------|---------|
@@ -284,7 +276,7 @@ All steps are importable from `ace_next`:
 | `OpikStep` | Log traces to Opik |
 | `RRStep` | Recursive Reflector |
 
-Integration steps (in `ace_next.integrations`):
+Integration steps (in `ace.integrations`):
 
 | Step | Integration |
 |------|-------------|

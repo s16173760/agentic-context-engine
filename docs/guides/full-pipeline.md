@@ -11,41 +11,24 @@ A full pipeline needs four things:
 3. **Environment** — evaluates agent outputs
 4. **Samples** — training data with questions and ground truth
 
-## Step 1: Create the LLM Client
+## Step 1: Create the Roles
+
+Each role takes a model string directly. Supports any [LiteLLM model](https://docs.litellm.ai/) or PydanticAI-native identifier:
 
 ```python
-from ace_next import LiteLLMClient
+from ace import Agent, Reflector, SkillManager
 
-llm = LiteLLMClient(model="gpt-4o-mini")
-```
-
-For robust JSON parsing with small models, wrap with Instructor (requires `pip install ace-framework[instructor]`):
-
-```python
-from ace_next import LiteLLMClient, wrap_with_instructor
-
-llm = wrap_with_instructor(LiteLLMClient(model="ollama/gemma3:1b"))
-```
-
-## Step 2: Create the Roles
-
-```python
-from ace_next import Agent, Reflector, SkillManager
-
-agent = Agent(llm)
-reflector = Reflector(llm)
-skill_manager = SkillManager(llm)
+agent = Agent("gpt-4o-mini")
+reflector = Reflector("gpt-4o-mini")
+skill_manager = SkillManager("gpt-4o-mini")
 ```
 
 Optionally use a cheaper model for learning:
 
 ```python
-agent_llm = LiteLLMClient(model="gpt-4o")
-learning_llm = LiteLLMClient(model="gpt-4o-mini")
-
-agent = Agent(agent_llm)
-reflector = Reflector(learning_llm)
-skill_manager = SkillManager(learning_llm)
+agent = Agent("gpt-4o")
+reflector = Reflector("gpt-4o-mini")
+skill_manager = SkillManager("gpt-4o-mini")
 ```
 
 ## Step 3: Define an Environment
@@ -53,7 +36,7 @@ skill_manager = SkillManager(learning_llm)
 The environment evaluates agent outputs. Extend `TaskEnvironment` and implement `evaluate()`:
 
 ```python
-from ace_next import TaskEnvironment, EnvironmentResult
+from ace import TaskEnvironment, EnvironmentResult
 
 class MathEnvironment(TaskEnvironment):
     def evaluate(self, sample, agent_output):
@@ -68,7 +51,7 @@ class MathEnvironment(TaskEnvironment):
 Or use the built-in `SimpleEnvironment` for basic ground-truth matching:
 
 ```python
-from ace_next import SimpleEnvironment
+from ace import SimpleEnvironment
 
 environment = SimpleEnvironment()
 ```
@@ -76,7 +59,7 @@ environment = SimpleEnvironment()
 ## Step 4: Prepare Samples
 
 ```python
-from ace_next import Sample
+from ace import Sample
 
 samples = [
     Sample(question="What is 2+2?", context="", ground_truth="4"),
@@ -88,7 +71,7 @@ samples = [
 ## Step 5: Build and Run the Pipeline
 
 ```python
-from ace_next import ACE
+from ace import ACE
 
 runner = ACE.from_roles(
     agent=agent,
@@ -110,16 +93,15 @@ print(f"Learned {len(runner.skillbook.skills())} strategies")
 ## Complete Example
 
 ```python
-from ace_next import (
+from ace import (
     ACE, Agent, Reflector, SkillManager,
-    LiteLLMClient, Sample, SimpleEnvironment,
+    Sample, SimpleEnvironment,
 )
 
-# LLM and roles
-llm = LiteLLMClient(model="gpt-4o-mini")
-agent = Agent(llm)
-reflector = Reflector(llm)
-skill_manager = SkillManager(llm)
+# Roles (each takes a model string directly)
+agent = Agent("gpt-4o-mini")
+reflector = Reflector("gpt-4o-mini")
+skill_manager = SkillManager("gpt-4o-mini")
 
 # Pipeline
 runner = ACE.from_roles(
@@ -162,10 +144,10 @@ This creates:
 
 ## Deduplication
 
-Prevent duplicate skills from accumulating (requires `pip install ace-framework[deduplication]`):
+Prevent duplicate skills from accumulating (requires `uv add ace-framework[deduplication]`):
 
 ```python
-from ace_next import DeduplicationConfig, DeduplicationManager
+from ace import DeduplicationConfig, DeduplicationManager
 
 dedup = DeduplicationManager(DeduplicationConfig(
     enabled=True,
@@ -194,25 +176,20 @@ See [Prompt Engineering](prompts.md) for template variables and more examples.
 
 ## Testing Without API Calls
 
-Use a mock to test pipeline wiring without making real LLM calls. Any object satisfying the `LLMClientLike` protocol (with `complete()` and `complete_structured()` methods) works:
+Use `test` as the model to get PydanticAI's built-in test model, or use `unittest.mock` to patch the agent's `run_sync` method:
 
 ```python
-from unittest.mock import MagicMock
-
-mock_llm = MagicMock()
-mock_llm.complete.return_value = '{"reasoning": "test", "final_answer": "4", "skill_ids": []}'
-
-agent = Agent(mock_llm)
-reflector = Reflector(mock_llm)
-skill_manager = SkillManager(mock_llm)
+agent = Agent("test")
+reflector = Reflector("test")
+skill_manager = SkillManager("test")
 ```
 
 ## Observability
 
-Add Opik tracing to any pipeline via `extra_steps` (requires `pip install ace-framework[observability]`):
+Add Opik tracing to any pipeline via `extra_steps` (requires `uv add ace-framework[observability]`):
 
 ```python
-from ace_next import ACE, OpikStep, register_opik_litellm_callback
+from ace import ACE, OpikStep, register_opik_litellm_callback
 
 runner = ACE.from_roles(
     agent=agent,
@@ -235,7 +212,7 @@ same pipeline yourself for full control over step ordering, branching, and
 custom steps:
 
 ```python
-from ace_next import Pipeline, AgentStep, EvaluateStep, learning_tail
+from ace import Pipeline, AgentStep, EvaluateStep, learning_tail
 
 pipe = Pipeline([
     AgentStep(agent),

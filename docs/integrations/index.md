@@ -30,7 +30,7 @@ All integration runners follow the same three-step pattern:
 Every runner offers a `from_model()` factory that builds ACE roles automatically:
 
 ```python
-from ace_next import BrowserUse, LangChain, ClaudeCode
+from ace import BrowserUse, LangChain, ClaudeCode
 
 # Browser automation
 browser = BrowserUse.from_model(browser_llm=my_llm, ace_model="gpt-4o-mini")

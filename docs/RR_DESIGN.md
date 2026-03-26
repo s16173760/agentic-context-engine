@@ -1,76 +1,90 @@
 # Recursive Reflector (RR) Design
 
-Design document for the Recursive Reflector module (`ace_next/rr/`). The RR is a REPL-based trace analyser that iteratively calls an LLM to generate Python code, executes it in a sandbox, and builds structured reflections from agent execution traces.
+Design document for the Recursive Reflector module (`ace/rr/`). The RR is a PydanticAI-powered trace analyser that uses tool calls to generate Python code, execute it in a sandbox, delegate analysis to sub-agents, and produce structured reflections from agent execution traces.
 
 ---
 
 ## Overview
 
-The Recursive Reflector replaces the single-pass `Reflector` with an iterative code-execution loop. Instead of asking the LLM for a one-shot analysis, RR gives the LLM a Python REPL with pre-loaded trace data and lets it explore, query a sub-agent, and submit findings when ready.
+The Recursive Reflector replaces the single-pass `Reflector` with an iterative tool-calling agent. Instead of asking the LLM for a one-shot analysis, RR gives the LLM three tools — `execute_code`, `analyze`, and `batch_analyze` — and lets it explore trace data, delegate semantic reasoning to a sub-agent, and submit structured findings as typed output.
 
 **Key properties:**
 
 - Satisfies both `StepProtocol` and `ReflectorLike` — usable as a pipeline step or a drop-in reflector replacement.
-- Extends `SubRunner` (from `ace_next/core/sub_runner.py`) — runs an inner `Pipeline` in a loop.
-- Single shared `CallBudget` enforces combined LLM call limit across main calls and sub-agent calls.
+- Internally uses a **PydanticAI agent** with typed tools and structured output (`ReflectorOutput`).
+- PydanticAI's `UsageLimits` enforces a combined request budget across all LLM calls.
 - Produces `ReflectorOutput` with an enriched `raw["rr_trace"]` dict for downstream observability.
+- Logfire auto-instruments the PydanticAI agent for observability (replaces the old `RROpikStep`).
 
 ```python
-from ace_next.rr import RRStep, RRConfig
+from ace.rr import RRStep, RRConfig
 
 # Drop-in replacement for Reflector
-ace = ACELiteLLM(llm, reflector=RRStep(llm, config=RRConfig(max_iterations=10)))
+ace = ACELiteLLM(llm, reflector=RRStep("gpt-4o-mini", config=RRConfig(max_llm_calls=30)))
 
 # Or as a pipeline step
-pipe = Pipeline([..., RRStep(llm), ...])
+pipe = Pipeline([..., RRStep("gpt-4o-mini"), ...])
 ```
 
 ---
 
 ## Architecture
 
-### REPL Loop
+### PydanticAI Agent Loop
 
-Each invocation of `RRStep` runs an iterative loop:
+Each invocation of `RRStep` runs a PydanticAI agent that drives the analysis through tool calls:
 
 ```
-┌─────────────────────────────────────────────────────────┐
-│  RRStep.run_loop()                                      │
-│                                                         │
-│  for each iteration (up to max_iterations):             │
-│    ┌──────────┐   ┌──────────────┐   ┌──────────────┐  │
-│    │LLMCallStep│ → │ExtractCodeStep│ → │SandboxExecStep│ │
-│    └──────────┘   └──────────────┘   └──────────────┘  │
-│         │                                    │          │
-│         │              ┌──────────────┐      │          │
-│         └──────────────│CheckResultStep│←─────┘          │
-│                        └──────────────┘                 │
-│                              │                          │
-│                    ┌─────────┴──────────┐               │
-│                    │                    │               │
-│              FINAL() called?      Build feedback        │
-│              ↓ yes                ↓ no                  │
-│         Return result      Next iteration               │
-└─────────────────────────────────────────────────────────┘
+┌───────────────────────────────────────────────────────────────┐
+│  RRStep._run_reflection()                                     │
+│                                                               │
+│  ┌─────────────────────────────────────────────────────────┐  │
+│  │  PydanticAI Agent (model, output_type=ReflectorOutput)  │  │
+│  │                                                         │  │
+│  │  Tools:                                                 │  │
+│  │  ┌──────────────┐  ┌─────────┐  ┌───────────────┐      │  │
+│  │  │ execute_code │  │ analyze │  │ batch_analyze │      │  │
+│  │  │  (sandbox)   │  │ (sub-   │  │ (parallel     │      │  │
+│  │  │              │  │  agent) │  │  sub-agent)   │      │  │
+│  │  └──────┬───────┘  └────┬────┘  └──────┬────────┘      │  │
+│  │         │               │              │               │  │
+│  │         ▼               ▼              ▼               │  │
+│  │    TraceSandbox    PydanticAI      ThreadPool +        │  │
+│  │    exec() env      sub-agent      PydanticAI          │  │
+│  │                    (text out)     sub-agent            │  │
+│  │                                                         │  │
+│  │  Output:                                                │  │
+│  │  ┌───────────────────────────────────────────────────┐  │  │
+│  │  │  ReflectorOutput (structured, validated)          │  │  │
+│  │  │  + output_validator enforces exploration depth    │  │  │
+│  │  └───────────────────────────────────────────────────┘  │  │
+│  └─────────────────────────────────────────────────────────┘  │
+│                                                               │
+│  UsageLimits(request_limit=max_llm_calls)                     │
+│  → UsageLimitExceeded triggers timeout fallback               │
+└───────────────────────────────────────────────────────────────┘
 ```
 
-### Inner Pipeline Steps
+### Tools
 
-Each iteration runs four steps sequentially:
+The PydanticAI agent has three tools, defined in `ace/rr/agent.py`:
 
-| Step | Requires | Provides | Description |
-|------|----------|----------|-------------|
-| `LLMCallStep` | `messages` | `llm_response` | Trims message history, calls LLM (respects shared budget) |
-| `ExtractCodeStep` | `llm_response` | `code`, `direct_response` | Extracts Python from response (3-layer fallback) |
-| `SandboxExecStep` | `code` | `exec_result` | Executes code in `TraceSandbox` with timeout |
-| `CheckResultStep` | `exec_result`, `messages`, `llm_response` | `terminated`, `reflection`, `feedback_messages` | Validates result, parses FINAL(), builds feedback |
+| Tool | Signature | Description |
+|------|-----------|-------------|
+| `execute_code` | `(code: str) -> str` | Run Python in the `TraceSandbox`. Variables persist across calls. Returns captured stdout/stderr. Raises `ModelRetry` on exceptions. |
+| `analyze` | `(question: str, context: str, mode: str) -> str` | Async sub-agent call. `mode="analysis"` for survey, `mode="deep_dive"` for investigation. |
+| `batch_analyze` | `(question: str, items: list[str], mode: str) -> list[str]` | Parallel sub-agent analysis via `ThreadPoolExecutor`. Each item analyzed independently. |
+
+### Output Validation
+
+An `output_validator` on the agent enforces that the LLM has used `execute_code` at least twice before producing its final `ReflectorOutput`. If the LLM tries to conclude too early, it receives a `ModelRetry` asking it to explore further.
 
 ### Dual Protocol Support
 
 `RRStep` satisfies two protocols simultaneously:
 
 ```python
-class RRStep(SubRunner):
+class RRStep:
     # StepProtocol — place in any Pipeline
     requires = frozenset({"trace", "skillbook"})
     provides = frozenset({"reflections"})
@@ -89,33 +103,28 @@ class RRStep(SubRunner):
 
 ```python
 RRStep(
-    llm: Any,                              # LLM client (must have complete_messages)
-    config: Optional[RRConfig] = None,     # Configuration (defaults to RRConfig())
-    prompt_template: str = REFLECTOR_RECURSIVE_PROMPT,  # Customisable prompt
-    subagent_llm: Any = None,              # Optional separate LLM for sub-agent
+    model: str,                          # LiteLLM or PydanticAI model string
+    config: Optional[RecursiveConfig] = None,
+    prompt_template: str = REFLECTOR_RECURSIVE_PROMPT,
+    model_settings: ModelSettings | None = None,
 )
 ```
 
 | Parameter | Description |
 |-----------|-------------|
-| `llm` | Main LLM client. Must expose `complete_messages(messages) -> response` where `response.text` is the text. |
-| `config` | `RRConfig` instance controlling iteration limits, timeouts, budgets, and sub-agent settings. |
-| `prompt_template` | The initial prompt sent to the LLM. Must contain 12 format variables (see [Prompt Template Variables](#prompt-template-variables)). Default is v5.6. |
-| `subagent_llm` | Optional separate LLM for `ask_llm()` sub-agent calls. If `None`, uses the main `llm`. Useful for routing sub-agent calls to a smaller/faster model. |
+| `model` | Model string passed to `resolve_model()`. Supports LiteLLM format (`gpt-4o`, `anthropic/claude-3-5-sonnet`) and PydanticAI format. |
+| `config` | `RRConfig` instance controlling timeouts, budgets, and sub-agent settings. |
+| `prompt_template` | The user prompt sent to the agent. Must contain format variables (see [Prompt Template Variables](#prompt-template-variables)). Default is the tool-calling variant of v5.6. |
+| `model_settings` | PydanticAI `ModelSettings` passed to the agent (temperature, max_tokens, etc.). |
 
-### SubRunner Template Methods
+### Internal Components
 
-`RRStep` extends `SubRunner` and overrides these template methods:
+On construction, `RRStep` creates:
 
-| Method | Description |
-|--------|-------------|
-| `_build_inner_pipeline(**kwargs)` | Creates `Pipeline([LLMCallStep, ExtractCodeStep, SandboxExecStep, CheckResultStep])`. Fresh pipeline per `run_loop()` call (steps hold mutable state). |
-| `_build_initial_context(**kwargs)` | Creates `RRIterationContext(messages=(initial_prompt,), iteration=0)`. |
-| `_is_done(ctx)` | Returns `ctx.terminated` (set by `CheckResultStep` when `FINAL()` is accepted). |
-| `_extract_result(ctx)` | Returns `ctx.reflection` (the parsed `ReflectorOutput`). |
-| `_accumulate(ctx)` | Appends feedback messages to history, increments iteration counter. |
-| `_on_timeout(last_ctx, iteration, **kwargs)` | Builds a fallback `ReflectorOutput`. Optionally attempts fallback synthesis (see [Fallback Synthesis](#fallback-synthesis)). |
-| `run_loop(**kwargs)` | Overrides base to collect per-iteration data into `iteration_log` for observability. |
+| Component | Description |
+|-----------|-------------|
+| `_agent` | PydanticAI agent (`Agent[RRDeps, ReflectorOutput]`) with `execute_code`, `analyze`, `batch_analyze` tools and an output validator. Created by `create_rr_agent()`. |
+| `_sub_agent` | PydanticAI agent (`Agent[None, str]`) for the `analyze`/`batch_analyze` tools. Simple text-in/text-out agent with no tools. Created by `create_sub_agent()`. Set to `None` when `config.enable_subagent=False`. |
 
 ### Prompt Template Variables
 
@@ -128,6 +137,9 @@ The `prompt_template` is formatted with these variables:
 | `{skillbook_length}` | `int` | Character count of skillbook text |
 | `{batch_variables}` | `str` | Extra sandbox variable table row for batch mode (empty string in single-trace mode) |
 | `{traces_previews}` | `str` | Markdown table of trace previews (single: per-field; batch: per-task with message count) |
+| `{trace_size_chars}` | `int` | Total character count of the serialised traces dict |
+| `{max_iterations}` | `int` | The `max_llm_calls` budget (shown so the LLM can pace itself) |
+| `{task_count}` | `int` | Number of tasks (1 for single-trace, N for batch) |
 
 ---
 
@@ -136,16 +148,15 @@ The `prompt_template` is formatted with these variables:
 Exported as `RRConfig` (aliased from `RecursiveConfig`).
 
 ```python
-from ace_next.rr import RRConfig
+from ace.rr import RRConfig
 
 config = RRConfig(
-    max_iterations=20,           # Max REPL iterations before timeout
+    max_iterations=20,           # Legacy: max REPL iterations (kept for compat)
     timeout=30.0,                # Per-execution timeout in seconds (Unix only)
-    enable_llm_query=True,       # Enable llm_query() in sandbox
-    max_llm_calls=30,            # Combined budget for main LLM + sub-agent calls
+    max_llm_calls=30,            # Primary limit: PydanticAI UsageLimits request_limit
     max_context_chars=50_000,    # Message history trim threshold
     max_output_chars=20_000,     # Per-execution output truncation limit
-    enable_subagent=True,        # Enable ask_llm() sub-agent function
+    enable_subagent=True,        # Enable analyze/batch_analyze tools
     subagent_model=None,         # Sub-agent model (None = same as main)
     subagent_max_tokens=8192,    # Max tokens for sub-agent responses
     subagent_temperature=0.3,    # Temperature for sub-agent responses
@@ -156,55 +167,43 @@ config = RRConfig(
 
 | Parameter | Default | Description |
 |-----------|---------|-------------|
-| `max_iterations` | `20` | Maximum REPL loop iterations. When reached, `_on_timeout` fires. |
+| `max_iterations` | `20` | Legacy field kept for backward compatibility. The primary limit is now `max_llm_calls` via PydanticAI's `UsageLimits`. |
 | `timeout` | `30.0` | Seconds per sandbox `execute()` call. Uses `signal.SIGALRM` on Unix; not enforced on Windows or non-main threads. |
-| `enable_llm_query` | `True` | Whether `llm_query()` is available in the sandbox. |
-| `max_llm_calls` | `30` | Single shared budget across main LLM calls and sub-agent calls. Prevents effective budget from being 2x the configured value. |
-| `max_context_chars` | `50_000` | When message history exceeds this, low-value iterations are trimmed (see [Message Trimming](#message-trimming)). |
+| `max_llm_calls` | `30` | **Primary budget.** Passed as `UsageLimits(request_limit=N)` to the PydanticAI agent. Covers all requests — main agent turns plus any requests made by tools. When exhausted, `UsageLimitExceeded` triggers the timeout fallback. |
+| `max_context_chars` | `50_000` | Trim threshold for message scoring logic (see [Message Trimming](#message-trimming)). |
 | `max_output_chars` | `20_000` | Per-execution stdout/stderr is truncated at this limit with a `[TRUNCATED: N chars remaining]` suffix. |
-| `enable_subagent` | `True` | Whether `ask_llm()` is available in the sandbox. When `False`, `ask_llm()` returns a stub message. |
-| `subagent_model` | `None` | Model for sub-agent calls. `None` means use the main reflector's model. |
+| `enable_subagent` | `True` | Whether the `analyze`/`batch_analyze` tools are functional. When `False`, the sub-agent is not created and the tools return stub messages. |
+| `subagent_model` | `None` | Model for sub-agent. `None` means use the main reflector's model. Useful for routing sub-agent calls to a smaller/faster model. |
 | `subagent_max_tokens` | `8192` | Max tokens for sub-agent responses. |
 | `subagent_temperature` | `0.3` | Temperature for sub-agent responses. |
 | `subagent_system_prompt` | `None` | Custom system prompt for sub-agent. `None` uses the default analysis prompt. |
-| `enable_fallback_synthesis` | `True` | When `True` and max iterations is reached, attempts one more LLM call to synthesise a FINAL() from the conversation history. |
+| `enable_fallback_synthesis` | `True` | Legacy field kept for compat. Timeout now always builds a fallback `ReflectorOutput`. |
 
 ---
 
-## RRIterationContext
+## RRDeps
 
-Frozen dataclass carrying state through the four inner steps of each REPL iteration. Extends `StepContext`.
+Dataclass carrying dependencies injected into every tool call via PydanticAI's `RunContext[RRDeps]`. Defined in `ace/rr/agent.py`.
 
 ```python
-@dataclass(frozen=True)
-class RRIterationContext(StepContext):
-    # Input for this iteration
-    messages: tuple[dict[str, str], ...] = ()
-    iteration: int = 0
-
-    # LLMCallStep output
-    llm_response: str | None = None
-
-    # ExtractCodeStep output
-    code: str | None = None
-    direct_response: str | None = None
-
-    # SandboxExecStep output
-    exec_result: Any | None = None  # ExecutionResult
-
-    # CheckResultStep output
-    terminated: bool = False
-    reflection: Any | None = None  # ReflectorOutput when FINAL() accepted
-    feedback_messages: tuple[dict[str, str], ...] = ()
+@dataclass
+class RRDeps:
+    sandbox: TraceSandbox                     # Sandbox for execute_code
+    trace_data: dict[str, Any]                # The canonical traces dict
+    skillbook_text: str                       # Skillbook text
+    config: RecursiveConfig                   # RR configuration
+    iteration: int = 0                        # Incremented by execute_code
+    sub_agent: PydanticAgent[None, str] | None = None  # Sub-agent for analyze/batch_analyze
+    sub_agent_history: list[dict[str, Any]] = field(default_factory=list)  # Call log
 ```
 
-Each iteration creates a fresh context via `.replace()`. The `_accumulate` method appends `feedback_messages` to `messages` for the next iteration.
+The `iteration` counter tracks how many `execute_code` calls have been made. The output validator uses this to reject premature conclusions (fewer than 2 code executions).
 
 ---
 
 ## TraceSandbox
 
-Lightweight `exec()`-based sandbox for running LLM-generated Python code. Located in `ace_next/rr/sandbox.py`.
+Lightweight `exec()`-based sandbox for running LLM-generated Python code. Located in `ace/rr/sandbox.py`.
 
 **Not a security sandbox.** Restricts builtins as defence-in-depth but relies on trusting the LLM not to generate malicious code. Do not use for untrusted code.
 
@@ -212,16 +211,13 @@ Lightweight `exec()`-based sandbox for running LLM-generated Python code. Locate
 
 | Variable | Type | Description |
 |----------|------|-------------|
-| `trace` | `TraceContext \| None` | The agent execution trace |
-| `traces` | `dict` | Canonical traces dict — single-trace `{question, ground_truth, feedback, steps}` or batch `{tasks: [{task_id, trace}]}` |
-| `skillbook` | `str` | Skillbook text via `as_prompt()` |
-| `ask_llm` | `Callable` | Sub-agent query function (see [Sub-Agent](#sub-agent)) |
-| `llm_query` | `Callable` | Alias for `ask_llm(prompt, "")` (backward compat) |
-| `FINAL` | `Callable` | Submit final result dict |
-| `FINAL_VAR` | `Callable` | Submit a named variable as final result |
+| `trace` | `TraceContext \| None` | The agent execution trace (when available) |
+| `traces` | `dict` | Canonical traces dict (injected by `RRStep`) |
+| `skillbook` | `str` | Skillbook text (injected by `RRStep`) |
 | `SHOW_VARS` | `Callable` | Print available variables (debugging) |
 | `json` | module | `json` standard library |
 | `re` | module | `re` standard library |
+| `math` | module | `math` standard library |
 | `collections` | module | `collections` standard library |
 | `datetime` | class | `datetime.datetime` |
 | `timedelta` | class | `datetime.timedelta` |
@@ -229,9 +225,13 @@ Lightweight `exec()`-based sandbox for running LLM-generated Python code. Locate
 | `time` | class | `datetime.time` |
 | `timezone` | class | `datetime.timezone` |
 
+**Note:** `FINAL`, `FINAL_VAR`, `ask_llm`, `llm_query`, and `parallel_map` are still present in the sandbox class for backward compatibility with other callers, but `RRStep` does **not** use them. The PydanticAI agent produces `ReflectorOutput` as structured output (replacing `FINAL`), and uses `analyze`/`batch_analyze` tools (replacing `ask_llm`/`parallel_map`).
+
 ### Blocked Builtins
 
-`open`, `__import__`, `eval`, `exec`, `compile`, `input`, `globals`, `locals`, `breakpoint`, `memoryview` — all set to `None`.
+`open`, `eval`, `exec`, `compile`, `input`, `globals`, `locals`, `breakpoint`, `memoryview` — all set to `None`.
+
+`__import__` is replaced with a safe import function that only allows pre-loaded modules (`json`, `re`, `math`, `collections`, `datetime`).
 
 ### safe_getattr
 
@@ -245,40 +245,6 @@ def safe_getattr(obj, name, *default):
 ```
 
 Available as both the builtin `getattr` and `safe_getattr` in the namespace.
-
-### FINAL(value)
-
-Submits the analysis result. `value` should be a dict matching `ReflectorOutput` fields:
-
-```python
-FINAL({
-    "reasoning": "...",
-    "error_identification": "...",
-    "root_cause_analysis": "...",
-    "correct_approach": "...",
-    "key_insight": "...",
-    "extracted_learnings": [
-        {"learning": "...", "atomicity_score": 0.8, "evidence": "..."},
-    ],
-    "skill_tags": [
-        {"id": "section-00001", "tag": "helpful"},
-    ],
-})
-```
-
-Raises `StopIteration` internally to exit the `exec()` call. `CheckResultStep` catches this and parses the value into a `ReflectorOutput`.
-
-### FINAL_VAR(name)
-
-Convenience function to submit a pre-built variable:
-
-```python
-result = {"reasoning": "...", "extracted_learnings": [...]}
-# ... build result across multiple code blocks ...
-FINAL_VAR("result")  # equivalent to FINAL(result)
-```
-
-Raises `ValueError` if the variable doesn't exist in the namespace.
 
 ### SHOW_VARS()
 
@@ -312,17 +278,17 @@ Add or override a variable in the sandbox namespace after construction.
 
 ### reset()
 
-Clear `final_value` and `final_called` state. Used by `CheckResultStep` when rejecting premature or errored FINAL() calls.
+Clear `final_value` and `final_called` state.
 
 ---
 
 ## Sub-Agent
 
-The sub-agent system provides an LLM-callable function (`ask_llm`) inside the sandbox, enabling the main reflector's code to delegate semantic analysis to a secondary LLM call.
+The sub-agent system provides LLM reasoning capabilities to the main reflector agent via the `analyze` and `batch_analyze` PydanticAI tools.
 
-### ask_llm(question, context="", mode="analysis")
+### analyze(question, context, mode)
 
-Available in the sandbox when `config.enable_subagent=True`. Calls the sub-agent LLM with a formatted prompt.
+PydanticAI tool on the main agent. Calls the sub-agent asynchronously with a formatted prompt.
 
 | Parameter | Type | Default | Description |
 |-----------|------|---------|-------------|
@@ -330,11 +296,19 @@ Available in the sandbox when `config.enable_subagent=True`. Calls the sub-agent
 | `context` | `str` | `""` | Data to analyse (trace excerpt, code output, etc.) |
 | `mode` | `str` | `"analysis"` | Prompt protocol: `"analysis"` for survey, `"deep_dive"` for investigation |
 
-When `config.enable_subagent=False`, returns `"(ask_llm disabled - analyze with code)"`.
+When the sub-agent is not configured (`config.enable_subagent=False`), returns `"(analyze unavailable — sub-agent not configured)"`.
 
-### llm_query(prompt)
+### batch_analyze(question, items, mode)
 
-Backward-compatible alias: `llm_query(prompt)` calls `ask_llm(prompt, "")`.
+PydanticAI tool that analyzes multiple items in parallel. Uses `ThreadPoolExecutor` to call `sub_agent.run_sync()` for each item concurrently.
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `question` | `str` | required | The question to ask about each item |
+| `items` | `list[str]` | required | List of data items to analyze |
+| `mode` | `str` | `"analysis"` | Prompt protocol |
+
+Concurrency is capped at `min(len(items), 10)` workers.
 
 ### Modes and System Prompts
 
@@ -342,69 +316,41 @@ Backward-compatible alias: `llm_query(prompt)` calls `ask_llm(prompt, "")`.
 |------|--------|---------|
 | `"analysis"` | `SUBAGENT_ANALYSIS_PROMPT` | Survey/categorisation pass — descriptive summaries for downstream categorisation |
 | `"deep_dive"` | `SUBAGENT_DEEPDIVE_PROMPT` | Investigation pass — evidence-rich analysis with root cause identification |
-| unknown | `config.system_prompt` | Falls back to the configured system prompt |
 
-### CallBudget
+### create_sub_agent
 
-Shared budget enforcing a single limit across main LLM calls and sub-agent calls:
-
-```python
-budget = CallBudget(max_calls=30)
-budget.consume()    # True (29 remaining)
-budget.count        # 1
-budget.exhausted    # False
-```
-
-When the budget is exhausted:
-- `LLMCallStep` returns an empty response and logs a warning.
-- `ask_llm` returns a limit message: `"(Max N LLM calls exceeded - continue with available data)"`.
-
-The budget is shared — `config.max_llm_calls=30` means 30 total calls, not 30 main + 30 sub-agent.
-
-### SubAgentConfig
+Factory function that creates the sub-agent:
 
 ```python
-@dataclass
-class SubAgentConfig:
-    model: Optional[str] = None       # None = same model as main reflector
-    max_tokens: int = 8192
-    temperature: float = 0.3
-    system_prompt: str = DEFAULT_SUBAGENT_SYSTEM_PROMPT
+def create_sub_agent(
+    model: str,
+    *,
+    config: RecursiveConfig | None = None,
+    model_settings: ModelSettings | None = None,
+) -> PydanticAgent[None, str]:
 ```
 
-### SubAgentLLM
+The sub-agent is a simple prompt-in / text-out PydanticAI agent with no tools and `output_type=str`. Model settings default to `temperature=config.subagent_temperature` and `max_tokens=config.subagent_max_tokens`.
 
-Wrapper class that tracks call history and provides the `ask()` method:
+### Sub-Agent Call History
+
+Each `analyze` and `batch_analyze` call appends metadata to `RRDeps.sub_agent_history`:
 
 ```python
-subagent = SubAgentLLM(llm, config=SubAgentConfig(), subagent_llm=separate_llm)
-subagent.ask("What pattern do you see?", context="...", mode="deep_dive")
-subagent.call_count     # 1
-subagent.call_history   # [{"call_number": 1, "question": "...", ...}]
-subagent.reset()        # Clear count and history
+# analyze call
+{"question": "...", "context_length": 1234, "response_length": 567, "mode": "analysis"}
+
+# batch_analyze call
+{"question": "...", "items_count": 5, "mode": "analysis", "batch": True}
 ```
 
-### create_ask_llm_function
-
-Factory that creates the bounded `ask_llm` callable injected into the sandbox:
-
-```python
-ask_llm_fn = create_ask_llm_function(
-    llm=llm,                    # Main LLM client
-    config=SubAgentConfig(),    # Sub-agent configuration
-    subagent_llm=None,          # Optional separate LLM
-    max_calls=20,               # Standalone limit (when no budget)
-    budget=CallBudget(30),      # Shared budget (overrides max_calls)
-)
-```
-
-When `budget` is provided, it takes precedence over `max_calls`. The returned callable has `.subagent` and `.max_calls` attributes for introspection.
+This history is included in the `rr_trace` output for observability.
 
 ---
 
 ## TraceContext
 
-Structured trace wrapper for programmatic exploration in the sandbox. Located in `ace_next/rr/trace_context.py`.
+Structured trace wrapper for programmatic exploration in the sandbox. Located in `ace/rr/trace_context.py`.
 
 ### TraceStep
 
@@ -457,41 +403,9 @@ class TraceStep:
 
 ---
 
-## Code Extraction
-
-Three-layer fallback chain for extracting Python code from LLM responses. Located in `ace_next/rr/code_extraction.py`.
-
-| Layer | Function | Strategy |
-|-------|----------|----------|
-| 1. Fenced | `extract_fenced_blocks()` | `` ```python ``, `` ~~~python ``, bare `` ``` `` (validated) |
-| 2. Indented | `extract_indented_block()` | 4-space or tab indentation |
-| 3. FINAL | `extract_final_call()` | Balanced parenthesis extraction of `FINAL(...)` |
-
-### Batch Mode
-
-When the first fenced block starts with `# BATCH`, all fenced blocks in the response are concatenated into a single script:
-
-```python
-# In LLM response:
-# ```python
-# # BATCH
-# result_a = analyze_part_a()
-# ```
-# ```python
-# result_b = analyze_part_b()
-# ```
-# → Both blocks execute as one script
-```
-
-### Validation
-
-`looks_like_python(code)` checks for Python indicators (`def `, `import `, `print(`, `FINAL(`, etc.) to filter false positives from bare code fences.
-
----
-
 ## Message Trimming
 
-Semantic importance-based trimming of REPL message history. Located in `ace_next/rr/message_trimming.py`.
+Semantic importance-based trimming of message history. Located in `ace/rr/message_trimming.py`.
 
 When message history exceeds `config.max_context_chars`, iterations are scored by importance and the lowest-value ones are dropped:
 
@@ -513,46 +427,43 @@ When message history exceeds `config.max_context_chars`, iterations are scored b
 
 ## Guard Logic
 
-`CheckResultStep` implements several guards:
+The PydanticAI agent enforces analysis quality through two mechanisms:
 
-### Premature FINAL (Iteration 0)
+### Output Validator (Premature Conclusion)
 
-If `FINAL()` is called on the first iteration, it is rejected. The sandbox is reset and the LLM receives feedback:
+If the agent tries to produce `ReflectorOutput` before executing code at least twice (`deps.iteration < 2`), the output validator raises `ModelRetry`:
 
-> "You called FINAL() before exploring the data. Read the actual variables first, then call FINAL() with evidence-based analysis."
+> "You haven't explored the data enough. Use execute_code to analyze the traces first, then provide your final output."
 
-### FINAL After Error
+### execute_code Error Handling
 
-If `FINAL()` is called but the code execution had an error (`result.success == False`), it is rejected:
+When code execution raises an exception, the `execute_code` tool raises `ModelRetry` with the error message:
 
-> "Your code had an error. Fix the bug and try again. Do NOT call FINAL() until your code executes successfully."
+> "Code error: {error}\n\nFix the bug and try again."
 
-### Direct Response Fallback
+This causes PydanticAI to retry the tool call (up to 3 retries per tool call). The LLM receives the error feedback and can correct its code.
 
-When no code block is extracted, `CheckResultStep` attempts to parse the LLM response as direct JSON (stripping `` ```json `` fences). If valid, it's treated as a FINAL() value. If not, the LLM receives feedback requesting code.
+### Output Truncation
 
-### Iteration Progress Header
-
-Each feedback message includes an iteration counter: `[Iteration N/max]`. When approaching the limit (within 2 iterations), an urgency suffix is added: `(approaching limit — finalize soon)`.
+Each `execute_code` call truncates output at `config.max_output_chars` with a `[TRUNCATED: N chars remaining]` suffix.
 
 ---
 
-## Fallback Synthesis
+## Timeout / Fallback
 
-When `config.enable_fallback_synthesis=True` and `max_iterations` is reached:
+When `UsageLimitExceeded` is raised (the `max_llm_calls` budget is exhausted):
 
-1. A synthesis prompt is appended to the conversation history asking the LLM to call `FINAL()` with its best assessment.
-2. The response is parsed for code containing `FINAL()` and executed in a fresh sandbox.
-3. If no code is found, direct JSON parsing is attempted.
-4. If synthesis fails, a basic timeout `ReflectorOutput` is returned with `raw["timeout"] = True`.
+1. `RRStep._build_timeout_output()` constructs a basic `ReflectorOutput` with `raw["timeout"] = True`.
+2. If `agent_output` and `ground_truth` are available, a simple correct/incorrect assessment is included.
+3. The output includes the request limit and iteration count for debugging.
 
-This is a recovery mechanism — it often salvages partial analysis that would otherwise be lost.
+When any other exception occurs during the agent run, a minimal `ReflectorOutput` is returned with `raw["error"]` set.
 
 ---
 
 ## Batch Mode
 
-When `RRStep.__call__` receives a batch trace (a dict with a `"tasks"` key), it runs a **single REPL session** that analyzes all tasks. The RR uses `parallel_map` + `ask_llm` to explore tasks concurrently within that session.
+When `RRStep.__call__` receives a batch trace (a dict with a `"tasks"` key), it runs a **single PydanticAI agent session** that analyzes all tasks. The agent uses `batch_analyze` to explore tasks concurrently within that session.
 
 ### Detection
 
@@ -573,12 +484,12 @@ The full batch trace is passed directly to `_run_reflection`. The sandbox's `tra
 ```
 
 The RR prompt instructs the LLM to:
-1. Discover all tasks and their schema in one iteration.
-2. Use `parallel_map(fn, tasks)` to fan out `ask_llm` analysis across tasks concurrently.
+1. Discover all tasks and their schema in one `execute_code` call.
+2. Use `batch_analyze` to fan out analysis across tasks concurrently.
 3. Identify cross-task patterns.
-4. Return a `FINAL()` dict with a `"tasks"` list containing per-task results.
+4. Return a structured `ReflectorOutput` with a `"tasks"` list in `raw` containing per-task results.
 
-`_split_batch_reflection` then parses the single `ReflectorOutput` into per-task outputs. If the FINAL doesn't contain per-task results, the single reflection is duplicated as a fallback.
+`_split_batch_reflection` then parses the single `ReflectorOutput` into per-task outputs. If the output doesn't contain per-task results, the single reflection is duplicated as a fallback.
 
 ### Output
 
@@ -586,9 +497,9 @@ Returns `ctx.replace(reflections=(refl_0, refl_1, ..., refl_n))` where `reflecti
 
 ### Cost
 
-1 batch = 1 REPL session regardless of task count. The session runs up to N iterations of main LLM calls. Within iterations, `ask_llm()` sub-agent calls (via `parallel_map`) analyze individual tasks concurrently.
+1 batch = 1 PydanticAI agent session regardless of task count. The session runs up to `max_llm_calls` requests total. Within the session, `batch_analyze` calls run sub-agent analyses concurrently via `ThreadPoolExecutor`.
 
-For a batch of 5 tasks with 10 iterations and sub-agent calls fanned out via `parallel_map`, cost is ~10 main calls + ~15-20 sub-agent calls = **~30 LLM calls** total. Sub-agent calls run in parallel so wall-clock time is dominated by the main iteration loop.
+For a batch of 5 tasks with `batch_analyze` fanning out sub-agent calls, cost is typically the main agent turns + sub-agent calls, all counted against the single `UsageLimits(request_limit=max_llm_calls)` budget.
 
 ### Single-Task Backward Compatibility
 
@@ -647,134 +558,81 @@ Batch traces are built by `BatchOrchestrator.build_batch_trace()` in the eval pi
 
 ## rr_trace Output Schema
 
-After `run_loop()` completes, `RRStep` enriches `ReflectorOutput.raw["rr_trace"]` with execution metadata:
+After the agent run completes, `RRStep` enriches `ReflectorOutput.raw["rr_trace"]` with execution metadata:
 
 ```python
 {
-    "iterations": [               # Per-iteration log
+    "total_iterations": int,       # Number of execute_code calls
+    "subagent_calls": [            # Sub-agent call history
         {
-            "iteration": int,     # 0-indexed
-            "code": str | None,   # Code sent to sandbox
-            "stdout": str | None, # Captured stdout
-            "stderr": str | None, # Captured stderr
-            "terminated": bool,   # Whether FINAL() was accepted
-        },
-        ...
-    ],
-    "subagent_calls": [           # Sub-agent call history
-        {
-            "call_number": int,
             "question": str,
             "context_length": int,
             "response_length": int,
-            "mode": str,          # "analysis" or "deep_dive"
+            "mode": str,           # "analysis" or "deep_dive"
+        },
+        # batch_analyze entries:
+        {
+            "question": str,
+            "items_count": int,
+            "mode": str,
+            "batch": True,
         },
         ...
     ],
-    "total_iterations": int,
     "timed_out": bool,
 }
 ```
 
-This structure is consumed by `RROpikStep` for observability and can be inspected by users for debugging.
-
----
-
-## RROpikStep
-
-Side-effect step for logging RR traces to Opik. Located in `ace_next/rr/opik.py`.
-
-```python
-from ace_next.rr import RROpikStep
-
-# Place after RRStep in the pipeline
-steps = [..., rr_step, RROpikStep(project_name="my-project")]
-```
-
-### Step Contract
-
-```python
-requires = frozenset({"reflections"})
-provides = frozenset()
-```
-
-### Behaviour
-
-- Iterates over `ctx.reflections` and reads `reflection.raw["rr_trace"]` from each — the dict populated by `RRStep`.
-- Creates one Opik trace per RR invocation with child spans per iteration.
-- Gracefully degrades to a no-op when Opik is not installed or `OPIK_DISABLED=true`.
-- **Explicit opt-in only** — Opik is never auto-enabled.
-
-### Trace Hierarchy
-
-```
-rr_reflect (trace)
-├── rr_iteration_0 (span)    ← code, stdout, stderr
-├── rr_iteration_1 (span)
-└── rr_iteration_2 (span)    ← FINAL called here
-```
-
-### Environment Variables
-
-| Variable | Description |
-|----------|-------------|
-| `OPIK_API_KEY` | API key for Opik authentication |
-| `OPIK_WORKSPACE` | Opik workspace name |
-| `OPIK_URL_OVERRIDE` | Custom Opik server URL |
-| `OPIK_DISABLED=true` | Disable all Opik tracing |
-| `OPIK_ENABLED=false` | Alternative disable signal |
-
-### Metadata
-
-Parent trace metadata includes:
+Additionally, `ReflectorOutput.raw["usage"]` contains PydanticAI usage statistics:
 
 ```python
 {
-    "total_iterations": int,
-    "subagent_call_count": int,   # Only when sub-agent calls exist
-    "subagent_calls": list[dict], # Full call history
+    "input_tokens": int,
+    "output_tokens": int,
+    "total_tokens": int,
+    "requests": int,
 }
 ```
 
-### flush()
+This structure can be inspected by users for debugging. For full observability, Logfire auto-instruments PydanticAI agents (traces, spans, tool calls) without any extra pipeline steps.
 
-Call `flush()` after the pipeline finishes to drain buffered traces before the process exits.
+---
+
+## Observability
+
+The old `RROpikStep` pipeline step has been removed. Observability is now handled by **Logfire**, which auto-instruments PydanticAI agents. This provides:
+
+- Per-agent-run traces with spans for each LLM request and tool call
+- Token usage tracking
+- Latency metrics
+- No explicit opt-in step required in the pipeline
+
+The `rr_trace` dict in `ReflectorOutput.raw` still provides programmatic access to iteration counts and sub-agent call history for custom observability needs.
 
 ---
 
 ## Public API
 
-All exports from `ace_next.rr`:
+All exports from `ace.rr`:
 
 ```python
-from ace_next.rr import (
+from ace.rr import (
     # Core
-    RRStep,                  # Main entry point (SubRunner + StepProtocol + ReflectorLike)
+    RRStep,                  # Main entry point (StepProtocol + ReflectorLike)
     RRConfig,                # Configuration (alias for RecursiveConfig)
-    RRIterationContext,      # Per-iteration frozen context
-    RROpikStep,              # Opik observability step (lazy-imported)
+    RRDeps,                  # PydanticAI RunContext dependencies
 
-    # Inner pipeline steps
-    LLMCallStep,
-    ExtractCodeStep,
-    SandboxExecStep,
-    CheckResultStep,
+    # Agent factories
+    create_rr_agent,         # Build the PydanticAI reflector agent
+    create_sub_agent,        # Build the PydanticAI sub-agent
 
     # Sandbox
     TraceSandbox,
     ExecutionResult,
     ExecutionTimeoutError,
 
-    # Sub-agent
-    SubAgentLLM,
-    SubAgentConfig,
-    CallBudget,
-    create_ask_llm_function,
-
     # Trace
     TraceContext,
     TraceStep,
 )
 ```
-
-`RROpikStep` is lazy-imported via `__getattr__` to avoid pulling in the `opik` package at module load time.

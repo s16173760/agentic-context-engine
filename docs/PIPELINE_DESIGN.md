@@ -648,7 +648,7 @@ finally:
 Any code in the call stack — a step, a role, an LLM client — can read the token without any signature changes:
 
 ```python
-# Inside LiteLLMClient.complete() — no parameter changes
+# Inside LLM client code or any code inside a step — no parameter changes
 token = cancel_token_var.get(None)
 if token is not None and token.is_cancelled:
     raise PipelineCancelled("Cancelled during LLM call")

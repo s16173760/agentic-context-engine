@@ -105,7 +105,7 @@ cd /path/to/agentic-context-engine
 uv run python examples/openclaw/kayba-ace/learn_from_traces.py --dry-run
 ```
 
-When running from a repo checkout, `uv run` ensures `ace_next` is importable.
+When running from a repo checkout, `uv run` ensures `ace` is importable.
 
 ### Run inside Docker
 

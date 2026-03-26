@@ -5,7 +5,7 @@ The `ClaudeCode` runner wraps the [Claude Code CLI](https://docs.anthropic.com/e
 ## Quick Start
 
 ```python
-from ace_next import ClaudeCode
+from ace import ClaudeCode
 
 runner = ClaudeCode.from_model(working_dir="./my_project")
 
@@ -16,7 +16,7 @@ runner.save("coding_expert.json")
 ## Installation
 
 ```bash
-pip install ace-framework[claude-code]
+uv add ace-framework[claude-code]
 ```
 
 ## Prerequisites
@@ -32,8 +32,8 @@ pip install ace-framework[claude-code]
 |-----------|------|---------|-------------|
 | `working_dir` | `str` | `None` | Path to the project directory |
 | `ace_model` | `str` | `"gpt-4o-mini"` | Model for Reflector + SkillManager |
-| `ace_max_tokens` | `int` | `2048` | Max tokens for ACE LLM |
-| `ace_llm` | `LLMClientLike` | `None` | Pre-built LLM for ACE roles |
+| `ace_max_tokens` | `int` | `2048` | Max tokens for ACE LLM responses |
+| `ace_temperature` | `float` | `0.0` | Sampling temperature for ACE roles |
 
 ### from_roles()
 

@@ -6,6 +6,7 @@ import importlib.resources
 import json
 import sys
 import time
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Optional
 
@@ -104,6 +105,262 @@ def _add_file(traces: list, path: Path, forced_type: Optional[str]):
         click.echo(f"Warning: {path.name} is {len(content)} chars (>350k)", err=True)
     ft = forced_type or _detect_file_type(path.name)
     traces.append({"filename": path.name, "content": content, "fileType": ft})
+
+
+# ---------------------------------------------------------------------------
+# traces
+# ---------------------------------------------------------------------------
+
+
+@click.group()
+def traces():
+    """List, view, upload, and delete traces."""
+    pass
+
+
+@traces.command("list")
+@click.option("--json", "as_json", is_flag=True, help="Output raw JSON.")
+@_api_key_option
+@_base_url_option
+def traces_list(as_json, api_key, base_url):
+    """List uploaded traces."""
+    client = _client(api_key, base_url)
+    try:
+        result = client.list_traces()
+    except KaybaAPIError as exc:
+        raise click.ClickException(str(exc))
+
+    items = result.get("traces", [])
+
+    if as_json:
+        click.echo(json.dumps(items, indent=2))
+        return
+
+    if not items:
+        click.echo("No traces found.")
+        return
+
+    # Table header
+    click.echo(f"  {'ID':<36}  {'Filename':<40}  {'Type':<6}  {'Size':>8}  {'Uploaded'}")
+    click.echo(f"  {'-' * 36}  {'-' * 40}  {'-' * 6}  {'-' * 8}  {'-' * 10}")
+    for t in items:
+        tid = t.get("id", "?")
+        fname = t.get("filename", "?")
+        ftype = t.get("fileType", t.get("type", "?"))
+        size = _format_size(t.get("size", 0))
+        age = _format_age(t.get("uploadedAt", ""))
+        click.echo(f"  {tid:<36}  {fname:<40}  {ftype:<6}  {size:>8}  {age}")
+
+    click.echo(f"\n  {len(items)} trace(s)")
+
+
+@traces.command("show")
+@click.argument("trace_id")
+@click.option("--json", "as_json", is_flag=True, help="Output raw JSON.")
+@click.option("--meta", is_flag=True, help="Show only metadata, no content.")
+@_api_key_option
+@_base_url_option
+def traces_show(trace_id, as_json, meta, api_key, base_url):
+    """View a trace."""
+    client = _client(api_key, base_url)
+    try:
+        result = client.get_trace(trace_id)
+    except KaybaAPIError as exc:
+        raise click.ClickException(str(exc))
+
+    if as_json:
+        click.echo(json.dumps(result, indent=2))
+        return
+
+    # Metadata header
+    click.echo(f"ID:       {result.get('id', '?')}")
+    click.echo(f"Filename: {result.get('filename', '?')}")
+    click.echo(f"Type:     {result.get('fileType', result.get('type', '?'))}")
+    click.echo(f"Size:     {_format_size(result.get('size', 0))}")
+    click.echo(f"Uploaded: {result.get('uploadedAt', '?')}")
+
+    if not meta:
+        content = result.get("content", "")
+        if content:
+            click.echo(f"\n{'─' * 60}")
+            click.echo(content)
+
+
+@traces.command("delete")
+@click.argument("trace_ids", nargs=-1, required=True)
+@click.option("--force", is_flag=True, help="Skip confirmation prompt.")
+@_api_key_option
+@_base_url_option
+def traces_delete(trace_ids, force, api_key, base_url):
+    """Delete one or more traces."""
+    if not force and sys.stdin.isatty():
+        count = len(trace_ids)
+        if not click.confirm(f"Delete {count} trace(s)?"):
+            click.echo("Aborted.")
+            return
+
+    client = _client(api_key, base_url)
+    try:
+        result = client.delete_traces(list(trace_ids))
+    except KaybaAPIError as exc:
+        raise click.ClickException(str(exc))
+
+    deleted = result.get("deleted", [])
+    errors = result.get("errors", [])
+
+    for tid in deleted:
+        click.echo(f"  Deleted {tid}")
+    for err in errors:
+        click.echo(f"  Error deleting {err['id']}: {err['error']}", err=True)
+
+    if errors:
+        raise click.ClickException(f"{len(errors)} deletion(s) failed.")
+
+
+@traces.command("upload")
+@click.argument("paths", nargs=-1)
+@click.option(
+    "--type",
+    "file_type",
+    type=click.Choice(["md", "json", "txt"]),
+    default=None,
+    help="Force file type (auto-detected from extension by default).",
+)
+@_api_key_option
+@_base_url_option
+def traces_upload(paths, file_type, api_key, base_url):
+    """Upload trace files to Kayba.
+
+    PATHS can be files, directories, or '-' for stdin.
+    Directories are walked recursively.
+    """
+    client = _client(api_key, base_url)
+    trace_list = []
+
+    items = list(paths) if paths else ["-"]
+
+    for item in items:
+        if item == "-":
+            content = sys.stdin.read()
+            ft = file_type or "txt"
+            trace_list.append({"filename": "stdin.txt", "content": content, "fileType": ft})
+            continue
+
+        p = Path(item)
+        if p.is_dir():
+            for child in sorted(p.rglob("*")):
+                if child.is_file():
+                    _add_file(trace_list, child, file_type)
+        elif p.is_file():
+            _add_file(trace_list, p, file_type)
+        else:
+            click.echo(f"Warning: skipping {item} (not found)", err=True)
+
+    if not trace_list:
+        raise click.ClickException("No traces to upload.")
+
+    try:
+        result = client.upload_traces(trace_list)
+    except KaybaAPIError as exc:
+        raise click.ClickException(str(exc))
+
+    count = result.get("count", len(result.get("traces", [])))
+    click.echo(f"Uploaded {count} trace(s).")
+    for t in result.get("traces", []):
+        click.echo(f"  {t['id']}  {t['filename']}")
+
+
+# ---------------------------------------------------------------------------
+# run
+# ---------------------------------------------------------------------------
+
+
+@click.command()
+@click.option("--traces", "trace_ids", multiple=True, help="Trace IDs to analyze.")
+@click.option("--all", "select_all", is_flag=True, help="Select all traces.")
+@click.option(
+    "--model",
+    type=click.Choice(["claude-sonnet-4-6", "claude-opus-4-6"]),
+    default=None,
+    help="Model to use for analysis.",
+)
+@click.option("--epochs", type=int, default=None, help="Analysis epochs (default 1).")
+@click.option(
+    "--reflector-mode",
+    type=click.Choice(["recursive", "standard"]),
+    default=None,
+    help="Reflector mode.",
+)
+@click.option(
+    "--anthropic-key",
+    envvar="ANTHROPIC_API_KEY",
+    default=None,
+    help="Anthropic API key (or set ANTHROPIC_API_KEY).",
+)
+@click.option("--wait", is_flag=True, help="Poll until the job completes.")
+@click.option("--json", "as_json", is_flag=True, help="Output raw JSON.")
+@_api_key_option
+@_base_url_option
+def run(
+    trace_ids, select_all, model, epochs, reflector_mode, anthropic_key, wait, as_json,
+    api_key, base_url,
+):
+    """Run the analysis pipeline on selected traces.
+
+    Interactive mode: shows a visual trace selector.
+    Programmatic mode: use --traces ID or --all.
+    """
+    client = _client(api_key, base_url)
+
+    # Fetch available traces
+    try:
+        result = client.list_traces()
+    except KaybaAPIError as exc:
+        raise click.ClickException(str(exc))
+
+    available = result.get("traces", [])
+
+    if not available:
+        raise click.ClickException(
+            "No traces found. Upload some first: kayba traces upload <path>"
+        )
+
+    if select_all:
+        selected_ids = [t["id"] for t in available]
+    elif trace_ids:
+        selected_ids = list(trace_ids)
+    elif sys.stdin.isatty() and not as_json:
+        # Interactive mode: visual checkbox selector
+        selected_ids = _interactive_trace_select(available)
+        if not selected_ids:
+            click.echo("No traces selected.")
+            return
+    else:
+        raise click.ClickException(
+            "Provide --traces ID, --all, or run interactively (TTY)."
+        )
+
+    # Start the pipeline
+    try:
+        result = client.generate_insights(
+            trace_ids=selected_ids,
+            model=model,
+            epochs=epochs,
+            reflector_mode=reflector_mode,
+            anthropic_key=anthropic_key,
+        )
+    except KaybaAPIError as exc:
+        raise click.ClickException(str(exc))
+
+    job_id = result["jobId"]
+
+    if as_json:
+        click.echo(json.dumps({"jobId": job_id, "traces": len(selected_ids)}))
+    else:
+        click.echo(f"Job started: {job_id} ({len(selected_ids)} traces)")
+
+    if wait:
+        _poll_job(client, job_id)
 
 
 # ---------------------------------------------------------------------------
@@ -672,6 +929,196 @@ def batch(
 
 
 # ---------------------------------------------------------------------------
+# integrations
+# ---------------------------------------------------------------------------
+
+
+def _mask_token(token: str) -> str:
+    """Mask a token/key for display, showing first 4 + last 4 chars."""
+    if not token or len(token) <= 8:
+        return "****"
+    return f"{token[:4]}...{token[-4:]}"
+
+
+@click.group()
+def integrations():
+    """Manage platform integrations (MLflow, LangSmith)."""
+    pass
+
+
+@integrations.command("list")
+@click.option("--json", "as_json", is_flag=True, help="Output raw JSON.")
+@_api_key_option
+@_base_url_option
+def integrations_list(as_json, api_key, base_url):
+    """Show configured integrations."""
+    client = _client(api_key, base_url)
+    try:
+        result = client.get_integrations()
+    except KaybaAPIError as exc:
+        raise click.ClickException(str(exc))
+
+    if as_json:
+        click.echo(json.dumps(result, indent=2))
+        return
+
+    for name in ("mlflow", "langsmith"):
+        config = result.get(name, {})
+        enabled = config.get("enabled", False)
+        status_str = "enabled" if enabled else "disabled"
+
+        click.echo(f"\n  {name}")
+        click.echo(f"    Status: {status_str}")
+
+        if name == "mlflow":
+            uri = config.get("trackingUri", "")
+            auth = config.get("authType", "none")
+            experiment = config.get("experimentName", "")
+            if uri:
+                click.echo(f"    Tracking URI: {uri}")
+            click.echo(f"    Auth type: {auth}")
+            if config.get("token"):
+                click.echo(f"    Token: {_mask_token(config['token'])}")
+            if config.get("username"):
+                click.echo(f"    Username: {config['username']}")
+            if experiment:
+                click.echo(f"    Experiment: {experiment}")
+        elif name == "langsmith":
+            api_url = config.get("apiUrl", "")
+            project = config.get("projectName", "")
+            if api_url:
+                click.echo(f"    API URL: {api_url}")
+            if config.get("apiKey"):
+                click.echo(f"    API key: {_mask_token(config['apiKey'])}")
+            if project:
+                click.echo(f"    Project: {project}")
+
+    click.echo()
+
+
+@integrations.command("configure")
+@click.argument("name", type=click.Choice(["mlflow", "langsmith"]))
+@_api_key_option
+@_base_url_option
+def integrations_configure(name, api_key, base_url):
+    """Interactively configure an integration."""
+    client = _client(api_key, base_url)
+
+    # Fetch current config for defaults
+    try:
+        current = client.get_integrations()
+    except KaybaAPIError:
+        current = {}
+
+    existing = current.get(name, {})
+
+    if name == "mlflow":
+        tracking_uri = click.prompt(
+            "MLflow tracking URI",
+            default=existing.get("trackingUri", ""),
+        )
+        auth_type = click.prompt(
+            "Auth type",
+            type=click.Choice(["none", "basic", "bearer", "databricks"]),
+            default=existing.get("authType", "none"),
+        )
+
+        token = ""
+        username = ""
+        if auth_type in ("basic", "bearer", "databricks"):
+            token = click.prompt(
+                "Token / password",
+                default="",
+                hide_input=True,
+                show_default=False,
+            )
+        if auth_type == "basic":
+            username = click.prompt(
+                "Username",
+                default=existing.get("username", ""),
+            )
+
+        experiment_name = click.prompt(
+            "Experiment name (optional filter)",
+            default=existing.get("experimentName", ""),
+        )
+
+        config = {
+            "enabled": True,
+            "trackingUri": tracking_uri,
+            "authType": auth_type,
+            "token": token,
+            "username": username,
+            "experimentName": experiment_name,
+        }
+
+    elif name == "langsmith":
+        api_url = click.prompt(
+            "LangSmith API URL",
+            default=existing.get("apiUrl", "https://api.smith.langchain.com"),
+        )
+        langsmith_key = click.prompt(
+            "LangSmith API key",
+            default="",
+            hide_input=True,
+            show_default=False,
+        )
+        project_name = click.prompt(
+            "Project name (optional filter)",
+            default=existing.get("projectName", ""),
+        )
+
+        config = {
+            "enabled": True,
+            "apiUrl": api_url,
+            "apiKey": langsmith_key,
+            "projectName": project_name,
+        }
+
+    try:
+        client.update_integration(name, config)
+        click.echo(f"\n  {name} configuration saved.")
+    except KaybaAPIError as exc:
+        raise click.ClickException(str(exc))
+
+    # Auto-test the connection
+    click.echo(f"  Testing {name} connection...")
+    try:
+        test_result = client.test_integration(name)
+        if test_result.get("connected"):
+            click.echo(f"  Connected successfully.")
+            if name == "mlflow" and test_result.get("mlflowVersion"):
+                click.echo(f"  MLflow version: {test_result['mlflowVersion']}")
+        else:
+            click.echo(f"  Warning: connection test returned unexpected result.")
+    except KaybaAPIError as exc:
+        click.echo(f"  Warning: connection test failed: {exc}", err=True)
+
+
+@integrations.command("test")
+@click.argument("name", type=click.Choice(["mlflow", "langsmith"]))
+@_api_key_option
+@_base_url_option
+def integrations_test(name, api_key, base_url):
+    """Test an integration connection."""
+    client = _client(api_key, base_url)
+    try:
+        result = client.test_integration(name)
+    except KaybaAPIError as exc:
+        raise click.ClickException(str(exc))
+
+    if result.get("connected"):
+        click.echo(f"  {name}: connected")
+        if name == "mlflow" and result.get("mlflowVersion"):
+            click.echo(f"  MLflow version: {result['mlflowVersion']}")
+        if name == "mlflow" and result.get("experimentCount") is not None:
+            click.echo(f"  Experiments found: {result['experimentCount']}")
+    else:
+        error = result.get("error", "Unknown error")
+        raise click.ClickException(f"{name}: connection failed — {error}")
+
+
+# ---------------------------------------------------------------------------
 # setup
 # ---------------------------------------------------------------------------
 
@@ -759,6 +1206,64 @@ def _install_skills(target_dir: Path) -> None:
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+
+
+def _interactive_trace_select(traces: list[dict]) -> list[str]:
+    """Visual checkbox selector for traces."""
+    try:
+        import questionary
+    except ImportError:
+        raise click.ClickException(
+            "Interactive mode requires 'questionary'. "
+            "Install with: pip install 'ace-framework[cloud]'"
+        )
+
+    choices = []
+    for t in traces:
+        size = _format_size(t.get("size", 0))
+        age = _format_age(t.get("uploadedAt", ""))
+        label = f"{t['filename']:<40} {size:>8}  {age}"
+        choices.append(questionary.Choice(title=label, value=t["id"]))
+
+    selected = questionary.checkbox(
+        "Select traces (space to toggle, a to toggle all, enter to confirm):",
+        choices=choices,
+    ).ask()
+
+    if selected is None:  # Ctrl-C
+        return []
+    return selected
+
+
+def _format_size(size_bytes: int) -> str:
+    """Format bytes as human-readable."""
+    if size_bytes < 1024:
+        return f"{size_bytes} B"
+    elif size_bytes < 1024 * 1024:
+        return f"{size_bytes / 1024:.1f} KB"
+    else:
+        return f"{size_bytes / (1024 * 1024):.1f} MB"
+
+
+def _format_age(iso_str: str) -> str:
+    """Format ISO datetime as relative time."""
+    if not iso_str:
+        return ""
+    try:
+        dt = datetime.fromisoformat(iso_str.replace("Z", "+00:00"))
+        now = datetime.now(timezone.utc)
+        diff = now - dt
+        seconds = diff.total_seconds()
+        if seconds < 60:
+            return "just now"
+        elif seconds < 3600:
+            return f"{int(seconds / 60)}m ago"
+        elif seconds < 86400:
+            return f"{int(seconds / 3600)}h ago"
+        else:
+            return f"{int(seconds / 86400)}d ago"
+    except (ValueError, TypeError):
+        return iso_str
 
 
 def _poll_job(client: KaybaClient, job_id: str, *, interval: int = 5):

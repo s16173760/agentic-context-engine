@@ -1,100 +1,192 @@
-"""Agentic Context Engineering (ACE) reproduction framework."""
+"""ACE — Agentic Context Engine.
 
-from typing import Optional
-from .skillbook import Skill, Skillbook
-from .updates import UpdateOperation, UpdateBatch
-from .llm import LLMClient, DummyLLMClient
-from .roles import (
-    Agent,
-    ReplayAgent,
-    Reflector,
-    ReflectorMode,
-    SkillManager,
-    AgentOutput,
-    ReflectorOutput,
-    SkillManagerOutput,
-)
-from .adaptation import (
-    OfflineACE,
-    OnlineACE,
-    ACEBase,
-    Sample,
-    TaskEnvironment,
-    SimpleEnvironment,
-    EnvironmentResult,
-)
-from .deduplication import DeduplicationConfig
+All public symbols are lazily imported to keep ``import ace`` fast.
+Direct attribute access (``ace.ACE``, ``from ace import ACE``)
+works — the underlying module is loaded on first use.
+"""
 
-# Import optional feature detection
-from .features import has_litellm
+from __future__ import annotations
 
-# Import production LLM client if available
-if has_litellm():
-    try:
-        from .llm_providers import LiteLLMClient as _LiteLLMClient
+from typing import TYPE_CHECKING
 
-        LiteLLMClient: Optional[type] = _LiteLLMClient
-    except ImportError:
-        LiteLLMClient: Optional[type] = None  # type: ignore
-else:
-    LiteLLMClient: Optional[type] = None  # type: ignore
+if TYPE_CHECKING:
+    # Static analysis / IDE autocomplete — never executed at runtime.
+    from pipeline import Branch, MergeStrategy, Pipeline, SampleResult, StepProtocol
 
-# Import integrations if available
-try:
-    from .integrations import (
-        ACELiteLLM as _ACELiteLLM,
-        ACEAgent as _ACEAgent,
-        ACELangChain as _ACELangChain,
-        ACEClaudeCode as _ACEClaudeCode,
-        wrap_skillbook_context as _wrap_skillbook_context,
+    from .core import (
+        ACEStepContext,
+        EnvironmentResult,
+        Sample,
+        SimpleEnvironment,
+        Skill,
+        Skillbook,
+        SkillbookView,
+        TaskEnvironment,
+        UpdateBatch,
+        UpdateOperation,
+    )
+    from .deduplication import DeduplicationManager, SimilarityDetector
+    from .implementations import Agent, Reflector, SkillManager
+    from .integrations import wrap_skillbook_context
+    from .protocols import DeduplicationConfig
+    from .providers import ACEModelConfig, ModelConfig
+    from .rr import RRConfig, RRStep
+    from .runners import (
+        ACE,
+        ACELiteLLM,
+        ACERunner,
+        BrowserUse,
+        ClaudeCode,
+        LangChain,
+        TraceAnalyser,
+    )
+    from .steps import (
+        AgentStep,
+        ApplyStep,
+        CheckpointStep,
+        DeduplicateStep,
+        EvaluateStep,
+        ExportSkillbookMarkdownStep,
+        LoadTracesStep,
+        ObservabilityStep,
+        PersistStep,
+        ReflectStep,
+        TagStep,
+        UpdateStep,
+        learning_tail,
     )
 
-    ACELiteLLM: Optional[type] = _ACELiteLLM
-    ACEAgent: Optional[type] = _ACEAgent
-    ACELangChain: Optional[type] = _ACELangChain
-    ACEClaudeCode: Optional[type] = _ACEClaudeCode
-    wrap_skillbook_context: Optional[type] = _wrap_skillbook_context  # type: ignore
-except ImportError:
-    ACELiteLLM: Optional[type] = None  # type: ignore
-    ACEAgent: Optional[type] = None  # type: ignore
-    ACELangChain: Optional[type] = None  # type: ignore
-    ACEClaudeCode: Optional[type] = None  # type: ignore
-    wrap_skillbook_context: Optional[type] = None  # type: ignore
+# ---- lazy import mapping: name -> (module_path, attribute) ----------------
+
+_LAZY_IMPORTS: dict[str, tuple[str, str]] = {
+    # Pipeline engine (re-exported from pipeline/)
+    "Pipeline": ("pipeline", "Pipeline"),
+    "Branch": ("pipeline", "Branch"),
+    "MergeStrategy": ("pipeline", "MergeStrategy"),
+    "StepProtocol": ("pipeline", "StepProtocol"),
+    "SampleResult": ("pipeline", "SampleResult"),
+    # ACE context
+    "ACEStepContext": ("ace.core", "ACEStepContext"),
+    "SkillbookView": ("ace.core", "SkillbookView"),
+    # Core data types
+    "Skill": ("ace.core", "Skill"),
+    "Skillbook": ("ace.core", "Skillbook"),
+    "UpdateOperation": ("ace.core", "UpdateOperation"),
+    "UpdateBatch": ("ace.core", "UpdateBatch"),
+    "Sample": ("ace.core", "Sample"),
+    "EnvironmentResult": ("ace.core", "EnvironmentResult"),
+    "TaskEnvironment": ("ace.core", "TaskEnvironment"),
+    "SimpleEnvironment": ("ace.core", "SimpleEnvironment"),
+    # Implementations
+    "Agent": ("ace.implementations", "Agent"),
+    "Reflector": ("ace.implementations", "Reflector"),
+    "SkillManager": ("ace.implementations", "SkillManager"),
+    # Deduplication
+    "DeduplicationConfig": ("ace.protocols", "DeduplicationConfig"),
+    "DeduplicationManager": ("ace.deduplication", "DeduplicationManager"),
+    "SimilarityDetector": ("ace.deduplication", "SimilarityDetector"),
+    # Integrations
+    "wrap_skillbook_context": ("ace.integrations", "wrap_skillbook_context"),
+    # Config
+    "ModelConfig": ("ace.providers", "ModelConfig"),
+    "ACEModelConfig": ("ace.providers", "ACEModelConfig"),
+    # Runners
+    "ACE": ("ace.runners", "ACE"),
+    "ACELiteLLM": ("ace.runners", "ACELiteLLM"),
+    "ACERunner": ("ace.runners", "ACERunner"),
+    "BrowserUse": ("ace.runners", "BrowserUse"),
+    "ClaudeCode": ("ace.runners", "ClaudeCode"),
+    "LangChain": ("ace.runners", "LangChain"),
+    "TraceAnalyser": ("ace.runners", "TraceAnalyser"),
+    # Steps
+    "AgentStep": ("ace.steps", "AgentStep"),
+    "EvaluateStep": ("ace.steps", "EvaluateStep"),
+    "ReflectStep": ("ace.steps", "ReflectStep"),
+    "TagStep": ("ace.steps", "TagStep"),
+    "UpdateStep": ("ace.steps", "UpdateStep"),
+    "ApplyStep": ("ace.steps", "ApplyStep"),
+    "DeduplicateStep": ("ace.steps", "DeduplicateStep"),
+    "CheckpointStep": ("ace.steps", "CheckpointStep"),
+    "LoadTracesStep": ("ace.steps", "LoadTracesStep"),
+    "ExportSkillbookMarkdownStep": ("ace.steps", "ExportSkillbookMarkdownStep"),
+    "ObservabilityStep": ("ace.steps", "ObservabilityStep"),
+    "PersistStep": ("ace.steps", "PersistStep"),
+    "learning_tail": ("ace.steps", "learning_tail"),
+    # Recursive Reflector
+    "RRStep": ("ace.rr", "RRStep"),
+    "RRConfig": ("ace.rr", "RRConfig"),
+}
+
+
+def __getattr__(name: str) -> object:
+    if name in _LAZY_IMPORTS:
+        module_path, attr = _LAZY_IMPORTS[name]
+        import importlib
+
+        module = importlib.import_module(module_path)
+        value = getattr(module, attr)
+        # Cache on the module so __getattr__ is only called once per name.
+        globals()[name] = value
+        return value
+    raise AttributeError(f"module 'ace' has no attribute {name!r}")
+
 
 __all__ = [
+    # Pipeline composition
+    "Pipeline",
+    "Branch",
+    "MergeStrategy",
+    "StepProtocol",
+    "SampleResult",
+    # ACE context
+    "ACEStepContext",
+    "SkillbookView",
     # Core data types
     "Skill",
     "Skillbook",
     "UpdateOperation",
     "UpdateBatch",
-    # LLM clients
-    "LLMClient",
-    "DummyLLMClient",
-    "LiteLLMClient",
-    # Roles
-    "Agent",
-    "ReplayAgent",
-    "Reflector",
-    "ReflectorMode",
-    "SkillManager",
-    "AgentOutput",
-    "ReflectorOutput",
-    "SkillManagerOutput",
-    # Adaptation loops
-    "ACEBase",
-    "OfflineACE",
-    "OnlineACE",
+    # Environments
     "Sample",
+    "EnvironmentResult",
     "TaskEnvironment",
     "SimpleEnvironment",
-    "EnvironmentResult",
-    # Integrations
+    # Implementations
+    "Agent",
+    "Reflector",
+    "SkillManager",
+    # Config
+    "ModelConfig",
+    "ACEModelConfig",
+    # Runners
+    "ACE",
     "ACELiteLLM",
-    "ACEAgent",
-    "ACELangChain",
-    "ACEClaudeCode",
-    # Configuration
+    "ACERunner",
+    "BrowserUse",
+    "ClaudeCode",
+    "LangChain",
+    "TraceAnalyser",
+    # Steps
+    "AgentStep",
+    "EvaluateStep",
+    "ReflectStep",
+    "TagStep",
+    "UpdateStep",
+    "ApplyStep",
+    "DeduplicateStep",
+    "CheckpointStep",
+    "LoadTracesStep",
+    "ExportSkillbookMarkdownStep",
+    "ObservabilityStep",
+    "PersistStep",
+    "learning_tail",
+    # Recursive Reflector
+    "RRStep",
+    "RRConfig",
+    # Deduplication
     "DeduplicationConfig",
+    "DeduplicationManager",
+    "SimilarityDetector",
     # Utilities
     "wrap_skillbook_context",
 ]

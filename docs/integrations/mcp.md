@@ -7,8 +7,6 @@ The integration is fully opt-in. Installing ACE without the `mcp` extra does not
 ## Installation
 
 ```bash
-pip install "ace-framework[mcp]"
-# or using uv:
 uv add "ace-framework[mcp]"
 ```
 
@@ -166,7 +164,7 @@ Set `ACE_MCP_DEFAULT_MODEL` in the Inspector's environment variables panel befor
 ## File Layout
 
 ```
-ace_next/integrations/mcp/
+ace/integrations/mcp/
   __init__.py       ← Package marker
   server.py         ← Server creation and CLI entrypoint
   config.py         ← MCPServerConfig (pydantic-settings, env vars)

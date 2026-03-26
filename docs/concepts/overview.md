@@ -56,13 +56,12 @@ graph LR
 All three roles participate. The Agent produces answers, the Environment evaluates them, and the learning pipeline updates the skillbook.
 
 ```python
-from ace_next import ACE, Agent, Reflector, SkillManager, LiteLLMClient, SimpleEnvironment
+from ace import ACE, Agent, Reflector, SkillManager, SimpleEnvironment
 
-llm = LiteLLMClient(model="gpt-4o-mini")
 runner = ACE.from_roles(
-    agent=Agent(llm),
-    reflector=Reflector(llm),
-    skill_manager=SkillManager(llm),
+    agent=Agent("gpt-4o-mini"),
+    reflector=Reflector("gpt-4o-mini"),
+    skill_manager=SkillManager("gpt-4o-mini"),
     environment=SimpleEnvironment(),
 )
 results = runner.run(samples, epochs=3)
@@ -84,7 +83,7 @@ No ACE Agent — the external framework handles execution. ACE only learns from 
 Three steps: **INJECT** skillbook context, **EXECUTE** with external agent, **LEARN** from results.
 
 ```python
-from ace_next import BrowserUse
+from ace import BrowserUse
 
 runner = BrowserUse.from_model(
     browser_llm=ChatOpenAI(model="gpt-4o"),

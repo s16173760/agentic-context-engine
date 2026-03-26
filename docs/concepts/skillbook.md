@@ -65,7 +65,7 @@ str(skillbook)  # Markdown format for readability
 Skills are organized into sections. Sections emerge naturally from the SkillManager's categorization during learning:
 
 ```python
-from ace_next import Skillbook
+from ace import Skillbook
 
 skillbook = Skillbook()
 
@@ -99,7 +99,7 @@ stats = skillbook.stats()
 As the skillbook grows, similar skills can accumulate. The `DeduplicationManager` detects and consolidates them using embedding similarity:
 
 ```python
-from ace_next import DeduplicationConfig, DeduplicationManager
+from ace import DeduplicationConfig, DeduplicationManager
 
 config = DeduplicationConfig(
     enabled=True,

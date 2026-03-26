@@ -2,150 +2,139 @@
 
 from __future__ import annotations
 
+import importlib
 import logging
+import threading
 from typing import TYPE_CHECKING, List, Optional, Tuple
 
-from ..features import has_litellm, has_numpy, has_sentence_transformers
-from .config import DeduplicationConfig
+from ..protocols.deduplication import DeduplicationConfig
 
 if TYPE_CHECKING:
-    from ..skillbook import Skill, Skillbook
+    from ..core.skillbook import Skill
+    from ..core.skillbook import Skillbook
 
 logger = logging.getLogger(__name__)
+
+
+def _has(module: str) -> bool:
+    """Return True if *module* can be imported."""
+    try:
+        importlib.import_module(module)
+        return True
+    except ImportError:
+        return False
 
 
 class SimilarityDetector:
     """Detect similar skill pairs using cosine similarity on embeddings."""
 
-    def __init__(self, config: Optional[DeduplicationConfig] = None):
+    def __init__(self, config: DeduplicationConfig | None = None) -> None:
         self.config = config or DeduplicationConfig()
-        self._model = None  # Lazy load sentence-transformers model
+        self._model: object | None = None  # lazy sentence-transformers model
+        self._model_lock = threading.Lock()
+
+    # ------------------------------------------------------------------
+    # Single / batch embedding computation
+    # ------------------------------------------------------------------
 
     def compute_embedding(self, text: str) -> Optional[List[float]]:
-        """Compute embedding for a single text.
-
-        Args:
-            text: Text to embed
-
-        Returns:
-            Embedding vector as list of floats, or None if embedding fails
-        """
+        """Compute embedding for a single text."""
         if self.config.embedding_provider == "litellm":
-            return self._compute_embedding_litellm(text)
-        else:
-            return self._compute_embedding_sentence_transformers(text)
+            return self._embed_litellm(text)
+        return self._embed_st(text)
 
     def compute_embeddings_batch(self, texts: List[str]) -> List[Optional[List[float]]]:
-        """Compute embeddings for multiple texts (more efficient).
-
-        Args:
-            texts: List of texts to embed
-
-        Returns:
-            List of embedding vectors (None for any that fail)
-        """
+        """Compute embeddings for multiple texts (more efficient)."""
         if not texts:
             return []
-
         if self.config.embedding_provider == "litellm":
-            return self._compute_embeddings_batch_litellm(texts)
-        else:
-            return self._compute_embeddings_batch_sentence_transformers(texts)
+            return self._embed_batch_litellm(texts)
+        return self._embed_batch_st(texts)
 
-    def _compute_embedding_litellm(self, text: str) -> Optional[List[float]]:
-        """Compute embedding using LiteLLM."""
-        if not has_litellm():
+    # ------------------------------------------------------------------
+    # LiteLLM provider
+    # ------------------------------------------------------------------
+
+    def _embed_litellm(self, text: str) -> Optional[List[float]]:
+        if not _has("litellm"):
             logger.warning("LiteLLM not available for embeddings")
             return None
-
         try:
             import litellm
 
             response = litellm.embedding(
-                model=self.config.embedding_model,
-                input=[text],
+                model=self.config.embedding_model, input=[text]
             )
             return response.data[0]["embedding"]
         except Exception as e:
-            logger.warning(f"Failed to compute embedding via LiteLLM: {e}")
+            logger.warning("Failed to compute embedding via LiteLLM (%s): %s", type(e).__name__, e)
             return None
 
-    def _compute_embeddings_batch_litellm(
-        self, texts: List[str]
-    ) -> List[Optional[List[float]]]:
-        """Batch compute embeddings using LiteLLM."""
-        if not has_litellm():
+    def _embed_batch_litellm(self, texts: List[str]) -> List[Optional[List[float]]]:
+        if not _has("litellm"):
             logger.warning("LiteLLM not available for embeddings")
             return [None] * len(texts)
-
         try:
             import litellm
 
-            response = litellm.embedding(
-                model=self.config.embedding_model,
-                input=texts,
-            )
+            response = litellm.embedding(model=self.config.embedding_model, input=texts)
             return [item["embedding"] for item in response.data]
         except Exception as e:
-            logger.warning(f"Failed to compute batch embeddings via LiteLLM: {e}")
+            logger.warning("Failed to compute batch embeddings via LiteLLM (%s): %s", type(e).__name__, e)
             return [None] * len(texts)
 
-    def _compute_embedding_sentence_transformers(
-        self, text: str
-    ) -> Optional[List[float]]:
-        """Compute embedding using sentence-transformers (local)."""
-        if not has_sentence_transformers():
+    # ------------------------------------------------------------------
+    # sentence-transformers provider
+    # ------------------------------------------------------------------
+
+    def _embed_st(self, text: str) -> Optional[List[float]]:
+        if not _has("sentence_transformers"):
             logger.warning("sentence-transformers not available for embeddings")
             return None
-
         try:
-            model = self._get_sentence_transformer_model()
+            model = self._get_st_model()
             embedding = model.encode(text, convert_to_numpy=True)
             return embedding.tolist()
         except Exception as e:
             logger.warning(
-                f"Failed to compute embedding via sentence-transformers: {e}"
+                "Failed to compute embedding via sentence-transformers (%s): %s",
+                type(e).__name__, e,
             )
             return None
 
-    def _compute_embeddings_batch_sentence_transformers(
-        self, texts: List[str]
-    ) -> List[Optional[List[float]]]:
-        """Batch compute embeddings using sentence-transformers."""
-        if not has_sentence_transformers():
+    def _embed_batch_st(self, texts: List[str]) -> List[Optional[List[float]]]:
+        if not _has("sentence_transformers"):
             logger.warning("sentence-transformers not available for embeddings")
             return [None] * len(texts)
-
         try:
-            model = self._get_sentence_transformer_model()
+            model = self._get_st_model()
             embeddings = model.encode(texts, convert_to_numpy=True)
             return [emb.tolist() for emb in embeddings]
         except Exception as e:
             logger.warning(
-                f"Failed to compute batch embeddings via sentence-transformers: {e}"
+                "Failed to compute batch embeddings via sentence-transformers (%s): %s",
+                type(e).__name__, e,
             )
             return [None] * len(texts)
 
-    def _get_sentence_transformer_model(self):
-        """Lazy load sentence-transformers model."""
+    def _get_st_model(self):
+        """Lazy-load the sentence-transformers model (thread-safe)."""
         if self._model is None:
-            from sentence_transformers import SentenceTransformer
+            with self._model_lock:
+                if self._model is None:  # double-check after acquiring lock
+                    from sentence_transformers import SentenceTransformer
 
-            self._model = SentenceTransformer(self.config.local_model_name)
+                    self._model = SentenceTransformer(self.config.local_model_name)
         return self._model
 
+    # ------------------------------------------------------------------
+    # Cosine similarity
+    # ------------------------------------------------------------------
+
     def cosine_similarity(self, a: List[float], b: List[float]) -> float:
-        """Compute cosine similarity between two embedding vectors.
-
-        Args:
-            a: First embedding vector
-            b: Second embedding vector
-
-        Returns:
-            Cosine similarity score between 0 and 1
-        """
-        if not has_numpy():
-            # Fallback to pure Python
+        """Compute cosine similarity between two embedding vectors."""
+        if not _has("numpy"):
+            # Pure-Python fallback
             dot = sum(x * y for x, y in zip(a, b))
             norm_a = sum(x * x for x in a) ** 0.5
             norm_b = sum(x * x for x in b) ** 0.5
@@ -164,97 +153,78 @@ class SimilarityDetector:
             return 0.0
         return float(dot / (norm_a * norm_b))
 
+    # ------------------------------------------------------------------
+    # High-level API
+    # ------------------------------------------------------------------
+
     def ensure_embeddings(self, skillbook: "Skillbook") -> int:
         """Ensure all active skills have embeddings computed.
 
-        Args:
-            skillbook: Skillbook to process
-
         Returns:
-            Number of embeddings computed
+            Number of new embeddings computed.
         """
-        skills_needing_embeddings = [
-            s for s in skillbook.skills() if s.embedding is None
-        ]
-
-        if not skills_needing_embeddings:
+        needs = [s for s in skillbook.skills() if s.embedding is None]
+        if not needs:
             return 0
 
-        texts = [s.content for s in skills_needing_embeddings]
+        texts = [s.content for s in needs]
         embeddings = self.compute_embeddings_batch(texts)
 
         count = 0
-        for skill, embedding in zip(skills_needing_embeddings, embeddings):
+        for skill, embedding in zip(needs, embeddings):
             if embedding is not None:
                 skill.embedding = embedding
                 count += 1
 
-        logger.info(f"Computed {count} embeddings for skills")
+        logger.info("Computed %d embeddings for skills", count)
         return count
 
     def detect_similar_pairs(
         self,
         skillbook: "Skillbook",
-        threshold: Optional[float] = None,
+        threshold: float | None = None,
     ) -> List[Tuple["Skill", "Skill", float]]:
-        """Find all pairs of skills with similarity >= threshold.
-
-        Args:
-            skillbook: Skillbook to search
-            threshold: Similarity threshold (default: config.similarity_threshold)
+        """Find all skill pairs with similarity >= *threshold*.
 
         Returns:
-            List of (skill_a, skill_b, similarity_score) tuples,
-            sorted by similarity score descending
+            Sorted list of ``(skill_a, skill_b, similarity)`` tuples
+            (descending by score).
         """
         threshold = threshold or self.config.similarity_threshold
         similar_pairs: List[Tuple["Skill", "Skill", float]] = []
 
-        # Get active skills only
         skills = skillbook.skills(include_invalid=False)
 
-        # Group by section if configured
         if self.config.within_section_only:
             sections: dict[str, list] = {}
             for skill in skills:
                 sections.setdefault(skill.section, []).append(skill)
-
             for section_skills in sections.values():
-                pairs = self._find_similar_in_list(section_skills, skillbook, threshold)
-                similar_pairs.extend(pairs)
+                similar_pairs.extend(
+                    self._find_similar(section_skills, skillbook, threshold)
+                )
         else:
-            similar_pairs = self._find_similar_in_list(skills, skillbook, threshold)
+            similar_pairs = self._find_similar(skills, skillbook, threshold)
 
-        # Sort by similarity descending
         similar_pairs.sort(key=lambda x: x[2], reverse=True)
         return similar_pairs
 
-    def _find_similar_in_list(
+    def _find_similar(
         self,
         skills: List["Skill"],
         skillbook: "Skillbook",
         threshold: float,
     ) -> List[Tuple["Skill", "Skill", float]]:
-        """Find similar pairs within a list of skills."""
         pairs: List[Tuple["Skill", "Skill", float]] = []
-
         for i, skill_a in enumerate(skills):
             if skill_a.embedding is None:
                 continue
-
             for skill_b in skills[i + 1 :]:
                 if skill_b.embedding is None:
                     continue
-
-                # Skip pairs with existing KEEP decisions
                 if skillbook.has_keep_decision(skill_a.id, skill_b.id):
                     continue
-
-                similarity = self.cosine_similarity(
-                    skill_a.embedding, skill_b.embedding
-                )
-
-                if similarity >= threshold:
-                    pairs.append((skill_a, skill_b, similarity))
-
+                sim = self.cosine_similarity(skill_a.embedding, skill_b.embedding)
+                if sim >= threshold:
+                    pairs.append((skill_a, skill_b, sim))
         return pairs

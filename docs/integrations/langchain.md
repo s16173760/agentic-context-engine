@@ -5,13 +5,13 @@ The `LangChain` runner wraps any LangChain Runnable (chains, `AgentExecutor`, La
 ## Installation
 
 ```bash
-pip install ace-framework[langchain]
+uv add ace-framework[langchain]
 ```
 
 ## Quick Start
 
 ```python
-from ace_next import LangChain
+from ace import LangChain
 
 runner = LangChain.from_model(your_chain, ace_model="gpt-4o-mini")
 
@@ -31,8 +31,8 @@ runner.save("chain_expert.json")
 |-----------|------|---------|-------------|
 | `runnable` | `Any` | — | LangChain Runnable (chain, AgentExecutor, graph) |
 | `ace_model` | `str` | `"gpt-4o-mini"` | Model for Reflector + SkillManager |
-| `ace_max_tokens` | `int` | `2048` | Max tokens for ACE LLM |
-| `ace_llm` | `LLMClientLike` | `None` | Pre-built LLM for ACE roles |
+| `ace_max_tokens` | `int` | `2048` | Max tokens for ACE LLM responses |
+| `ace_temperature` | `float` | `0.0` | Sampling temperature for ACE roles |
 
 ### from_roles()
 

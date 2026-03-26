@@ -5,13 +5,13 @@ The `BrowserUse` runner wraps [browser-use](https://github.com/browser-use/brows
 ## Installation
 
 ```bash
-pip install ace-framework[browser-use]
+uv add ace-framework[browser-use]
 ```
 
 ## Quick Start
 
 ```python
-from ace_next import BrowserUse
+from ace import BrowserUse
 from langchain_openai import ChatOpenAI
 
 runner = BrowserUse.from_model(
@@ -31,8 +31,8 @@ runner.save("browser_expert.json")
 |-----------|------|---------|-------------|
 | `browser_llm` | `Any` | — | LLM for browser-use execution |
 | `ace_model` | `str` | `"gpt-4o-mini"` | Model for Reflector + SkillManager |
-| `ace_max_tokens` | `int` | `2048` | Max tokens for ACE LLM |
-| `ace_llm` | `LLMClientLike` | `None` | Pre-built LLM for ACE roles |
+| `ace_max_tokens` | `int` | `2048` | Max tokens for ACE LLM responses |
+| `ace_temperature` | `float` | `0.0` | Sampling temperature for ACE roles |
 
 ### from_roles()
 
@@ -83,7 +83,7 @@ results = runner.run([
 ## Example: Domain Checker
 
 ```python
-from ace_next import BrowserUse
+from ace import BrowserUse
 from langchain_openai import ChatOpenAI
 
 runner = BrowserUse.from_model(

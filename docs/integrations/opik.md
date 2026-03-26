@@ -10,32 +10,30 @@ Two independent tracing modes:
 ## Installation
 
 ```bash
-pip install ace-framework[observability]
+uv add ace-framework[observability]
 ```
 
 ## Quick Start
 
 ```python
-from ace_next import ACELiteLLM
+from ace import ACELiteLLM
 
 # Easiest: ACELiteLLM enables both tracing modes with one flag
 ace = ACELiteLLM.from_model("gpt-4o-mini", opik=True, opik_project="my-experiment")
 ```
 
 ```python
-from ace_next import (
+from ace import (
     ACE, OpikStep,
     Agent, Reflector, SkillManager,
-    LiteLLMClient, SimpleEnvironment,
+    SimpleEnvironment,
 )
 
 # Manual: Add OpikStep via extra_steps
-client = LiteLLMClient(model="gpt-4o-mini")
-
 runner = ACE.from_roles(
-    agent=Agent(client),
-    reflector=Reflector(client),
-    skill_manager=SkillManager(client),
+    agent=Agent("gpt-4o-mini"),
+    reflector=Reflector("gpt-4o-mini"),
+    skill_manager=SkillManager("gpt-4o-mini"),
     environment=SimpleEnvironment(),
     extra_steps=[OpikStep(project_name="my-experiment")],
 )
@@ -43,7 +41,7 @@ runner = ACE.from_roles(
 
 ```python
 # LLM-level cost tracking only (no pipeline traces)
-from ace_next import register_opik_litellm_callback
+from ace import register_opik_litellm_callback
 
 registered = register_opik_litellm_callback(project_name="my-experiment")
 ```
@@ -108,7 +106,7 @@ graph TD
 `OpikStep` does **not** register the LiteLLM callback — the two tracing modes are independent. To get per-LLM-call cost tracking, call `register_opik_litellm_callback()` separately:
 
 ```python
-from ace_next import register_opik_litellm_callback
+from ace import register_opik_litellm_callback
 
 success = register_opik_litellm_callback(project_name="cost-tracking")
 # Returns True if registered, False if Opik unavailable
@@ -145,7 +143,7 @@ This ensures you know immediately if tracing is broken, rather than discovering 
 When using `OpikStep` directly via `extra_steps`, it soft-imports Opik and silently becomes a no-op if the package is absent — useful for pipelines that should work with or without observability.
 
 ```python
-from ace_next import OPIK_AVAILABLE
+from ace import OPIK_AVAILABLE
 
 if OPIK_AVAILABLE:
     print("Opik tracing is available")
@@ -190,7 +188,7 @@ OPIK_ENABLED=false python my_script.py
 === "ACELiteLLM (easiest)"
 
     ```python
-    from ace_next import ACELiteLLM, Sample, SimpleEnvironment
+    from ace import ACELiteLLM, Sample, SimpleEnvironment
 
     ace = ACELiteLLM.from_model("gpt-4o-mini", opik=True, opik_project="ace-training")
 
@@ -208,18 +206,16 @@ OPIK_ENABLED=false python my_script.py
 === "ACE runner (manual)"
 
     ```python
-    from ace_next import (
+    from ace import (
         ACE, Agent, Reflector, SkillManager, Skillbook,
-        LiteLLMClient, SimpleEnvironment, Sample, OpikStep,
+        SimpleEnvironment, Sample, OpikStep,
         register_opik_litellm_callback,
     )
 
-    client = LiteLLMClient(model="gpt-4o-mini")
-
     runner = ACE.from_roles(
-        agent=Agent(client),
-        reflector=Reflector(client),
-        skill_manager=SkillManager(client),
+        agent=Agent("gpt-4o-mini"),
+        reflector=Reflector("gpt-4o-mini"),
+        skill_manager=SkillManager("gpt-4o-mini"),
         environment=SimpleEnvironment(),
         extra_steps=[OpikStep(project_name="ace-training")],
     )

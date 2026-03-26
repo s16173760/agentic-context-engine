@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "ace-framework"
-version = "0.8.9"
+version = "0.9.0"
 description = "Build self-improving AI agents that learn from experience"
 readme = "README.md"
 requires-python = ">=3.12"
@@ -41,7 +41,9 @@ classifiers = [
 dependencies = [
     "litellm>=1.78.0",
     "pydantic>=2.0.0",
+    "pydantic-ai-slim[litellm]>=0.0.36",
     "python-toon>=0.1.0",
+    "tau2",
     "tenacity>=9.1.4",
 ]
 
@@ -60,8 +62,8 @@ deduplication = [
 browser-use = [
     "browser-use>=0.9.0",
 ]
-observability = [
-    "opik>=1.10.23",
+logfire = [
+    "logfire[pydantic-ai]>=3.0.0",
 ]
 bedrock = [
     "boto3>=1.42.50",
@@ -85,7 +87,6 @@ all = [
     "numpy>=1.24.0",
     "sentence-transformers>=2.2.0",
     "browser-use>=0.9.0",
-    "opik>=1.10.23",
     "langchain-openai>=0.3.35",
     "langchain-anthropic>=0.3.0",
     "langchain-litellm>=0.2.0",
@@ -99,6 +100,7 @@ all = [
 cloud = [
     "click>=8.1.0",
     "requests>=2.31.0",
+    "questionary>=2.0.0",
 ]
 mcp = [
     "mcp>=1.22.0",
@@ -107,10 +109,9 @@ mcp = [
 ]
 
 [project.scripts]
-ace = "ace_next.cli.setup:main"
+ace = "ace.cli.setup:main"
 kayba = "ace.cli:main"
-ace-learn = "ace.integrations.claude_code.learner:main"
-ace-mcp = "ace_next.integrations.mcp.server:main"
+ace-mcp = "ace.integrations.mcp.server:main"
 
 [project.urls]
 Homepage = "https://kayba.ai"
@@ -144,13 +145,10 @@ demos = [
 ]
 
 [tool.setuptools.packages.find]
-include = ["ace", "ace.*", "ace_next", "ace_next.*", "pipeline", "pipeline.*"]
+include = ["ace", "ace.*", "pipeline", "pipeline.*"]
 
 [tool.setuptools.package-data]
 ace = ["py.typed"]
-"ace.cli" = ["commands/*.md"]
-"ace.cli.skills" = ["**/*.md"]
-"ace.integrations.claude_code" = ["commands/*.md"]
 
 [tool.black]
 line-length = 88
@@ -189,7 +187,6 @@ addopts = [
     "--strict-markers",
     "--tb=short",
     "--cov=ace",
-    "--cov=ace_next",
     "--cov=pipeline",
     "--cov-report=term-missing",
     "--cov-report=html",
@@ -201,3 +198,6 @@ markers = [
     "unit: marks tests as unit tests",
     "requires_api: marks tests that need live API credentials",
 ]
+
+[tool.uv.sources]
+tau2 = { git = "https://github.com/sierra-research/tau2-bench.git" }

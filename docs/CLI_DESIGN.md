@@ -8,16 +8,16 @@ Design document for the `ace` CLI, model configuration system, and provider regi
 
 | Component | Status | Location |
 |---|---|---|
-| `ModelConfig` / `ACEModelConfig` dataclasses | Done | `ace_next/providers/config.py` |
-| TOML persistence (`ace.toml`) | Done | `ace_next/providers/config.py` |
-| `.env` persistence (secrets) | Done | `ace_next/providers/config.py` |
-| Provider registry (LiteLLM delegation) | Done | `ace_next/providers/registry.py` |
-| Model search / discovery | Done | `ace_next/providers/registry.py` |
-| Connection validation | Done | `ace_next/providers/registry.py` |
-| `ace setup` interactive wizard | Done | `ace_next/cli/setup.py` |
-| `ace models` search command | Done | `ace_next/cli/setup.py` |
-| `ace validate` connection test | Done | `ace_next/cli/setup.py` |
-| Lazy imports (fast CLI startup) | Done | `ace_next/__init__.py`, `ace_next/providers/__init__.py`, `ace_next/providers/registry.py` |
+| `ModelConfig` / `ACEModelConfig` dataclasses | Done | `ace/providers/config.py` |
+| TOML persistence (`ace.toml`) | Done | `ace/providers/config.py` |
+| `.env` persistence (secrets) | Done | `ace/providers/config.py` |
+| Provider registry (LiteLLM delegation) | Done | `ace/providers/registry.py` |
+| Model search / discovery | Done | `ace/providers/registry.py` |
+| Connection validation | Done | `ace/providers/registry.py` |
+| `ace setup` interactive wizard | Done | `ace/cli/setup.py` |
+| `ace models` search command | Done | `ace/cli/setup.py` |
+| `ace validate` connection test | Done | `ace/cli/setup.py` |
+| Lazy imports (fast CLI startup) | Done | `ace/__init__.py`, `ace/providers/__init__.py`, `ace/providers/registry.py` |
 
 ---
 
@@ -36,23 +36,22 @@ Design document for the `ace` CLI, model configuration system, and provider regi
 ```
 pyproject.toml
   [project.scripts]
-  ace = "ace_next.cli.setup:main"        # entry point
+  ace = "ace.cli.setup:main"        # entry point
 
-ace_next/cli/
+ace/cli/
   __init__.py
   setup.py          # CLI commands + interactive wizard
 
-ace_next/providers/
+ace/providers/
   __init__.py        # lazy re-exports
   config.py          # ModelConfig, ACEModelConfig, TOML + .env I/O
   registry.py        # provider detection, model search, connection validation
-  litellm.py         # LiteLLMClient (runtime LLM calls — not CLI)
-  instructor.py      # InstructorClient (structured outputs — not CLI)
+  pydantic_ai.py     # resolve_model, settings_from_config (PydanticAI model resolution)
 ```
 
-The CLI layer (`ace_next/cli/`) depends on:
-- `ace_next/providers/config.py` — always (lightweight, no heavy deps)
-- `ace_next/providers/registry.py` — only when validating or searching (imports LiteLLM lazily)
+The CLI layer (`ace/cli/`) depends on:
+- `ace/providers/config.py` — always (lightweight, no heavy deps)
+- `ace/providers/registry.py` — only when validating or searching (imports LiteLLM lazily)
 
 The config layer has **zero heavy dependencies** — it uses only `tomllib` (stdlib), `pathlib`, and `dataclasses`.
 
@@ -91,7 +90,7 @@ Roles without an explicit section inherit from `[default]`. Only non-default val
 ### Loading in code
 
 ```python
-from ace_next import ACELiteLLM
+from ace import ACELiteLLM
 
 # Option 1: Load from ace.toml + .env (created by `ace setup`)
 ace = ACELiteLLM.from_setup()
@@ -100,7 +99,7 @@ ace = ACELiteLLM.from_setup()
 ace = ACELiteLLM.from_model("gpt-4o-mini")
 
 # Option 3: Full config object
-from ace_next import ACEModelConfig, ModelConfig
+from ace import ACEModelConfig, ModelConfig
 ace = ACELiteLLM.from_config(ACEModelConfig(
     default=ModelConfig(model="gpt-4o-mini"),
     agent=ModelConfig(model="claude-sonnet-4-20250514"),
@@ -171,7 +170,7 @@ Returned by `search_models()`. Pricing is per million tokens (converted from Lit
 
 ## Provider Registry
 
-All provider logic is delegated to LiteLLM. The registry module (`ace_next/providers/registry.py`) wraps LiteLLM with a stable API:
+All provider logic is delegated to LiteLLM. The registry module (`ace/providers/registry.py`) wraps LiteLLM with a stable API:
 
 | Function | What it does | Makes API calls? |
 |----------|-------------|-----------------|
@@ -241,7 +240,7 @@ Defined in `pyproject.toml`:
 
 ```toml
 [project.scripts]
-ace = "ace_next.cli.setup:main"
+ace = "ace.cli.setup:main"
 ```
 
 `main()` uses `argparse` with subcommands:
@@ -353,81 +352,18 @@ Examples:
 
 ---
 
-## Kayba CLI (`kayba`)
+## Kayba CLI
 
-A separate entry point (`kayba`) provides commands for the Kayba hosted API. It is implemented with Click in `ace/cli/`.
-
-### Entry point
+The `kayba` entry point (`ace.cli:main`) provides the hosted API client. It wraps trace management, pipeline execution, insight triage, prompt generation, and integration management. See [Hosted API docs](../integrations/hosted-api.md) for the full reference.
 
 ```toml
 [project.scripts]
+ace = "ace.cli.setup:main"
 kayba = "ace.cli:main"
+ace-mcp = "ace.integrations.mcp.server:main"
 ```
 
-`ace.cli:main` creates a Click group with commands registered directly (no intermediate subgroup).
-
-### Architecture
-
-```
-ace/cli/
-  __init__.py       # Click group, registers commands directly
-  client.py         # KaybaClient — HTTP client for the hosted API
-  cloud.py          # Click commands: upload, insights, prompts, status, materialize, batch
-```
-
-### Commands
-
-```
-kayba upload PATHS...            Upload trace files (files, dirs, or stdin)
-kayba insights generate          Trigger insight generation
-kayba insights list              List insights (--status, --section, --json)
-kayba insights triage            Accept/reject insights (--accept, --reject, --accept-all)
-kayba prompts generate           Generate prompt from accepted insights
-kayba prompts list               List prompt versions
-kayba prompts pull               Download a prompt (--id, --pretty, -o)
-kayba status JOB_ID              Check job status (--wait, --interval)
-kayba materialize JOB_ID         Materialise job results into skillbook
-kayba batch PATHS...             Pre-batch traces for Recursive Reflector
-```
-
-### Authentication
-
-All commands accept `--api-key` and `--base-url`. Defaults:
-- API key: `KAYBA_API_KEY` env var
-- Base URL: `KAYBA_API_URL` env var, then `https://use.kayba.ai/api`
-
-### KaybaClient
-
-`ace.cli.client.KaybaClient` wraps the hosted API with a `requests.Session`:
-
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| `upload_traces(traces)` | `POST /traces` | Upload trace files |
-| `generate_insights(...)` | `POST /insights/generate` | Start async insight generation |
-| `list_insights(...)` | `GET /insights` | List insights with filters |
-| `triage_insight(id, status)` | `PATCH /insights/:id` | Accept or reject an insight |
-| `get_job(job_id)` | `GET /jobs/:id` | Get job status |
-| `materialize_job(job_id)` | `POST /jobs/:id` | Materialise completed job |
-| `generate_prompt(...)` | `POST /prompts/generate` | Generate prompt from insights |
-| `list_prompts()` | `GET /prompts` | List all prompt versions |
-| `get_prompt(prompt_id)` | `GET /prompts/:id` | Get prompt by ID |
-
-Errors are raised as `KaybaAPIError(code, message, status_code)`.
-
-### Batch command
-
-The `batch` command operates in two modes:
-
-1. **Prepare** (default): collect traces, extract metadata, generate a classification prompt for an LLM to fill in batch assignments. Writes a skeleton `batches.json`.
-2. **Apply** (`--apply FILE`): validate a batch plan JSON against the trace set, optionally upload each batch (`--upload`).
-
-Validation checks: min/max batch size, all traces assigned, no duplicates, no unknown files.
-
-### Relationship to `ace setup`
-
-The `ace` entry point (`ace_next.cli.setup:main`) handles local model configuration.
-The `kayba` entry point (`ace.cli:main`) handles hosted API operations.
-They are independent — `kayba` does not require `ace.toml` or any local LLM setup.
+Key command groups: `traces`, `run`, `insights`, `prompts`, `integrations`, `status`, `materialize`, `batch`, `setup`.
 
 ---
 
@@ -435,17 +371,17 @@ They are independent — `kayba` does not require `ace.toml` or any local LLM se
 
 ### Problem
 
-`import ace_next` eagerly imported all submodules, including `litellm` (~1.5s). This made the CLI unusable (~2s startup for a simple `ace --help`).
+`import ace` eagerly imported all submodules, including `litellm` (~1.5s). This made the CLI unusable (~2s startup for a simple `ace --help`).
 
 ### Solution
 
 Three-layer lazy import:
 
-1. **`ace_next/__init__.py`** — `__getattr__`-based lazy loading. `TYPE_CHECKING` block for IDE support, `_LAZY_IMPORTS` dict for runtime.
+1. **`ace/__init__.py`** — `__getattr__`-based lazy loading. `TYPE_CHECKING` block for IDE support, `_LAZY_IMPORTS` dict for runtime.
 
-2. **`ace_next/providers/__init__.py`** — same pattern. Config imports are eager (lightweight), everything else is lazy.
+2. **`ace/providers/__init__.py`** — same pattern. Config imports are eager (lightweight), everything else is lazy.
 
-3. **`ace_next/providers/registry.py`** — `_litellm()` helper defers `import litellm` until first function call.
+3. **`ace/providers/registry.py`** — `_litellm()` helper defers `import litellm` until first function call.
 
 Result: `ace --help` runs in ~50ms. LiteLLM is only imported when the user actually searches, validates, or sets up.
 
@@ -477,24 +413,15 @@ def __getattr__(name: str) -> object:
 ## File Map
 
 ```
-ace/cli/
-  __init__.py                   # Click group, registers commands directly
-  client.py                     # KaybaClient HTTP client
-  cloud.py                      # upload, insights, prompts, status, materialize, batch
-
-ace_next/
-  __init__.py                     # lazy re-exports for all ace_next symbols
+ace/
+  __init__.py                     # lazy re-exports for all ace symbols
   cli/
-    __init__.py                   # "ACE CLI — setup and management commands."
     setup.py                      # main(), run_setup(), _cmd_models(), _cmd_validate(), _cmd_config()
   providers/
     __init__.py                   # lazy re-exports (config eager, rest lazy)
     config.py                     # ModelConfig, ACEModelConfig, TOML/env I/O
     registry.py                   # provider detection, model search, validation
-    litellm.py                    # LiteLLMClient (runtime, not CLI)
-    instructor.py                 # InstructorClient (runtime, not CLI)
-    langchain.py                  # LangChainLiteLLMClient (optional)
-    claude_code.py                # ClaudeCodeLLMClient (optional)
+    pydantic_ai.py                # resolve_model, settings_from_config (PydanticAI model resolution)
 ```
 
 Generated files:

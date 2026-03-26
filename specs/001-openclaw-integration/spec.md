@@ -130,7 +130,7 @@ A developer wants ACE baked into their OpenClaw Docker image so the agent can tr
 
 - Q: Should thinking traces be truncated or filtered from parsed traces? → A: No. Thinking traces must be preserved in full — they are integral to how the agent works and provide essential reasoning context for the learning pipeline.
 - Q: Should tool call arguments and results be preserved in full or truncated? → A: Preserve in full. No truncation for tool arguments or tool results.
-- Q: Where should trace loading and conversion logic live? → A: A generic `LoadTracesStep` in `ace_next/steps/` loads raw file contents onto `ctx.trace`. An OpenClaw-specific `OpenClawToTraceStep` in `ace_next/integrations/openclaw/` converts raw JSONL events into the structured trace dict, preserving chronological order of queries, thinking, and tool uses. The transformation logic will be defined separately.
+- Q: Where should trace loading and conversion logic live? → A: A generic `LoadTracesStep` in `ace/steps/` loads raw file contents onto `ctx.trace`. An OpenClaw-specific `OpenClawToTraceStep` in `ace/integrations/openclaw/` converts raw JSONL events into the structured trace dict, preserving chronological order of queries, thinking, and tool uses. The transformation logic will be defined separately.
 
 ## Assumptions
 

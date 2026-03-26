@@ -11,9 +11,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - **PydanticAI migration** — ACE roles (Agent, Reflector, SkillManager) rebuilt on PydanticAI agents with structured output, replacing the legacy role system
+- **Recursive Reflector** — PydanticAI-powered trace analysis agent with sandboxed code execution, sub-agent delegation, and working memory (`save_notes` tool)
 - **Kayba CLI** — full hosted API client with trace upload/management, interactive run, insights, prompts, batch processing, materialization, and integration commands (`kayba` entry point)
-- **XML skill rendering** — per-task retrieval for benchmark evaluations
-- **Bedrock API key support** — AWS Bedrock provider authentication
 
 ## [0.8.8] - 2026-03-17
 

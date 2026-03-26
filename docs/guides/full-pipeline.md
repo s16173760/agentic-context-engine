@@ -144,7 +144,7 @@ This creates:
 
 ## Deduplication
 
-Prevent duplicate skills from accumulating (requires `pip install ace-framework[deduplication]`):
+Prevent duplicate skills from accumulating (requires `uv add ace-framework[deduplication]`):
 
 ```python
 from ace import DeduplicationConfig, DeduplicationManager
@@ -186,7 +186,7 @@ skill_manager = SkillManager("test")
 
 ## Observability
 
-Add Opik tracing to any pipeline via `extra_steps` (requires `pip install ace-framework[observability]`):
+Add Opik tracing to any pipeline via `extra_steps` (requires `uv add ace-framework[observability]`):
 
 ```python
 from ace import ACE, OpikStep, register_opik_litellm_callback

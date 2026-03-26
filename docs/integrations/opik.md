@@ -10,7 +10,7 @@ Two independent tracing modes:
 ## Installation
 
 ```bash
-pip install ace-framework[observability]
+uv add ace-framework[observability]
 ```
 
 ## Quick Start

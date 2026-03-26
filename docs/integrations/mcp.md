@@ -7,8 +7,6 @@ The integration is fully opt-in. Installing ACE without the `mcp` extra does not
 ## Installation
 
 ```bash
-pip install "ace-framework[mcp]"
-# or using uv:
 uv add "ace-framework[mcp]"
 ```
 

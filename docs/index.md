@@ -33,7 +33,7 @@ agent.save("learned.json")
 ## Install
 
 ```bash
-pip install ace-framework
+uv add ace-framework
 ```
 
 ## Quick Links

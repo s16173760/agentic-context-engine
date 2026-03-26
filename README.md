@@ -37,7 +37,7 @@
 ## Quick Start
 
 ```bash
-pip install ace-framework
+uv add ace-framework
 ```
 
 **Option A** — Interactive setup (recommended):
@@ -119,11 +119,11 @@ All roles are backed by [PydanticAI](https://ai.pydantic.dev/) agents with struc
 | **Claude Code** | `ClaudeCode` | Claude Code CLI tasks with learning |
 
 ```bash
-pip install ace-framework[browser-use]    # Browser automation
-pip install ace-framework[langchain]      # LangChain
-pip install ace-framework[logfire]        # Observability (auto-instruments PydanticAI)
-pip install ace-framework[mcp]            # MCP server for IDE integration
-pip install ace-framework[deduplication]  # Embedding-based skill deduplication
+uv add ace-framework[browser-use]    # Browser automation
+uv add ace-framework[langchain]      # LangChain
+uv add ace-framework[logfire]        # Observability (auto-instruments PydanticAI)
+uv add ace-framework[mcp]            # MCP server for IDE integration
+uv add ace-framework[deduplication]  # Embedding-based skill deduplication
 ```
 
 Have existing agent logs? Extract strategies from them directly:

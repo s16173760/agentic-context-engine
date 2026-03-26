@@ -9,7 +9,7 @@ The Kayba hosted API lets you upload traces, generate insights, and pull optimis
 3. Install the `cloud` extra:
 
 ```bash
-pip install ace-framework[cloud]
+uv add ace-framework[cloud]
 ```
 
 Or if you installed from source:

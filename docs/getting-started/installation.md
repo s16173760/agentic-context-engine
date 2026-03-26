@@ -2,23 +2,23 @@
 
 ## For Users
 
-=== "pip"
+=== "uv"
 
     ```bash
-    pip install ace-framework
+    uv add ace-framework
     ```
 
 === "With extras"
 
     ```bash
-    pip install ace-framework[all]            # All optional features
-    pip install ace-framework[instructor]     # Structured outputs (Instructor)
-    pip install ace-framework[langchain]      # LangChain integration
-    pip install ace-framework[browser-use]    # Browser automation
-    pip install ace-framework[claude-code]    # Claude Code CLI integration
-    pip install ace-framework[observability]  # Opik monitoring + cost tracking
-    pip install ace-framework[deduplication]  # Skill deduplication (embeddings)
-    pip install ace-framework[transformers]   # Local model support
+    uv add ace-framework[all]            # All optional features
+    uv add ace-framework[instructor]     # Structured outputs (Instructor)
+    uv add ace-framework[langchain]      # LangChain integration
+    uv add ace-framework[browser-use]    # Browser automation
+    uv add ace-framework[claude-code]    # Claude Code CLI integration
+    uv add ace-framework[observability]  # Opik monitoring + cost tracking
+    uv add ace-framework[deduplication]  # Skill deduplication (embeddings)
+    uv add ace-framework[transformers]   # Local model support
     ```
 
 ## For Contributors
@@ -31,12 +31,12 @@
     uv sync  # Installs everything (10-100x faster than pip)
     ```
 
-=== "pip"
+=== "uv"
 
     ```bash
     git clone https://github.com/kayba-ai/agentic-context-engine
     cd agentic-context-engine
-    pip install -e .
+    uv add -e .
     ```
 
 ## Requirements

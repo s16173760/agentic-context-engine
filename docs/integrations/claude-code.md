@@ -16,7 +16,7 @@ runner.save("coding_expert.json")
 ## Installation
 
 ```bash
-pip install ace-framework[claude-code]
+uv add ace-framework[claude-code]
 ```
 
 ## Prerequisites

@@ -5,7 +5,7 @@ The `LangChain` runner wraps any LangChain Runnable (chains, `AgentExecutor`, La
 ## Installation
 
 ```bash
-pip install ace-framework[langchain]
+uv add ace-framework[langchain]
 ```
 
 ## Quick Start

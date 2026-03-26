@@ -243,7 +243,7 @@ Operations: `ADD`, `UPDATE`, `TAG`, `REMOVE`. See [Update Operations](../concept
 
 ### DeduplicationConfig
 
-**Requires:** `pip install ace-framework[deduplication]`
+**Requires:** `uv add ace-framework[deduplication]`
 
 ```python
 from ace import DeduplicationConfig

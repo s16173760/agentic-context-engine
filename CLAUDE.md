@@ -69,6 +69,7 @@ Key design docs:
 
 ### Commits
 - Conventional Commits: `feat(scope): subject`, `fix(scope): subject`
+- Do NOT add `Co-Authored-By` trailers to commit messages
 - PRs should include description, test results, and relevant docs updates
 
 ### ACE Roles (quick reference)

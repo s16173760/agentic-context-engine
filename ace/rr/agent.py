@@ -64,11 +64,34 @@ SUBAGENT_SYSTEM = (
     "Use execute_code to extract evidence from trace data, then reason about it. "
     "Pre-loaded: traces, skillbook, json, re, collections, datetime, "
     "plus any helper variables injected by the runner. "
+    "If helper_registry is populated, prefer those registered helpers before "
+    "re-discovering the trace schema. "
     "Treat item/context strings as navigation instructions, not dict keys. "
     "Keep code calls minimal (2-3 max)."
 )
 
 logger = logging.getLogger(__name__)
+
+
+def _format_registered_helpers(sandbox: TraceSandbox) -> str:
+    """Render registered helper metadata for sub-agent prompts."""
+    registry = sandbox.namespace.get("helper_registry", {})
+    if not isinstance(registry, dict) or not registry:
+        return ""
+
+    lines = [
+        "## Registered Helpers",
+        "These helpers are already available inside `execute_code`. Prefer them before inspecting the raw schema again.",
+    ]
+    for name, meta in registry.items():
+        if not isinstance(meta, dict):
+            continue
+        description = str(meta.get("description", "")).strip() or "No description provided."
+        lines.append(f"- `{name}`: {description}")
+    lines.append(
+        "Use `print(list_helpers())` for the full catalog, call helpers directly in code, or use `run_helper(name, ...)`."
+    )
+    return "\n".join(lines)
 
 
 # ------------------------------------------------------------------
@@ -230,6 +253,9 @@ def create_rr_agent(
         ]
         if context:
             prompt_parts.append(f"## Additional Context\n{context}")
+        helper_prompt = _format_registered_helpers(ctx.deps.sandbox)
+        if helper_prompt:
+            prompt_parts.append(helper_prompt)
         prompt_parts.append("## Your Analysis")
         prompt = "\n\n".join(prompt_parts)
 
@@ -323,6 +349,7 @@ def create_rr_agent(
                 "Treat the item below as navigation instructions for the trace "
                 "data. Do not look up the raw item string as a dict key unless "
                 "it explicitly names a keyed field.\n\n"
+                f"{_format_registered_helpers(parent_sandbox)}\n\n"
                 f"## Question\n{question}\n\n"
                 f"## Item\n{item}\n\n"
                 f"## Your Analysis"

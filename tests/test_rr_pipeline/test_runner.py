@@ -209,19 +209,19 @@ class TestRRStepProtocol:
 
 @pytest.mark.unit
 class TestRRBatchReflection:
-    """Test batch reflection (traces with 'tasks' key)."""
+    """Test generic batch reflection paths."""
 
     def test_batch_splits_into_per_task_outputs(self):
-        """Batch with per-task results in raw produces per-task ReflectorOutputs."""
+        """Batch with per-item results in raw produces per-item ReflectorOutputs."""
         rr = RRStep("test-model", config=RRConfig(enable_subagent=False))
 
-        # Mock a batch result with per-task data in raw
+        # Mock a batch result with per-item data in raw
         output = ReflectorOutput(
             reasoning="batch analysis",
             key_insight="batch insight",
             correct_approach="approach",
             raw={
-                "tasks": [
+                "items": [
                     {
                         "reasoning": "task 0 analysis",
                         "key_insight": "t0 insight",
@@ -248,8 +248,8 @@ class TestRRBatchReflection:
 
         batch_trace = {
             "tasks": [
-                {"task_id": "t0", "trace": [{"role": "user", "content": "hello"}]},
-                {"task_id": "t1", "trace": [{"role": "user", "content": "world"}]},
+                {"item_id": "t0", "trace": [{"role": "user", "content": "hello"}]},
+                {"item_id": "t1", "trace": [{"role": "user", "content": "world"}]},
             ]
         }
         ctx = ACEStepContext(trace=batch_trace, skillbook=SkillbookView(Skillbook()))
@@ -261,9 +261,10 @@ class TestRRBatchReflection:
         assert result_ctx.reflections[0].reasoning == "task 0 analysis"
         assert result_ctx.reflections[1].key_insight == "t1 insight"
         assert len(result_ctx.reflections[1].extracted_learnings) == 1
+        assert result_ctx.reflections[0].raw["item_id"] == "t0"
 
     def test_batch_fallback_duplicates_when_no_per_task(self):
-        """When batch output lacks per-task results, duplicate the single reflection."""
+        """When batch output lacks per-item results, duplicate the single reflection."""
         rr = RRStep("test-model", config=RRConfig(enable_subagent=False))
 
         output = ReflectorOutput(
@@ -292,11 +293,48 @@ class TestRRBatchReflection:
             result_ctx = rr(ctx)
 
         assert len(result_ctx.reflections) == 2
-        assert result_ctx.reflections[0].raw["task_id"] == "t0"
-        assert result_ctx.reflections[1].raw["task_id"] == "t1"
+        assert result_ctx.reflections[0].raw["item_id"] == "t0"
+        assert result_ctx.reflections[1].raw["item_id"] == "t1"
 
-    def test_combined_steps_batch_normalizes_into_tasks(self):
-        """Legacy combined-step batches should route through batch task mode."""
+    def test_raw_list_batch_is_supported_without_preprocessing(self):
+        """A raw list of trace items should route through generic batch mode."""
+        rr = RRStep("test-model", config=RRConfig(enable_subagent=False))
+
+        output = ReflectorOutput(
+            reasoning="raw list analysis",
+            key_insight="raw list insight",
+            correct_approach="approach",
+            raw={
+                "items": [
+                    {"reasoning": "item 0", "key_insight": "i0", "extracted_learnings": []},
+                    {"reasoning": "item 1", "key_insight": "i1", "extracted_learnings": []},
+                ]
+            },
+        )
+        mock_result = MagicMock()
+        mock_result.output = output
+        usage = MagicMock()
+        usage.request_tokens = 200
+        usage.response_tokens = 100
+        usage.total_tokens = 300
+        usage.requests = 5
+        mock_result.usage.return_value = usage
+
+        batch_trace = [
+            {"item_id": "i0", "messages": [{"role": "user", "content": "hello"}]},
+            {"item_id": "i1", "messages": [{"role": "user", "content": "world"}]},
+        ]
+        ctx = ACEStepContext(trace=batch_trace, skillbook=SkillbookView(Skillbook()))
+
+        with patch.object(rr._agent, "run_sync", return_value=mock_result):
+            result_ctx = rr(ctx)
+
+        assert len(result_ctx.reflections) == 2
+        assert result_ctx.reflections[0].raw["item_id"] == "i0"
+        assert result_ctx.reflections[1].raw["item_id"] == "i1"
+
+    def test_combined_steps_batch_routes_through_generic_batch_mode(self):
+        """Legacy combined-step batches should batch without inner normalization."""
         rr = RRStep("test-model", config=RRConfig(enable_subagent=False))
 
         output = ReflectorOutput(
@@ -304,7 +342,7 @@ class TestRRBatchReflection:
             key_insight="normalized insight",
             correct_approach="approach",
             raw={
-                "tasks": [
+                "items": [
                     {
                         "reasoning": "task 0 analysis",
                         "key_insight": "t0 insight",
@@ -356,11 +394,11 @@ class TestRRBatchReflection:
             result_ctx = rr(ctx)
 
         assert len(result_ctx.reflections) == 2
-        assert result_ctx.reflections[0].raw["task_id"] == "task_0"
-        assert result_ctx.reflections[1].raw["task_id"] == "task_1"
+        assert result_ctx.reflections[0].raw["item_id"] == "task_0"
+        assert result_ctx.reflections[1].raw["item_id"] == "task_1"
 
-    def test_batch_sandbox_injects_helper_variables(self):
-        """Batch sandbox should expose helper data that avoids schema rediscovery."""
+    def test_batch_sandbox_injects_generic_helper_variables(self):
+        """Batch sandbox should expose generic helper data and helper registry tools."""
         rr = RRStep("test-model", config=RRConfig(enable_subagent=False))
         batch_trace = {
             "tasks": [
@@ -385,16 +423,19 @@ class TestRRBatchReflection:
             skillbook=SkillbookView(Skillbook()),
         )
 
-        assert sandbox.namespace["task_ids"] == ["t0", "t1"]
-        assert sandbox.namespace["task_id_to_index"] == {"t0": 0, "t1": 1}
+        assert sandbox.namespace["batch_items"] == batch_trace["tasks"]
+        assert sandbox.namespace["item_ids"] == ["t0", "t1"]
+        assert sandbox.namespace["item_id_to_index"] == {"t0": 0, "t1": 1}
         assert "survey_items" in sandbox.namespace
         assert sandbox.namespace["survey_items"][0].startswith(
-            "Inspect traces['tasks'][0]"
+            "Inspect batch_items[0]"
         )
-        assert sandbox.namespace["task_preview_by_id"]["t0"]["question_preview"]
+        assert sandbox.namespace["item_preview_by_id"]["t0"]["question_preview"]
+        assert callable(sandbox.namespace["register_helper"])
+        assert callable(sandbox.namespace["run_helper"])
 
-    def test_batch_prompt_mentions_precomputed_survey_items(self):
-        """Batch prompt should surface precomputed survey items explicitly."""
+    def test_batch_prompt_mentions_helper_registration_and_survey_items(self):
+        """Batch prompt should surface helper registration and generic survey items."""
         rr = RRStep("test-model", config=RRConfig(enable_subagent=False))
         batch_trace = {
             "tasks": [
@@ -425,6 +466,8 @@ class TestRRBatchReflection:
             trace_obj=None,
         )
 
+        assert "register_helper" in prompt
+        assert "helper_registry" in prompt
         assert "survey_items" in prompt
-        assert "do not invent labels like `steps_0_to_2`" in prompt
-        assert "Inspect traces['tasks'][0] (task_id='t0')" in prompt
+        assert 'raw["items"]' in prompt
+        assert "Inspect batch_items[0] (item_id='t0')" in prompt

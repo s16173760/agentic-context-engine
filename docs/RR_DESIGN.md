@@ -36,26 +36,14 @@ Each invocation of `RRStep` runs a PydanticAI agent that drives the analysis thr
 
 ```
 
-Before prompting the agent, `RRStep` also normalizes the legacy "combined batch"
-shape used by some offline pipelines:
+RR accepts raw trace objects directly. For batch mode it recognizes:
 
-```python
-{
-    "steps": [
-        {"role": "conversation", "id": "task_0", "content": {...trace dict...}},
-        {"role": "conversation", "id": "task_1", "content": {...trace dict...}},
-    ]
-}
-```
+- a raw `list[...]` of trace items
+- a dict with an `"items"` list
+- a dict with a `"tasks"` list
+- a legacy combined `"steps"` batch of conversation wrapper dicts
 
-into the native batch shape:
-
-```python
-{"tasks": [{"task_id": "task_0", "trace": [...]}, ...]}
-```
-
-This ensures the batch prompt, helper variables, and per-task output splitting
-all use a consistent representation.
+RR does **not** rewrite the inner trace payload into a benchmark-specific schema. Instead it injects generic helper variables such as `batch_items`, `item_ids`, and `survey_items`, plus a runtime helper registry so the model can define reusable accessors for whatever raw structure it sees.
 ┌───────────────────────────────────────────────────────────────┐
 │  RRStep._run_reflection()                                     │
 │                                                               │
@@ -153,14 +141,15 @@ The `prompt_template` is formatted with these variables:
 
 | Variable | Type | Description |
 |----------|------|-------------|
-| `{traces_description}` | `str` | Human-readable summary of the traces (single: schema keys; batch: task count) |
-| `{step_count}` | `int` | Total number of trace steps (summed across tasks in batch mode) |
+| `{traces_description}` | `str` | Human-readable summary of the traces (single: schema keys or raw type; batch: container summary) |
+| `{step_count}` | `int` | Total number of trace steps/messages seen in previews (summed across batch items in batch mode) |
 | `{skillbook_length}` | `int` | Character count of skillbook text |
 | `{batch_variables}` | `str` | Extra sandbox variable table row for batch mode (empty string in single-trace mode) |
-| `{traces_previews}` | `str` | Markdown table of trace previews (single: per-field; batch: per-task with message count) |
+| `{helper_variables}` | `str` | Extra sandbox variable/function rows for reusable helper registration |
+| `{traces_previews}` | `str` | Markdown table of trace previews (single: per-field; batch: per-item with message count) |
 | `{trace_size_chars}` | `int` | Total character count of the serialised traces dict |
 | `{max_iterations}` | `int` | The `max_llm_calls` budget (shown so the LLM can pace itself) |
-| `{task_count}` | `int` | Number of tasks (1 for single-trace, N for batch) |
+| `{task_count}` | `int` | Number of analyzed items (1 for single-trace, N for batch) |
 
 ---
 
@@ -234,12 +223,18 @@ Lightweight `exec()`-based sandbox for running LLM-generated Python code. Locate
 | Variable | Type | Description |
 |----------|------|-------------|
 | `trace` | `TraceContext \| None` | The agent execution trace (when available) |
-| `traces` | `dict` | Canonical traces dict (injected by `RRStep`) |
+| `traces` | `Any` | Raw trace payload provided to RR (injected by `RRStep`) |
 | `skillbook` | `str` | Skillbook text (injected by `RRStep`) |
-| `task_ids` | `list[str]` | Present in batch mode. Ordered task IDs matching `traces["tasks"]`. |
-| `task_id_to_index` | `dict[str, int]` | Present in batch mode. Maps task IDs to task indices. |
-| `task_preview_by_id` | `dict[str, dict]` | Present in batch mode. Compact previews for question, feedback, and first message. |
-| `survey_items` | `list[str]` | Present in batch mode. Precomputed `batch_analyze()` items with explicit task references. |
+| `batch_items` | `list[Any]` | Present in batch mode. Ordered view over the raw batch elements regardless of the original container shape. |
+| `item_ids` | `list[str]` | Present in batch mode. Stable identifiers derived from each batch item. |
+| `item_id_to_index` | `dict[str, int]` | Present in batch mode. Maps item IDs to `batch_items[i]`. |
+| `item_preview_by_id` | `dict[str, dict]` | Present in batch mode. Compact previews for question, feedback, first message, and payload type. |
+| `survey_items` | `list[str]` | Present in batch mode. Precomputed `batch_analyze()` items with explicit `batch_items[i]` references. |
+| `helper_registry` | `dict[str, dict]` | Metadata for reusable helper functions registered during the run. |
+| `register_helper` | `Callable` | Define and persist helper code so later `execute_code` calls and sub-agent snapshots can reuse it. |
+| `list_helpers` | `Callable` | Return registered helper names and descriptions. |
+| `run_helper` | `Callable` | Invoke a registered helper by name. |
+| `get_batch_item` | `Callable` | Convenience accessor for `batch_items[index]`. |
 | `SHOW_VARS` | `Callable` | Print available variables (debugging) |
 | `json` | module | `json` standard library |
 | `re` | module | `re` standard library |
@@ -301,6 +296,15 @@ class ExecutionResult:
 ### inject(name, value)
 
 Add or override a variable in the sandbox namespace after construction.
+
+### Runtime Helper Registry
+
+The sandbox includes a lightweight helper registry for trace-shape adaptation:
+
+- `register_helper(name, source, description="")` executes helper source code, stores the source, and records metadata.
+- Registered helpers persist across later `execute_code` calls in the same RR session.
+- `create_readonly_sandbox()` replays the stored helper source in sub-agent snapshots so helpers are rebound to the child namespace rather than the parent sandbox.
+- Sub-agent prompts include the registered helper catalog when available, so they can start from those helpers instead of re-discovering the raw schema.
 
 ### reset()
 
@@ -496,53 +500,56 @@ When any other exception occurs during the agent run, a minimal `ReflectorOutput
 
 ## Batch Mode
 
-When `RRStep.__call__` receives a batch trace (a dict with a `"tasks"` key), it runs a **single PydanticAI agent session** that analyzes all tasks. The agent uses `batch_analyze` to explore tasks concurrently within that session.
+When `RRStep.__call__` receives a batch trace (a raw list, a dict with `"items"` or `"tasks"`, or a legacy combined `"steps"` batch), it runs a **single PydanticAI agent session** that analyzes all items. The agent uses `batch_analyze` to explore items concurrently within that session.
 
 ### Detection
 
-A trace is a batch when `isinstance(trace, dict) and "tasks" in trace`. The `"tasks"` value is a list of `{"task_id": str, "trace": list}` dicts — one per task in the batch.
+A trace is treated as a batch when:
+
+- `trace` is a raw `list`
+- or `trace["items"]` is a list
+- or `trace["tasks"]` is a list
+- or `trace["steps"]` looks like a legacy combined batch of conversation wrapper dicts
 
 ### Single-Session Design
 
-The full batch trace is passed directly to `_run_reflection`. The sandbox's `traces` variable contains:
+The full batch trace is passed directly to `_run_reflection` without rewriting the inner payloads. The sandbox exposes:
 
 ```python
-{
-    "tasks": [
-        {"task_id": "task_0", "trace": [{"role": "user", "content": "..."}, ...]},
-        {"task_id": "task_1", "trace": [...]},
-        ...
-    ]
-}
+traces        # raw caller-provided payload
+batch_items   # ordered list of raw batch elements
+item_ids      # stable ids derived from batch items
+survey_items  # precomputed batch_analyze instructions referencing batch_items[i]
 ```
 
 The RR prompt instructs the LLM to:
-1. Discover all tasks and their schema in one `execute_code` call.
-2. Use `batch_analyze` to fan out analysis across tasks concurrently.
-3. Identify cross-task patterns.
-4. Return a structured `ReflectorOutput` with a `"tasks"` list in `raw` containing per-task results.
+1. Inspect minimal structure only once.
+2. Register reusable helpers when repeated access would help.
+3. Use `batch_analyze` to fan out analysis across items concurrently.
+4. Identify cross-item patterns.
+5. Return a structured `ReflectorOutput` with a `raw["items"]` list containing per-item results.
 
-`_split_batch_reflection` then parses the single `ReflectorOutput` into per-task outputs. If the output doesn't contain per-task results, the single reflection is duplicated as a fallback.
+`_split_batch_reflection` then parses the single `ReflectorOutput` into per-item outputs. If the output doesn't contain per-item results, the single reflection is duplicated as a fallback.
 
 ### Output
 
-Returns `ctx.replace(reflections=(refl_0, refl_1, ..., refl_n))` where `reflections[i]` corresponds to `tasks[i]`.
+Returns `ctx.replace(reflections=(refl_0, refl_1, ..., refl_n))` where `reflections[i]` corresponds to `batch_items[i]`.
 
 ### Cost
 
-1 batch = 1 PydanticAI agent session regardless of task count. The session runs up to `max_llm_calls` requests total. Within the session, `batch_analyze` calls run sub-agent analyses concurrently via `ThreadPoolExecutor`.
+1 batch = 1 PydanticAI agent session regardless of item count. The session runs up to `max_llm_calls` requests total. Within the session, `batch_analyze` calls run sub-agent analyses concurrently via `ThreadPoolExecutor`.
 
-For a batch of 5 tasks with `batch_analyze` fanning out sub-agent calls, cost is typically the main agent turns + sub-agent calls, all counted against the single `UsageLimits(request_limit=max_llm_calls)` budget.
+For a batch of 5 items with `batch_analyze` fanning out sub-agent calls, cost is typically the main agent turns + sub-agent calls, all counted against the single `UsageLimits(request_limit=max_llm_calls)` budget.
 
 ### Single-Task Backward Compatibility
 
-When the trace does not have a `"tasks"` key, `__call__` follows the existing single-trace path and returns a 1-tuple `reflections=(reflection,)`.
+When the trace is not recognized as a batch container, `__call__` follows the existing single-trace path and returns a 1-tuple `reflections=(reflection,)`.
 
 ---
 
-## Traces Dict
+## Traces Input
 
-The canonical data structure passed to the sandbox as the `traces` variable.
+The raw data structure passed to the sandbox as the `traces` variable.
 
 ### Single-trace mode
 
@@ -564,28 +571,30 @@ The canonical data structure passed to the sandbox as the `traces` variable.
 
 ### Batch mode
 
-When the trace has a `"tasks"` key, the sandbox receives the full batch:
+RR accepts several batch container shapes:
+
+```python
+[raw_item_0, raw_item_1, ...]
+```
+
+```python
+{"items": [raw_item_0, raw_item_1, ...]}
+```
+
+```python
+{"tasks": [raw_item_0, raw_item_1, ...]}
+```
 
 ```python
 {
-    "tasks": [
-        {
-            "task_id": str,
-            "trace": [            # Per-task message list
-                {
-                    "role": str,
-                    "content": str,
-                    "tool_calls": [...]  # Optional, preserved when present
-                },
-                ...
-            ]
-        },
-        ...
+    "steps": [
+        {"role": "conversation", "id": "...", "content": raw_item_0},
+        {"role": "conversation", "id": "...", "content": raw_item_1},
     ]
 }
 ```
 
-Batch traces are built by `BatchOrchestrator.build_batch_trace()` in the eval pipeline. Tool calls are preserved in the same format as the single-trace `context_bridge`.
+RR leaves each `raw_item_n` untouched and injects a generic `batch_items` view plus runtime helper registration so the model can adapt to the item shape during execution.
 
 ---
 

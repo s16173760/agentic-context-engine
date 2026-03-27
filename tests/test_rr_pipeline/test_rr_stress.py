@@ -9,7 +9,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from ace.rr.config import RecursiveConfig
-from ace.rr.sandbox import TraceSandbox
+from ace.rr.sandbox import TraceSandbox, create_readonly_sandbox
 
 from ace.core.context import ACEStepContext, SkillbookView
 from ace.core.outputs import AgentOutput, ReflectorOutput
@@ -185,6 +185,49 @@ class TestSandboxBehavior:
         assert not result.success
         assert "RuntimeError" in result.stderr
         assert "boom" in result.stderr
+
+    def test_registered_helpers_persist_and_run(self):
+        """Registered helpers should persist across execute_code calls."""
+        sandbox = TraceSandbox(trace=None)
+        sandbox.inject("traces", {"values": [1, 2, 3]})
+        result = sandbox.execute(
+            """
+register_helper(
+    "sum_values",
+    "def sum_values():\\n    return sum(traces['values'])\\n",
+    "Return the sum of traces['values']",
+)
+print(run_helper("sum_values"))
+            """.strip(),
+            timeout=5.0,
+        )
+
+        assert result.success
+        assert "6" in result.stdout
+        assert sandbox.namespace["list_helpers"]()[0]["name"] == "sum_values"
+
+    def test_registered_helpers_are_rehydrated_in_snapshots(self):
+        """Sub-agent snapshots should recreate helpers against the child namespace."""
+        parent = TraceSandbox(trace=None)
+        parent.inject("traces", {"values": [1, 2, 3]})
+        parent.execute(
+            """
+register_helper(
+    "sum_values",
+    "def sum_values():\\n    return sum(traces['values'])\\n",
+    "Return the sum of traces['values']",
+)
+            """.strip(),
+            timeout=5.0,
+        )
+
+        child = create_readonly_sandbox(parent)
+        child.namespace["traces"]["values"].append(4)
+        result = child.execute('print(run_helper("sum_values"))', timeout=5.0)
+
+        assert result.success
+        assert "10" in result.stdout
+        assert parent.namespace["traces"]["values"] == [1, 2, 3]
 
 
 # =========================================================================

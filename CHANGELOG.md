@@ -16,7 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **RR raw trace batch helpers** — `build_raw_trace_batches` and related runtime utilities for feeding raw traces directly into the RR pipeline
 
 ### Fixed
-- **Logfire scrubbing** — added scrubbing callback to prevent sensitive trace content from leaking into Logfire exports
+- **Logfire scrubbing** — added scrubbing callback to stop Logfire over-redacting trace content (reasoning, answers, messages now visible in Logfire UI)
 - **RR combined-batch normalization** — fixed ordering/deduplication of combined task batches in multi-sample runs
 
 ### Docs

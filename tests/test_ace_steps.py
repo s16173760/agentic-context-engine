@@ -1,4 +1,4 @@
-"""Tests for ace steps: ReflectStep, TagStep, UpdateStep, provenance, ApplyStep."""
+"""Tests for ace steps: ReflectStep, UpdateStep, provenance, ApplyStep."""
 
 from __future__ import annotations
 

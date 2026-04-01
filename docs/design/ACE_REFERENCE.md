@@ -23,7 +23,7 @@ from ace import ACERunner
 
 # Core steps
 from ace import (
-    AgentStep, EvaluateStep, ReflectStep, TagStep, UpdateStep,
+    AgentStep, EvaluateStep, ReflectStep, UpdateStep,
     AttachInsightSourcesStep, ApplyStep,
     DeduplicateStep, CheckpointStep, LoadTracesStep, ExportSkillbookMarkdownStep,
     ObservabilityStep, PersistStep, learning_tail,
@@ -254,30 +254,6 @@ class ReflectStep:
         return ctx.replace(reflections=(reflection,))
 ```
 
-### TagStep
-
-Side-effect step — tags skills on the real `Skillbook` (constructor-injected). Hallucinated skill IDs are logged at `WARNING` level.
-
-```python
-class TagStep:
-    requires = frozenset({"reflections"})
-    provides = frozenset()
-
-    max_workers = 1
-
-    def __init__(self, skillbook: Skillbook) -> None:
-        self.skillbook = skillbook
-
-    def __call__(self, ctx: ACEStepContext) -> ACEStepContext:
-        for reflection in ctx.reflections:
-            for tag in reflection.skill_tags:
-                try:
-                    self.skillbook.tag_skill(tag.id, tag.tag)
-                except ValueError:
-                    logger.warning("TagStep: skill_id %r not found, skipping tag %r", tag.id, tag.tag)
-        return ctx
-```
-
 ### UpdateStep
 
 Pure — generates update operations from reflections and current skillbook state.
@@ -480,7 +456,6 @@ def learning_tail(
     """Return the standard ACE learning steps."""
     steps: list[StepProtocol[ACEStepContext]] = [
         ReflectStep(reflector),
-        TagStep(skillbook),
         UpdateStep(skill_manager),
         AttachInsightSourcesStep(),
         ApplyStep(skillbook),

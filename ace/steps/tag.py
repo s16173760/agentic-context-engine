@@ -1,23 +1,15 @@
-"""TagStep — applies skill tags from the Reflector's output to the skillbook."""
+"""TagStep — placeholder for future skill tagging from reflector output."""
 
 from __future__ import annotations
 
-import logging
-
-from ..core.skillbook import Skillbook
-
 from ..core.context import ACEStepContext
-
-logger = logging.getLogger(__name__)
 
 
 class TagStep:
-    """Tag skills on the real Skillbook based on the reflection's skill_tags.
+    """Pass-through step — skill tag counters were removed from the Skillbook.
 
-    Side-effect step — mutates ``self.skillbook`` (the real Skillbook,
-    injected via constructor).  ``max_workers = 1`` serialises writes.
-
-    Hallucinated skill IDs are logged at WARNING rather than aborting.
+    Kept as a pipeline placeholder so existing pipeline compositions and
+    ``learning_tail()`` continue to work without modification.
     """
 
     requires: frozenset[str] = frozenset({"reflections"})
@@ -25,18 +17,9 @@ class TagStep:
 
     max_workers = 1
 
-    def __init__(self, skillbook: Skillbook) -> None:
-        self.skillbook = skillbook
+    def __init__(self, skillbook: object = None) -> None:
+        # Accept skillbook arg for backward compat with learning_tail() wiring
+        pass
 
     def __call__(self, ctx: ACEStepContext) -> ACEStepContext:
-        for reflection in ctx.reflections:
-            for skill_tag in reflection.skill_tags:
-                try:
-                    self.skillbook.tag_skill(skill_tag.id, skill_tag.tag)
-                except (ValueError, KeyError):
-                    logger.warning(
-                        "TagStep: skill_id %r not found, skipping tag %r",
-                        skill_tag.id,
-                        skill_tag.tag,
-                    )
         return ctx

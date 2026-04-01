@@ -118,7 +118,7 @@ class MCPHandlers:
                 skillbook = session.runner.skillbook
                 skills = skillbook.skills(include_invalid=request.include_invalid)
 
-                limited_skills = []
+                limited_skills: list[SkillItem] = []
                 for s in skills:
                     limited_skills.append(
                         SkillItem(

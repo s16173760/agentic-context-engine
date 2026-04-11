@@ -6,7 +6,7 @@
   "author": "Kayba.ai <hello@kayba.ai>",
   "repository": {
     "type": "git",
-    "url": "https://github.com/Kayba-ai/agentic-context-engine",
+    "url": "https://github.com/kayba-ai/agentic-context-engine",
     "directory": "sdk/typescript"
   },
   "homepage": "https://kayba.ai",

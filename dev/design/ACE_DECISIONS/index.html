@@ -10,13 +10,9 @@
       
       
       
-        <link rel="canonical" href="https://kayba-ai.github.io/agentic-context-engine/latest/concepts/updates/">
+        <link rel="canonical" href="https://kayba-ai.github.io/agentic-context-engine/latest/design/ACE_DECISIONS/">
       
       
-        <link rel="prev" href="../insight-levels/">
-      
-      
-        <link rel="next" href="../../guides/full-pipeline/">
       
       
         
@@ -76,7 +72,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#update-operations" class="md-skip">
+        <a href="#design-decisions" class="md-skip">
           Skip to content
         </a>
       
@@ -113,7 +109,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Update Operations
+              Design Decisions
             
           </span>
         </div>
@@ -266,13 +262,11 @@
   
   
   
-    
-  
   
     
     
-      <li class="md-tabs__item md-tabs__item--active">
-        <a href="../overview/" class="md-tabs__link">
+      <li class="md-tabs__item">
+        <a href="../../concepts/overview/" class="md-tabs__link">
           
   
   
@@ -583,31 +577,28 @@
       
   
   
-    
   
   
-  
     
     
     
     
-      
-        
-        
       
       
         
       
     
     
-    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--nested">
       
         
-        
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" checked>
         
           
-          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="">
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
             
   
   
@@ -625,7 +616,7 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="true">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
           <label class="md-nav__title" for="__nav_3">
             <span class="md-nav__icon md-icon"></span>
             
@@ -643,7 +634,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../overview/" class="md-nav__link">
+      <a href="../../concepts/overview/" class="md-nav__link">
         
   
   
@@ -671,7 +662,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../skillbook/" class="md-nav__link">
+      <a href="../../concepts/skillbook/" class="md-nav__link">
         
   
   
@@ -699,7 +690,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../roles/" class="md-nav__link">
+      <a href="../../concepts/roles/" class="md-nav__link">
         
   
   
@@ -727,7 +718,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../insight-levels/" class="md-nav__link">
+      <a href="../../concepts/insight-levels/" class="md-nav__link">
         
   
   
@@ -752,37 +743,10 @@
                 
   
   
-    
   
   
-  
-    <li class="md-nav__item md-nav__item--active">
-      
-      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
-      
-      
-        
-      
-      
-        <label class="md-nav__link md-nav__link--active" for="__toc">
-          
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Update Operations
-  
-
-    
-  </span>
-  
-  
-
-          <span class="md-nav__icon md-icon"></span>
-        </label>
-      
-      <a href="./" class="md-nav__link md-nav__link--active">
+    <li class="md-nav__item">
+      <a href="../../concepts/updates/" class="md-nav__link">
         
   
   
@@ -798,131 +762,6 @@
   
 
       </a>
-      
-        
-
-<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
-  
-  
-  
-    
-  
-  
-    <label class="md-nav__title" for="__toc">
-      <span class="md-nav__icon md-icon"></span>
-      Table of contents
-    </label>
-    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
-      
-        <li class="md-nav__item">
-  <a href="#operation-types" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Operation Types
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#examples" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Examples
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Examples">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#add" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        ADD
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#update" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        UPDATE
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#tag" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        TAG
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#remove" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        REMOVE
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#update-batches" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Update Batches
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#how-updates-flow" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        How Updates Flow
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#what-to-read-next" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        What to Read Next
-      
-    </span>
-  </a>
-  
-</li>
-      
-    </ul>
-  
-</nav>
-      
     </li>
   
 
@@ -1844,33 +1683,22 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#operation-types" class="md-nav__link">
+  <a href="#pydanticai-migration" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Operation Types
+        PydanticAI Migration
       
     </span>
   </a>
   
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#examples" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Examples
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Examples">
+    <nav class="md-nav" aria-label="PydanticAI Migration">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#add" class="md-nav__link">
+  <a href="#what-we-replaced-and-why" class="md-nav__link">
     <span class="md-ellipsis">
       
-        ADD
+        What we replaced and why
       
     </span>
   </a>
@@ -1878,10 +1706,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#update" class="md-nav__link">
+  <a href="#what-we-kept" class="md-nav__link">
     <span class="md-ellipsis">
       
-        UPDATE
+        What we kept
       
     </span>
   </a>
@@ -1889,21 +1717,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#tag" class="md-nav__link">
+  <a href="#provider-resolution-design" class="md-nav__link">
     <span class="md-ellipsis">
       
-        TAG
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#remove" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        REMOVE
+        Provider resolution design
       
     </span>
   </a>
@@ -1916,32 +1733,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#update-batches" class="md-nav__link">
+  <a href="#ace-architecture-decisions" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Update Batches
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#how-updates-flow" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        How Updates Flow
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#what-to-read-next" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        What to Read Next
+        ACE Architecture Decisions
       
     </span>
   </a>
@@ -1968,103 +1763,119 @@
   
 
 
-<h1 id="update-operations">Update Operations<a class="headerlink" href="#update-operations" title="Permanent link">&para;</a></h1>
-<p>The SkillManager communicates changes to the skillbook through <strong>update operations</strong>. Each operation is a structured instruction to modify the skillbook in a specific way.</p>
-<h2 id="operation-types">Operation Types<a class="headerlink" href="#operation-types" title="Permanent link">&para;</a></h2>
+<h1 id="design-decisions">Design Decisions<a class="headerlink" href="#design-decisions" title="Permanent link">&para;</a></h1>
+<blockquote>
+<p>What was considered and rejected for ACE and the PydanticAI migration — and why.</p>
+</blockquote>
+<p>For architecture and concepts, see <a href="../ACE_ARCHITECTURE/">ACE_ARCHITECTURE.md</a>.
+For code reference and examples, see <a href="../ACE_REFERENCE/">ACE_REFERENCE.md</a>.</p>
+<hr />
+<h2 id="pydanticai-migration">PydanticAI Migration<a class="headerlink" href="#pydanticai-migration" title="Permanent link">&para;</a></h2>
+<h3 id="what-we-replaced-and-why">What we replaced and why<a class="headerlink" href="#what-we-replaced-and-why" title="Permanent link">&para;</a></h3>
+<p>ACE had three hand-rolled LLM client implementations (LiteLLMClient, InstructorClient, ClaudeCodeLLMClient) with inconsistent retry/validation behavior, ~3,500 lines of custom agent-loop plumbing in the Recursive Reflector, and manual code extraction via regex. PydanticAI handles all of this as maintained infrastructure.</p>
 <table>
 <thead>
 <tr>
-<th>Type</th>
-<th>Description</th>
-<th>Required Fields</th>
+<th>Before</th>
+<th>After</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td><code>ADD</code></td>
-<td>Create a new skill</td>
-<td><code>section</code>, <code>content</code></td>
+<td>3 LLM client implementations</td>
+<td>PydanticAI agents inside roles</td>
 </tr>
 <tr>
-<td><code>UPDATE</code></td>
-<td>Modify an existing skill's content</td>
-<td><code>skill_id</code>, <code>content</code></td>
+<td>Manual JSON extraction + Pydantic parse</td>
+<td>PydanticAI validates via tool-call schema, retries with error feedback</td>
 </tr>
 <tr>
-<td><code>TAG</code></td>
-<td>Record a skill as helpful, harmful, or neutral</td>
-<td><code>skill_id</code>, <code>tag</code></td>
+<td>3 blind retries or Instructor</td>
+<td>PydanticAI native (configurable, with error context)</td>
 </tr>
 <tr>
-<td><code>REMOVE</code></td>
-<td>Delete a skill from the skillbook</td>
-<td><code>skill_id</code></td>
+<td>LiteLLM wrapper for provider support</td>
+<td>PydanticAI (native support for 15+ providers, wraps LiteLLM internally)</td>
+</tr>
+<tr>
+<td>Custom SubRunner loop (~400 lines)</td>
+<td>PydanticAI's agent loop — LLM calls tools until it produces structured output</td>
+</tr>
+<tr>
+<td>200 lines of regex code extraction</td>
+<td>Tool args are pre-parsed (code arrives as <code>execute_code</code> parameter)</td>
+</tr>
+<tr>
+<td>Inner pipeline steps (~500 lines)</td>
+<td>~50 lines of tool definitions</td>
+</tr>
+<tr>
+<td>CallBudget + SubAgentLLM (~200 lines)</td>
+<td><code>ctx.usage</code> shared budget + delegate agent</td>
+</tr>
+<tr>
+<td>Custom <code>RRIterationContext</code></td>
+<td>PydanticAI manages message state internally</td>
+</tr>
+<tr>
+<td>Manual Opik span building (~356 lines)</td>
+<td><code>logfire.instrument_pydantic_ai()</code> auto-instruments everything</td>
 </tr>
 </tbody>
 </table>
-<h2 id="examples">Examples<a class="headerlink" href="#examples" title="Permanent link">&para;</a></h2>
-<h3 id="add">ADD<a class="headerlink" href="#add" title="Permanent link">&para;</a></h3>
-<p>Adds a new strategy learned from experience:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="p">{</span>
-<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="w">  </span><span class="nt">&quot;type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;ADD&quot;</span><span class="p">,</span>
-<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="w">  </span><span class="nt">&quot;section&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Math Strategies&quot;</span><span class="p">,</span>
-<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="w">  </span><span class="nt">&quot;content&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Break complex problems into smaller steps before computing&quot;</span>
-<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="p">}</span>
-</code></pre></div>
-<h3 id="update">UPDATE<a class="headerlink" href="#update" title="Permanent link">&para;</a></h3>
-<p>Refines an existing strategy:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="p">{</span>
-<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="w">  </span><span class="nt">&quot;type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;UPDATE&quot;</span><span class="p">,</span>
-<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="w">  </span><span class="nt">&quot;skill_id&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;math-00001&quot;</span><span class="p">,</span>
-<a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="w">  </span><span class="nt">&quot;content&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Break complex problems into smaller steps. Verify each step before proceeding.&quot;</span>
-<a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a><span class="p">}</span>
-</code></pre></div>
-<h3 id="tag">TAG<a class="headerlink" href="#tag" title="Permanent link">&para;</a></h3>
-<p>Records whether a strategy helped or hurt:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="p">{</span>
-<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="w">  </span><span class="nt">&quot;type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;TAG&quot;</span><span class="p">,</span>
-<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="w">  </span><span class="nt">&quot;skill_id&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;math-00001&quot;</span><span class="p">,</span>
-<a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="w">  </span><span class="nt">&quot;tag&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;helpful&quot;</span>
-<a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a><span class="p">}</span>
-</code></pre></div>
-<p>Tags are one of: <code>helpful</code>, <code>harmful</code>, <code>neutral</code>.</p>
-<h3 id="remove">REMOVE<a class="headerlink" href="#remove" title="Permanent link">&para;</a></h3>
-<p>Prunes a strategy that is consistently harmful:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="p">{</span>
-<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="w">  </span><span class="nt">&quot;type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;REMOVE&quot;</span><span class="p">,</span>
-<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="w">  </span><span class="nt">&quot;skill_id&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;math-00003&quot;</span>
-<a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="p">}</span>
-</code></pre></div>
-<h2 id="update-batches">Update Batches<a class="headerlink" href="#update-batches" title="Permanent link">&para;</a></h2>
-<p>The SkillManager emits operations as an <code>UpdateBatch</code> — one or more operations applied atomically:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">ace</span><span class="w"> </span><span class="kn">import</span> <span class="n">UpdateOperation</span><span class="p">,</span> <span class="n">UpdateBatch</span>
-<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>
-<a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="n">batch</span> <span class="o">=</span> <span class="n">UpdateBatch</span><span class="p">(</span><span class="n">operations</span><span class="o">=</span><span class="p">[</span>
-<a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a>    <span class="n">UpdateOperation</span><span class="p">(</span><span class="nb">type</span><span class="o">=</span><span class="s2">&quot;ADD&quot;</span><span class="p">,</span> <span class="n">section</span><span class="o">=</span><span class="s2">&quot;Debugging&quot;</span><span class="p">,</span> <span class="n">content</span><span class="o">=</span><span class="s2">&quot;Log inputs before errors&quot;</span><span class="p">),</span>
-<a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a>    <span class="n">UpdateOperation</span><span class="p">(</span><span class="nb">type</span><span class="o">=</span><span class="s2">&quot;TAG&quot;</span><span class="p">,</span> <span class="n">skill_id</span><span class="o">=</span><span class="s2">&quot;debug-00001&quot;</span><span class="p">,</span> <span class="n">tag</span><span class="o">=</span><span class="s2">&quot;helpful&quot;</span><span class="p">),</span>
-<a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a><span class="p">])</span>
-<a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a>
-<a id="__codelineno-4-8" name="__codelineno-4-8" href="#__codelineno-4-8"></a><span class="n">skillbook</span><span class="o">.</span><span class="n">apply_update</span><span class="p">(</span><span class="n">batch</span><span class="p">)</span>
-</code></pre></div>
-<p>In batch reflection mode, <code>ADD</code> and <code>UPDATE</code> operations may also include
-<code>reflection_index</code> to indicate which reflection in the input tuple primarily
-produced the operation.</p>
-<p>When an operation is synthesized from multiple reflections, it may instead use
-<code>reflection_indices</code> to list all contributing reflections. This lets downstream
-provenance attach multiple trace sources to one learned skill.</p>
-<h2 id="how-updates-flow">How Updates Flow<a class="headerlink" href="#how-updates-flow" title="Permanent link">&para;</a></h2>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>Agent cites skill_ids --&gt; Reflector tags them --&gt; SkillManager emits ADD/UPDATE/REMOVE
-</code></pre></div>
-<ol>
-<li>The <strong>Agent</strong> cites skill IDs it used in its reasoning</li>
-<li>The <strong>Reflector</strong> classifies each cited skill as helpful/harmful/neutral (TAG operations)</li>
-<li>The <strong>SkillManager</strong> may also ADD new strategies or UPDATE/REMOVE existing ones based on the reflection</li>
-</ol>
-<h2 id="what-to-read-next">What to Read Next<a class="headerlink" href="#what-to-read-next" title="Permanent link">&para;</a></h2>
+<p><strong>Net result for RR:</strong> ~3,500 lines → ~1,000 lines (sandbox + prompts + trimming + agent definition). ~2,500 lines of loop/extraction/budget/context plumbing deleted.</p>
+<h3 id="what-we-kept">What we kept<a class="headerlink" href="#what-we-kept" title="Permanent link">&para;</a></h3>
 <ul>
-<li><a href="../skillbook/">The Skillbook</a> — where operations are applied</li>
-<li><a href="../roles/">Three Roles</a> — which role emits which operations</li>
+<li><strong>Pipeline engine</strong> (<code>pipeline/</code>) — <code>requires</code>/<code>provides</code> contracts, <code>async_boundary</code>, per-step <code>max_workers</code>, <code>SampleResult</code> error isolation. No framework offers this combination.</li>
+<li><strong>Skillbook &amp; learning loop</strong> — Reflect → Tag → Update → Apply → Deduplicate. This is core IP.</li>
+<li><strong>Step composition</strong> — <code>learning_tail()</code>, pipeline-as-step nesting, <code>SkillbookView</code> read/write split.</li>
+<li><strong>Domain-specific prompts</strong> — tightly coupled to skillbook format and ACE's reflection strategy.</li>
+<li><strong>All pipeline steps</strong> — they depend on protocols, not implementations. Completely unchanged.</li>
 </ul>
+<h3 id="provider-resolution-design">Provider resolution design<a class="headerlink" href="#provider-resolution-design" title="Permanent link">&para;</a></h3>
+<p>The resolver routes LiteLLM model strings to PydanticAI through three paths:</p>
+<ol>
+<li><strong>PydanticAI-native prefix</strong> — pass through unchanged</li>
+<li><strong>LiteLLM prefix → native provider</strong> — rewrite <code>/</code> to <code>:</code> when the prefix matches a native provider. This is necessary because PydanticAI's <code>litellm</code> provider uses an OpenAI-compatible HTTP client under the hood, which doesn't work for providers with non-OpenAI APIs (Bedrock via SigV4, Anthropic's native API, etc.).</li>
+<li><strong>Fallback</strong> — prefix with <code>litellm:</code> for the proxy provider</li>
+</ol>
+<p>User-facing API is unchanged — same LiteLLM model strings as before.</p>
+<hr />
+<h2 id="ace-architecture-decisions">ACE Architecture Decisions<a class="headerlink" href="#ace-architecture-decisions" title="Permanent link">&para;</a></h2>
+<p><strong>Runner extends Pipeline:</strong>
+Making TraceAnalyser and ACE subclasses of <code>Pipeline</code> was considered. Rejected — the runner is not a pipeline. It owns the epoch loop. Composition (<code>self.pipeline</code>) keeps responsibilities separate.</p>
+<p><strong>Cross-sample state (reflection window):</strong>
+A rolling window of recent reflections that persists across samples was considered, with variants: on the runner, on <code>StepContext</code>, on step instances, via a shared mediator object. All rejected — each sample should be independent. The only cross-sample coupling is the skillbook itself. Adding a reflection window complicates the model (reset between epochs, eventual consistency with background steps, ordering issues with concurrent workers) for marginal benefit.</p>
+<p><strong>Separate Online and Offline classes:</strong>
+Keeping two runner classes for single-pass and multi-epoch was considered. Rejected — the only difference is <code>epochs=1</code> vs <code>epochs &gt; 1</code>, which is a parameter, not a class distinction. ACE handles both. TraceAnalyser is a separate class because its input type is fundamentally different (raw traces vs <code>Sample + Environment</code>).</p>
+<p><strong>Structured Trace dataclass:</strong>
+A <code>@dataclass Trace</code> with typed fields (<code>task</code>, <code>output</code>, <code>feedback</code>, <code>reasoning</code>, etc.) was considered. Rejected — it imposes a schema on trace data that doesn't match reality. External frameworks produce wildly different trace shapes (browser-use <code>AgentHistoryList</code>, LangChain result dicts, Claude Code transcripts). Forcing them through a common dataclass means either losing information or adding catch-all <code>metadata</code> buckets that defeat the purpose of typing. Instead, <code>ctx.trace</code> is <code>object | None</code> and the Reflector makes sense of whatever it receives.</p>
+<p><strong>Steps that accept both traces and samples:</strong>
+Making ReflectStep and UpdateStep polymorphic over input type was considered. Rejected — steps always receive <code>StepContext</code> with the same named fields. The runner (<code>_build_context</code>) is responsible for building the context correctly.</p>
+<p><strong>Observability in the runner:</strong>
+Keeping observability logic in <code>ACERunner._track_observability_data()</code> was considered. Rejected — it mixes concerns. Observability is handled by Logfire auto-instrumentation.</p>
+<p><strong>Custom AsyncLearningPipeline:</strong>
+The legacy <code>ace/async_learning.py</code> implements a manual thread pool with reflector and skill manager queues. Rejected — the pipeline engine's <code>async_boundary</code> and <code>max_workers</code> provide the same functionality with less code and consistent semantics.</p>
+<p><strong>Per-integration pipeline classes:</strong>
+Having each integration define its own pipeline class was considered. Rejected — every integration pipeline has the same learning tail; only the execute step differs. Instead, integrations provide execute steps that compose into an <code>ACERunner</code> subclass, reusing the shared <code>_run()</code> loop.</p>
+<p><strong>Checkpoints in the runner:</strong>
+Having the runner own checkpoint logic (via <code>run()</code> parameters) was considered. Rejected — a <code>CheckpointStep</code> at the end of the pipeline tail keeps checkpointing within the pipeline formalism. Configuration belongs at construction time (factory methods), not at call time (<code>run()</code>).</p>
+<p><strong>Mutable Skillbook directly on the context:</strong>
+Storing the real <code>Skillbook</code> as a field on <code>ACEStepContext</code> was the initial design. Rejected — <code>StepContext</code> is frozen, but <code>Skillbook</code> is mutable. Placing it on the context creates the illusion of immutability while allowing any step to mutate shared state through the reference. Instead, the context carries a <code>SkillbookView</code> (read-only projection). Write steps receive the real <code>Skillbook</code> via constructor injection.</p>
+<p><strong>Combined Reflect+Tag and Update+Apply steps:</strong>
+Keeping ReflectStep as both reflection and tagging, and UpdateStep as both generation and application was considered. Rejected — each combination mixes a pure function (LLM call) with a side effect (skillbook mutation). Splitting means pure steps can be tested without a skillbook, side-effect steps can be tested without an LLM.</p>
+<p><strong>Instructor auto-wrapping in implementations:</strong>
+The old <code>ace/roles.py</code> auto-wrapped LLM clients with Instructor if <code>complete_structured</code> was missing. Rejected — PydanticAI handles structured output natively via its <code>result_type</code> parameter.</p>
+<p><strong>Recursive Reflector (initial rejection, now implemented):</strong>
+The old <code>ace/reflector/</code> subsystem supports recursive mode. Initially rejected for <code>ace</code> due to complexity. Now implemented as <code>RRStep</code> — a PydanticAI agent-based step that runs an iterative REPL loop. Satisfies both <code>StepProtocol[ACEStepContext]</code> and <code>ReflectorLike</code>.</p>
+<p><strong>Observability decorator on implementations:</strong>
+The old <code>ace/roles.py</code> uses <code>@maybe_track()</code> decorators for Opik tracing on every role method. Rejected — Logfire auto-instrumentation handles observability. Per-method decorators would double-count and create coupling.</p>
+<p><strong>Deduplication inside SkillManager:</strong>
+The old <code>ace/roles.py</code> SkillManager integrates with <code>DeduplicationManager</code> directly. Rejected — deduplication is now a separate <code>DeduplicateStep</code> in the pipeline. Cleaner separation: the SkillManager only produces output, deduplication runs at a configurable interval.</p>
+<p><strong>Shared <code>ace/features.py</code> module:</strong>
+A centralized feature detection module was considered. Rejected — the only code that needs it is <code>deduplication/detector.py</code>, which uses a local <code>_has(module)</code> helper. A shared module would add a file for a single 4-line function.</p>
+<p><strong>Separate wrapper classes for integration runners:</strong>
+Separate convenience classes (<code>ACEAgent</code>, <code>ACELangChain</code>, <code>ACEClaudeCode</code>) wrapping the runners were the initial design. Rejected — the wrappers only added <code>from_model()</code> and a few lifecycle helpers, which fit naturally on the runner class itself. Two classes for one concept forces users to choose between them. Exception: <code>ACELiteLLM</code>, which wraps two runners and exposes a fundamentally different API.</p>
 
 
 
